@@ -866,7 +866,14 @@
 
   // iframe 주소를 바꿀 때 브라우저 뒤로가기 기록이 쌓이지 않게 — src 대신 location.replace
   function setFrame(fr, url) {
-    try { fr.contentWindow.location.replace(url === "about:blank" ? url : new URL(url, location.href).href); return; } catch (e) { }
+    try {
+      var w = fr.contentWindow, to = url === "about:blank" ? url : new URL(url, location.href).href;
+      // 해시만 다른(또는 같은) 주소는 다시 불러오지 않아 load 가 안 온다 → 바꾼 뒤 새로고침(기록은 쌓이지 않는다)
+      var same = w.location.href !== "about:blank" && w.location.href.split("#")[0] === to.split("#")[0];
+      w.location.replace(to);
+      if (same) { w.location.reload(); }
+      return;
+    } catch (e) { }
     fr.src = url;
   }
   function appUrl(hash) { return APP + "?mission=" + encodeURIComponent(MISSION) + "&floor=B4" + (hash || "#normal"); }
