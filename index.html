@@ -168,7 +168,8 @@
 
   /* 튜토리얼 — 비추는 구멍 + 말풍선 */
   .tour { position: absolute; inset: 0; z-index: 30; }
-  .tour-hole { position: absolute; border-radius: 12px; box-shadow: 0 0 0 4000px rgba(5,8,14,.62); outline: 3px solid #fff; outline-offset: 2px;
+  .tour-dim { position: absolute; inset: 0; background: rgba(5,8,14,.62); pointer-events: none; }
+  .tour-hole { position: absolute; border-radius: 12px; outline: 3px solid #fff; outline-offset: 2px;
     transition: left .25s, top .25s, width .25s, height .25s; pointer-events: none; }
   .tour-pop { position: absolute; width: 400px; background: #fff; color: var(--ink); border-radius: 14px; padding: 20px 22px 18px;
     box-shadow: 0 0 0 3px var(--blue), 0 12px 40px rgba(0,0,0,.4); transition: left .25s, top .25s; }
@@ -336,7 +337,9 @@
     <div class="loading" id="loading">테스트 화면을 불러오는 중</div>
 
     <div class="tour" id="tour" hidden>
+      <div class="tour-dim" id="tour-dim"></div>
       <div class="tour-hole" id="tour-hole"></div>
+      <div class="tour-hole" id="tour-hole2" hidden></div>
       <div class="tour-pop" id="tour-pop" role="dialog" aria-labelledby="tour-title">
         <button type="button" class="x" id="tour-x" aria-label="튜토리얼 닫기">×</button>
         <h3 id="tour-title"></h3>
@@ -427,12 +430,12 @@
       after: function (d) { var t = d.querySelector(".delta3 [data-ai-toggle]"); if (t && d.querySelector(".delta3.is-open")) { t.click(); } } },
     { sel: ".map-panel", title: "설비 배치도", text: "로봇의 위치와 순회 경로, 점검 지점 번호가 표시됩니다. 빨간 핀과 노란 핀은 알림이 난 지점입니다." },
     { sel: ".right-panel", title: "로봇과 미션 진행", text: "위는 로봇 상태와 자동복귀, 긴급정지 버튼, 아래는 미션 진행률과 지점별 순서입니다." },
-    { sel: ".context-panel .ah-sec:not(.done-sec)", title: "최신 알림", text: "로봇이 이상을 감지하면 이렇게 알림이 쌓입니다. 빨간 삼각형은 위험, 노란 삼각형은 주의입니다.",
+    { sel: ".context-panel .ah-sec:not(.done-sec)", also: ".delta3", title: "최신 알림과 Delta", text: "로봇이 이상을 감지하면 왼쪽에 알림이 쌓이고, Delta도 주의로 바뀌어 먼저 볼 것을 알려 줍니다. 빨간 삼각형은 위험, 노란 삼각형은 주의입니다.",
       // 기본 판은 알림이 없다 — 이 단계부터 주의 알림을 들여와 보여 준다(튜토리얼이 끝나면 다시 정상 판으로 연다)
       act: function (d, w) { w.history.replaceState(w.history.state, "", w.location.pathname + w.location.search + "#warning"); w.dispatchEvent(new w.HashChangeEvent("hashchange")); return function () { return !!firstWarnRow(d); }; } },
     { sel: ".map-alert", title: "알림 상세", text: "알림을 누르면 상세 팝오버가 열립니다. 조치를 골라 [조치 요청]을 누르고, [진단 상세]를 누르면 안전진단 화면에서 더 자세히 봅니다.",
       act: function (d) { realClick(d, firstWarnRow(d)); return function () { var m = d.querySelector(".map-alert"); return !!m && m.getBoundingClientRect().width > 0; }; } },
-    { sel: ".sf-main", title: "안전진단 화면", text: "측정값과 영상, 측정 이력을 자세히 보고 오른쪽에서 조치를 요청할 수 있습니다. 왼쪽 메뉴의 안전진단으로도 들어옵니다.",
+    { sel: "main.sf", pop: "bottom", title: "안전진단 화면", text: "측정값과 영상, 측정 이력을 자세히 보고 오른쪽에서 조치를 요청할 수 있습니다. 왼쪽 메뉴의 안전진단으로도 들어옵니다.",
       act: function (d, w) { var a = d.querySelector(".map-alert a[href*='safety-v6']"); w.location.href = a ? a.href : "safety-v6.html?mission=" + encodeURIComponent(MISSION); return "load"; } }
   ];
 
@@ -453,7 +456,7 @@
       desc: "앞서 확인한 위험 상황에 대해 대응이 필요합니다. 화면에서 제공하는 정보를 바탕으로 필요한 조치를 진행해 주세요.<br><u>(시나리오 3에서는 감독자가 시간을 측정합니다.)</u>",
       tasks: [
         { id: "3-1", qs: ["해당 상황에 적절한 조치를 선택하고 실행해주세요."] },
-        { id: "3-2", qs: ["방금 어떤 조치를 실행했나요?", "조치가 반영되었다는 것을 어디에서 확인할 수 있나요?"] }
+        { id: "3-2", qs: ["조치가 반영되었다는 것을 어디에서 확인할 수 있나요?"] }
       ] }
   ];
 
@@ -843,9 +846,21 @@
     var r = s.rect ? { left: s.rect[0], top: s.rect[1], width: s.rect[2], height: s.rect[3] } :
       el ? el.getBoundingClientRect() : { left: 760, top: 440, width: 400, height: 200 };
     r = { left: r.left, top: r.top, width: r.width, height: r.height, right: r.left + r.width, bottom: r.top + r.height };
-    var pad = 6, hole = $("tour-hole"), pop = $("tour-pop");
-    hole.style.left = (r.left - pad) + "px"; hole.style.top = (r.top - pad) + "px";
-    hole.style.width = (r.width + pad * 2) + "px"; hole.style.height = (r.height + pad * 2) + "px";
+    // also — 함께 비출 두 번째 자리. 어둡게 덮는 판은 구멍 자리만 뚫는다(evenodd)
+    var el2 = s.also && d && d.querySelector(s.also), r2 = el2 && el2.getBoundingClientRect();
+    if (r2 && !r2.width) { r2 = null; }
+    var pad = 6, pop = $("tour-pop"), path = "M0 0H1920V1080H0Z";
+    [[$("tour-hole"), r], [$("tour-hole2"), r2]].forEach(function (p) {
+      var h = p[0], q = p[1];
+      h.hidden = !q;
+      if (!q) { return; }
+      var x = q.left - pad, y = q.top - pad, w = q.width + pad * 2, hh = q.height + pad * 2;
+      h.style.left = x + "px"; h.style.top = y + "px"; h.style.width = w + "px"; h.style.height = hh + "px";
+      path += "M" + x + " " + y + "h" + w + "v" + hh + "h" + (-w) + "Z";
+    });
+    $("tour-dim").style.clipPath = "path(evenodd, '" + path + "')";
+    // 말풍선 자리는 두 자리를 합친 범위로 잰다
+    if (r2) { r = { left: Math.min(r.left, r2.left), top: Math.min(r.top, r2.top), right: Math.max(r.right, r2.right), bottom: Math.max(r.bottom, r2.bottom) }; r.width = r.right - r.left; r.height = r.bottom - r.top; }
     $("tour-title").textContent = s.title;
     $("tour-text").textContent = s.text;
     $("tour-cnt").textContent = (tourAt + 1) + "/" + TOUR.length;
@@ -858,6 +873,8 @@
     else if (r.bottom + gap + H < 1060) { x = r.left; y = r.bottom + gap; }
     else { x = r.left; y = r.top - gap - H; }
     if (r.height > 600 && x !== r.left) { y = r.top + 40; }
+    // pop: "bottom" — 화면을 거의 다 비추는 단계는 오른쪽 아래 빈 자리에 둔다
+    if (s.pop === "bottom") { x = 1920 - 40 - W; y = 1080 - 40 - H; }
     pop.style.left = Math.max(20, Math.min(1500, x)) + "px";
     pop.style.top = Math.max(20, Math.min(1060 - H, y)) + "px";
     log("tutorial-step", { label: (tourAt + 1) + " " + s.title });
