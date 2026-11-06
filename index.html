@@ -177,12 +177,14 @@
   .tour-pop { position: absolute; width: 400px; background: #fff; color: var(--ink); border-radius: 14px; padding: 20px 22px 18px;
     box-shadow: 0 0 0 3px var(--blue), 0 12px 40px rgba(0,0,0,.4); transition: left .25s, top .25s; }
   .tour-pop h3 { margin: 0 32px 10px 0; font-size: 20px; font-weight: 800; }
-  .tour-pop p { margin: 0; font-size: 16px; line-height: 1.65; color: var(--ink-2); }
+  .tour-pop p { margin: 0; font-size: 16px; line-height: 1.65; color: var(--ink-2); white-space: pre-line; }
   .tour-pop .x { position: absolute; right: 14px; top: 14px; width: 28px; height: 28px; border: 0; background: none; color: var(--ink-3); font-size: 20px; }
   .tour-pop .foot { display: flex; align-items: center; gap: 8px; margin-top: 18px; }
   .tour-pop .foot .cnt { flex: 1; font-size: 14px; color: var(--ink-3); }
   .tour-pop .foot .btn { padding: 8px 16px; font-size: 15px; }
   .btn-dark { background: #16191f; color: #fff; }
+  /* 튜토리얼 마지막 단계의 [시나리오 시작하기] — 파랑, 크게 */
+  .tour-pop .foot .btn.is-go { background: var(--blue); padding: 12px 24px; font-size: 17px; font-weight: 800; }
 
   .end { position: absolute; inset: 0; z-index: 40; display: grid; place-items: center; background: rgba(5,8,14,.72); }
   .end-card { background: #fff; border-radius: 16px; padding: 40px 48px; text-align: center; }
@@ -433,29 +435,29 @@
       after: function (d) { var t = d.querySelector(".delta3 [data-ai-toggle]"); if (t && d.querySelector(".delta3.is-open")) { t.click(); } } },
     { sel: ".map-panel", title: "설비 배치도", text: "로봇의 위치와 순회 경로, 점검 지점 번호가 표시됩니다. 빨간 핀과 노란 핀은 알림이 난 지점입니다." },
     { sel: ".right-panel", title: "로봇과 미션 진행", text: "위는 로봇 상태와 자동복귀, 긴급정지 버튼, 아래는 미션 진행률과 지점별 순서입니다." },
-    { sel: ".context-panel .ah-sec:not(.done-sec)", also: ".delta3", title: "최신 알림과 Delta", text: "로봇이 이상을 감지하면 왼쪽에 알림이 쌓이고, Delta도 주의로 바뀌어 먼저 볼 것을 알려 줍니다. 빨간 삼각형은 위험, 노란 삼각형은 주의입니다.",
+    { sel: ".context-panel .ah-sec:not(.done-sec)", also: ".delta3", title: "알림 센터", text: "로봇이 점검 중 감지한 이상징후를 모아 보여주는 영역입니다. 최신 순으로 나열되며 각 알림에서 어떤 문제가 발생했는지 확인할 수 있습니다.",
       // 기본 판은 알림이 없다 — 이 단계부터 주의 알림을 들여와 보여 준다(튜토리얼이 끝나면 다시 정상 판으로 연다)
       act: function (d, w) { w.history.replaceState(w.history.state, "", w.location.pathname + w.location.search + "#warning"); w.dispatchEvent(new w.HashChangeEvent("hashchange")); return function () { return !!firstWarnRow(d); }; } },
-    { sel: ".map-alert", title: "알림 상세", text: "알림을 누르면 상세 팝오버가 열립니다. 조치를 골라 [조치 요청]을 누르고, [진단 상세]를 누르면 안전진단 화면에서 더 자세히 봅니다.",
+    { sel: ".map-alert", title: "조치 팝업 창", text: "알림을 클릭하면 감지된 문제를 확인하고 필요한 조치를 선택할 수 있는 창이 해당 지도 위에 열립니다.\nAI 도우미 델타가 제안하는 대응 방법을 선택하고 [조치 요청]을 눌러주세요. AI의 제안을 참고하되, 최종 조치는 관제사가 판단하고 요청합니다.\n판단에 필요한 정보를 더 확인하려면 [진단 상세] 버튼을 눌러 상세 내용을 살펴보세요.",
       act: function (d) { realClick(d, firstWarnRow(d)); return function () { var m = d.querySelector(".map-alert"); return !!m && m.getBoundingClientRect().width > 0; }; } },
-    { sel: "main.sf", pop: "bottom", title: "안전진단 화면", text: "측정값과 영상, 측정 이력을 자세히 보고 오른쪽에서 조치를 요청할 수 있습니다. 왼쪽 메뉴의 안전진단으로도 들어옵니다.",
+    { sel: "main.sf", pop: "bottom", title: "안전진단 상세 화면", text: "로봇이 감지한 이상징후 측정 결과와 현장 영상, 과거 기록을 함께 살펴보고 대응 방법을 결정하는 화면입니다.",
       act: function (d, w) { var a = d.querySelector(".map-alert a[href*='safety-v6']"); w.location.href = a ? a.href : "safety-v6.html?mission=" + encodeURIComponent(MISSION); return "load"; } }
   ];
 
   var SCEN = [
-    { no: 1, title: "로봇의 업무 파악", ask: "로봇이 어떤 업무를 하고 있는지 화면에서 확인해 주세요!",
+    { no: 1, title: "로봇의 업무 파악", ask: "로봇이 어떤 업무를 하고 있는지 화면에서 확인해 주세요!", done: "확인 완료",
       desc: "관제 업무를 인계받았습니다. 현재 로봇은 현장에서 정기 순회 점검을 수행하고 있습니다. 화면을 살펴보고 로봇이 어떤 업무를 하고 있는지 확인해 주세요.",
       tasks: [
         { id: "1-1", qs: ["로봇이 수행 중인 미션의 이름은 무엇인가요?", "로봇은 지금 몇 번 지점에 있나요?"] },
         { id: "1-2", qs: ["임무는 현재 몇% 진행되었나요?", "로봇은 현재 무엇을 하고 있나요?", "그렇게 판단한 화면의 정보는 무엇인가요?"] }
       ] },
-    { no: 2, title: "위험 알람 확인", ask: "새로 발생한 위험 알림을 확인해 주세요!",
+    { no: 2, title: "위험 알람 확인", ask: "새로 발생한 위험 알림을 확인해 주세요!", done: "확인 완료",
       desc: "정기 순회 점검 중 위험 알람이 발생했습니다. 관제 담당자로서 어떤 상황이 발생했는지 확인해 주세요.",
       tasks: [
         { id: "2-1", qs: ["새로 발생한 위험 알림의 상세 내용을 확인해주세요.", "어떤 이상이 감지되었나요?"] },
         { id: "2-2", qs: ["발생 위치는 어디인가요?", "위험 등급은 무엇인가요?"] }
       ] },
-    { no: 3, title: "위험 대응 수행", ask: "위험 상황에 필요한 조치를 진행해 주세요!",
+    { no: 3, title: "위험 대응 수행", ask: "위험 상황에 필요한 조치를 진행해 주세요!", done: "조치 완료",
       desc: "앞서 확인한 위험 상황에 대해 대응이 필요합니다. 화면에서 제공하는 정보를 바탕으로 필요한 조치를 진행해 주세요.",
       tasks: [
         { id: "3-1", qs: ["조치를 완료하였나요?"] },
@@ -871,6 +873,7 @@
     $("tour-cnt").textContent = (tourAt + 1) + "/" + TOUR.length;
     $("tour-prev").hidden = tourAt === 0 || !!s.act || !!TOUR[tourAt - 1].act;
     $("tour-next").textContent = tourAt === TOUR.length - 1 ? "시나리오 시작하기" : "다음";
+    $("tour-next").classList.toggle("is-go", tourAt === TOUR.length - 1);
     // 말풍선 자리 — 오른쪽, 왼쪽, 아래, 위 순으로 들어가는 곳
     var W = 400, H = pop.offsetHeight || 200, gap = 20, x, y;
     if (r.right + gap + W < 1900) { x = r.right + gap; y = r.top; }
@@ -922,6 +925,7 @@
       var sc = curScen();
       $("rb-step").textContent = "시나리오 " + sc.no + "/" + SCEN.length;
       $("rb-title").textContent = sc.ask;
+      $("rb-done").textContent = sc.done || "수행 완료";   // 할 일 문장에 맞춰(확인해 주세요 → 확인 완료)
       $("rb-done").hidden = true;
       $("rb-hint").hidden = true;
     }
