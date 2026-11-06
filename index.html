@@ -766,9 +766,12 @@
         try {
           w.document.dispatchEvent(new w.CustomEvent("aprism:delta-sim", { detail: { from: "normal", after: after } }));
           if (after) { log("alert-measure", { label: "로봇이 위험 지점에서 측정 시작" }); }
-          setTimeout(function () {
-            try { if (w.document.body.getAttribute("data-level") !== "critical") { w.location.hash = "critical"; } } catch (e) { }
-          }, (after || 0) + 1500);
+          // 새 알림 기능이 없는 판이면 위험 판으로 — 처음 넣을 때만(다시 넣을 때는 조치 완료로 정상이 될 수 있다)
+          if (after) {
+            setTimeout(function () {
+              try { if (w.document.body.getAttribute("data-level") !== "critical") { w.location.hash = "critical"; } } catch (e) { }
+            }, after + 1500);
+          }
         } catch (e) { }
         if (after) { setTimeout(function () { log("alert-in", { label: "새 위험 알림 발생" }); }, after); }
         if (onIn) { setTimeout(onIn, (after || 2000) + 400); }   // monitor.js 는 after 가 0 이면 2초 뒤에 넣는다

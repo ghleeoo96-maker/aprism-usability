@@ -926,6 +926,21 @@
     }, d.after || 2000);
   });
 
+  /*
+   * [사용성 평가 사이트 전용 — aprism-usability 복사본에만 있다] 안전진단 화면에서 [현장 조치 요청]을 하고 돌아왔을 때
+   * 사이트가 aprism:ut-resolve 를 보내면, 델타 시뮬레이션으로 들어온 위험 알림을 "오늘 확인 완료"로 옮긴다(쪽지에서 조치 완료한 것과 같은 결과).
+   */
+  document.addEventListener("aprism:ut-resolve", function (event) {
+    var d = event.detail || {};
+    var a = extra.filter(function (x) { return x.sev === "critical"; })[0];
+    if (!a) { return; }
+    DONE.unshift({ wp: a.wp || "", time: d.time || clock(), title: window.APRISM_ALERT6 ? window.APRISM_ALERT6.title(a.title) : a.title,
+      how: d.how || "현장 조치 요청", who: "홍길동", fresh: true, memo: "" });
+    extra.splice(extra.indexOf(a), 1);
+    cleared.push(a);
+    render();
+  });
+
   // ==================================================================
   // 알림 쪽지 — Figma Messages(948:31737)
   //
