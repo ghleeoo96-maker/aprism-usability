@@ -61,6 +61,7 @@
   .sv-err { display: none; margin: 8px 0 0; color: var(--red); font-size: 14px; }
   .sv-card.is-err { border-color: var(--red); }
   .sv-card.is-err .sv-err { display: block; }
+  .sv-opt { color: var(--ink-3); font-size: 14px; }
   .sv-ta { width: 100%; resize: vertical; border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; font: inherit; font-size: 16px; line-height: 1.6; background: #f8fafc; }
   .sv-ta:focus { outline: 2px solid var(--blue); outline-offset: -1px; background: #fff; }
   .sv-band { margin: 24px 0 12px; padding: 14px 24px; border-radius: 10px; background: #2b8fd8; color: #fff; font-size: 16px; font-weight: 700; }
@@ -1207,21 +1208,22 @@
       '<span class="lk-end">전혀 그렇지 않다</span>' + dots + '<span class="lk-end">매우 그렇다</span></div><p class="sv-err">필수 질문입니다.</p></fieldset>';
   }).join("");
   // 주관식 — 1~8 필수, 9(자유 의견)는 선택. 슬라이드 "주관식 질문 및 심층인터뷰" 그대로
-  var OPEN = [
-    "처음 화면을 보았을때, 로봇이 어떤 업무를 하고 있는지 파악하기 어려웠던 부분이 있었나요?",
-    "위험 알람에서 가장 먼저 눈에 들어온 정보는 무엇이었나요?",
-    "위험 알람이 어떤 느낌이드는지, 상황이 얼마나 긴급하다고 느껴졌으며 그렇게 생각한 이유는 무엇인가요?",
-    "주의 알람과 위험 알람은 어떤 점에서 다르게 느껴졌나요? 차이가 느껴지지 않았다면 그 이유도 말씀해 주세요.",
-    "필요한 조치를 찾거나 실행하면서 망설였던 순간이 있었나요? 이유는 무엇인가요?",
-    "조치가 제대로 반영되었다고 느꼈나요? 그렇게 판단한 이유는 무엇인가요?",
-    "실제 관제 업무에서 사용한다면 추가로 필요한 정보나 기능은 무엇일까요?",
-    "가장 유용했던 부분과 가장 먼저 개선해야 할 부분을 각각 말씀해 주세요.",
-    "자유롭게 의견을 남겨주세요."
+  // 주관식 — 시나리오 인터뷰와 겹치는 "조치가 제대로 반영되었다고 느꼈나요?"는 뺐다. [문항, 선택 여부]
+  var OPEN_Q = [
+    ["처음 화면을 보았을때, 로봇이 어떤 업무를 하고 있는지 파악하기 어려웠던 부분이 있었나요?", true],
+    ["위험 알람에서 가장 먼저 눈에 들어온 정보는 무엇이었나요?", false],
+    ["위험 알람이 어떤 느낌이드는지, 상황이 얼마나 긴급하다고 느껴졌으며 그렇게 생각한 이유는 무엇인가요?", false],
+    ["주의 알람과 위험 알람은 어떤 점에서 다르게 느껴졌나요? 차이가 느껴지지 않았다면 그 이유도 말씀해 주세요.", false],
+    ["필요한 조치를 찾거나 실행하면서 망설였던 순간이 있었나요? 이유는 무엇인가요?", true],
+    ["실제 관제 업무에서 사용한다면 추가로 필요한 정보나 기능은 무엇일까요?", true],
+    ["가장 유용했던 부분과 가장 먼저 개선해야 할 부분을 각각 말씀해 주세요.", false],
+    ["자유롭게 의견을 남겨주세요.", true]
   ];
-  var OPEN_OPTIONAL = 8;   // 9번(자유 의견)만 선택
+  var OPEN = OPEN_Q.map(function (x) { return x[0]; });
+  function openOpt(i) { return OPEN_Q[i][1]; }
   $("openq").innerHTML = OPEN.map(function (q, i) {
-    return '<fieldset class="sv-card" data-q="op' + i + '"><legend>' + (i + 1) + ". " + q + (i === OPEN_OPTIONAL ? "" : " <i>*</i>") + '</legend>' +
-      '<textarea class="sv-ta" name="op' + i + '" rows="3" placeholder="' + (i === OPEN_OPTIONAL ? "자유롭게 적어 주세요(선택)" : "답변 적기") + '"></textarea><p class="sv-err">필수 질문입니다.</p></fieldset>';
+    return '<fieldset class="sv-card" data-q="op' + i + '"><legend>' + (i + 1) + ". " + q + (openOpt(i) ? " <span class=\"sv-opt\">(선택)</span>" : " <i>*</i>") + '</legend>' +
+      '<textarea class="sv-ta" name="op' + i + '" rows="3" placeholder="' + (openOpt(i) ? "답변 적기(선택)" : "답변 적기") + '"></textarea><p class="sv-err">필수 질문입니다.</p></fieldset>';
   }).join("");
   var postStart = 0;
   function openPost() {
@@ -1280,7 +1282,7 @@
     lk.forEach(function (v, i) { var c = document.querySelector('.sv-card[data-q="lk' + i + '"]'); c.classList.toggle("is-err", !v); if (!v && bad < 0) { bad = i; } });
     if (bad >= 0) { document.querySelector('.sv-card[data-q="lk' + bad + '"]').scrollIntoView({ behavior: "smooth", block: "center" }); return; }
     var open = OPEN.map(function (q, i) { return (document.querySelector('#post-form textarea[name="op' + i + '"]') || {}).value || ""; });
-    open.forEach(function (v, i) { var c = document.querySelector('.sv-card[data-q="op' + i + '"]'); var miss = i !== OPEN_OPTIONAL && !v.trim(); c.classList.toggle("is-err", miss); if (miss && bad < 0) { bad = i; } });
+    open.forEach(function (v, i) { var c = document.querySelector('.sv-card[data-q="op' + i + '"]'); var miss = !openOpt(i) && !v.trim(); c.classList.toggle("is-err", miss); if (miss && bad < 0) { bad = i; } });
     if (bad >= 0) { document.querySelector('.sv-card[data-q="op' + bad + '"]').scrollIntoView({ behavior: "smooth", block: "center" }); return; }
     rec.post = { mode: val("mode"), likert: lk, open: open, start: postStart, answeredAt: now() };
     phase = "done";
