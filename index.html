@@ -181,6 +181,8 @@
     padding: 10px 10px 10px 22px; border-radius: 14px; background: #fff; color: #16191f; font-size: 17px; font-weight: 700; box-shadow: 0 0 0 3px var(--blue), 0 10px 30px rgba(0,0,0,.45); white-space: nowrap; }
   .pickbar .pick-n { color: var(--blue); font-size: 15px; }
   .pickmarks { position: absolute; inset: 0; z-index: 24; pointer-events: none; }
+  /* 고르는 동안 화면을 덮는 투명한 막 — 화면에는 클릭, 마우스 올림, 휠이 하나도 가지 않는다 */
+  .pick-cover { position: absolute; inset: 0; z-index: 23; cursor: crosshair; background: rgba(42, 120, 214, .06); }
   .pick-mark { position: absolute; width: 34px; height: 34px; margin: -17px 0 0 -17px; border-radius: 50%; background: var(--blue); color: #fff; border: 3px solid #fff;
     display: grid; place-items: center; font-size: 16px; font-weight: 800; box-shadow: 0 2px 8px rgba(0,0,0,.4); }
   .choice { display: flex; gap: 8px; }
@@ -373,7 +375,7 @@
     <div class="op-wrap">
       <div class="op-screen">
         <p class="op-hint" id="op-hint">화면을 보며 답해 주세요. 알림을 눌러 열어 볼 수도 있습니다.</p>
-        <div class="sv-frame" id="op-box"><iframe id="op-frame" title="에이프리즘 관제 화면"></iframe><div class="op-marks" id="op-marks"></div></div>
+        <div class="sv-frame" id="op-box"><iframe id="op-frame" title="에이프리즘 관제 화면"></iframe><div class="op-marks" id="op-marks"></div><div class="pick-cover" id="op-cover" hidden></div></div>
       </div>
       <div class="op-qs" id="openq"></div>
     </div>
@@ -475,6 +477,7 @@
       <button type="button" class="stop" id="rb-stop">중단하기</button>
     </div>
 
+    <div class="pick-cover" id="pick-cover" hidden></div>
     <div class="pickmarks" id="pickmarks"></div>
     <div class="pickbar" id="pickbar" hidden role="status">
       <span>판단에 쓴 정보를 화면에서 눌러 주세요. 여러 곳을 눌러도 됩니다.</span>
@@ -814,7 +817,6 @@
       w.addEventListener(type, function (e) {
         if (!pick) { return; }
         e.preventDefault(); e.stopImmediatePropagation();
-        if (type === "click") { onPick(e, w); }
       }, { capture: true, passive: false });
     });
     d.addEventListener("keydown", function (e) {   // 격자(g) 막기
@@ -1220,7 +1222,7 @@
     var sc = curScen(), t = sc.tasks[taskIdx], st = rec.scenarios[sc.no].tasks[t.id];
     var left = t.qs.filter(function (q, i) { return !String(st.answers[i] || "").trim() && !(st.picks && st.picks[i] && st.picks[i].length); }).length;
     b.disabled = left > 0;
-    $("iv-left").textContent = left ? "모든 문항에 답해야 넘어갑니다. 남은 문항 " + left + "개" : (taskIdx + 1) + "/" + sc.tasks.length;
+    $("iv-left").textContent = (taskIdx + 1) + "/" + sc.tasks.length;   // 답이 빠지면 버튼만 잠근다(안내 글 없음)
   }
 
   // 카드가 화면 아래로 넘치면 위로 올린다
@@ -1284,17 +1286,28 @@
       return '<span class="pick-chip"><b>' + (k + 1) + "</b>" + esc(pickName(p)) + '<button type="button" data-act="unpick" data-q="' + i + '" data-k="' + k + '" aria-label="지우기">×</button></span>';
     }).join("") + "</div>";
   }
+  function pickAt(doc, x, y) {
+    var el = null; try { el = doc.elementFromPoint(x, y); } catch (e) { }
+    return { area: el ? areaOf(el) : "", label: el ? labelOf(el) : "", x: Math.round(x), y: Math.round(y), t: now() };
+  }
+  // 시나리오 고르기 — 무대(1920×1080, scale 배) 위 막
+  $("pick-cover").addEventListener("click", function (e) {
+    if (!pick) { return; }
+    var r = $("stage").getBoundingClientRect(), x = (e.clientX - r.left) / scale, y = (e.clientY - r.top) / scale;
+    var p = pickAt(appDoc(), x, y);
+    try { p.page = frame.contentWindow.location.pathname.split("/").pop(); } catch (x2) { }
+    onPickPoint(p);
+  });
   function startPick(q) {
     var t = curScen().tasks[taskIdx], st = rec.scenarios[curScen().no].tasks[t.id];
     st.picks = st.picks || [];
     pick = { q: q, list: [] };
     $("task").hidden = true;
     $("pickbar").hidden = false; $("pickmarks").innerHTML = ""; $("pick-n").textContent = "";
+    $("pick-cover").hidden = false;
     log("pick-start", { label: "TASK " + t.id + " 문항 " + (q + 1) + " 화면에서 고르기 시작" });
   }
-  function onPick(e, w) {
-    var el = e.target.nodeType === 1 ? e.target : e.target.parentElement;
-    var p = { area: el ? areaOf(el) : "", label: el ? labelOf(el) : "", x: Math.round(e.clientX), y: Math.round(e.clientY), t: now(), page: w.location.pathname.split("/").pop() };
+  function onPickPoint(p) {
     pick.list.push(p);
     var m = document.createElement("span"); m.className = "pick-mark"; m.style.left = p.x + "px"; m.style.top = p.y + "px"; m.textContent = pick.list.length;
     $("pickmarks").appendChild(m);
@@ -1306,7 +1319,7 @@
     st.picks[q] = (st.picks[q] || []).concat(pick.list);   // 적은 답과 따로 — 카드에서 칩으로 보이고 × 로 지운다
     log("pick-end", { label: "TASK " + t.id + " 문항 " + (q + 1) + " " + pick.list.length + "곳" });
     pick = null;
-    $("pickbar").hidden = true; $("pickmarks").innerHTML = "";
+    $("pickbar").hidden = true; $("pickmarks").innerHTML = ""; $("pick-cover").hidden = true;
     $("task").hidden = false;
     save(); paintTask();
   }
@@ -1455,8 +1468,18 @@
       return '<span class="pick-chip"><b>' + (k + 1) + "</b>" + esc(pickName(p)) + '<button type="button" data-op-unpick="' + i + '" data-k="' + k + '" aria-label="지우기">×</button></span>';
     }).join("");
   }
+  $("op-cover").addEventListener("click", function (e) {
+    if (opPickQ === null) { return; }
+    var r = $("op-box").getBoundingClientRect(), sc = opScale();
+    var p = pickAt($("op-frame").contentDocument, (e.clientX - r.left) / sc, (e.clientY - r.top) / sc);
+    (opPicks[opPickQ] = opPicks[opPickQ] || []).push(p);
+    paintOpChips(opPickQ); paintOpMarks();
+    var c = document.querySelector('.sv-card[data-q="op' + opPickQ + '"]'); if (c) { c.classList.remove("is-err"); }
+    if (rec) { log("pick", { label: "주관식 " + (opPickQ + 1), area: p.area, x: p.x, y: p.y }); }
+  });
   function setOpPick(i) {
     opPickQ = i;
+    $("op-cover").hidden = i === null;
     Array.prototype.forEach.call(document.querySelectorAll("[data-op-pick]"), function (b) {
       var on = Number(b.getAttribute("data-op-pick")) === i;
       b.classList.toggle("is-on", on); b.textContent = on ? "다 골랐어요" : "왼쪽 화면에서 고르기";
@@ -1484,13 +1507,6 @@
           w.addEventListener(type, function (e) {
             if (opPickQ === null) { return; }
             e.preventDefault(); e.stopImmediatePropagation();
-            if (type !== "click") { return; }
-            var el = e.target.nodeType === 1 ? e.target : e.target.parentElement;
-            var p = { area: el ? areaOf(el) : "", label: el ? labelOf(el) : "", x: Math.round(e.clientX), y: Math.round(e.clientY), t: now() };
-            (opPicks[opPickQ] = opPicks[opPickQ] || []).push(p);
-            paintOpChips(opPickQ); paintOpMarks();
-            var c = document.querySelector('.sv-card[data-q="op' + opPickQ + '"]'); if (c) { c.classList.remove("is-err"); }
-            if (rec) { log("pick", { label: "주관식 " + (opPickQ + 1), area: p.area, x: p.x, y: p.y }); }
           }, { capture: true, passive: false });
         });
       } catch (e) { }
