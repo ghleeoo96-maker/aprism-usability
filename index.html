@@ -205,15 +205,16 @@
   .end-card { background: #fff; border-radius: 16px; padding: 40px 48px; text-align: center; }
   .end-card h2 { margin: 0 0 8px; font-size: 28px; }
   .end-card p { margin: 0 0 24px; color: var(--ink-2); }
-  .hello-card { width: 640px; text-align: left; padding: 44px 48px 40px; }
-  .hello-card h2 { font-size: 30px; }
-  .hello-card p { margin: 0 0 14px; font-size: 17px; line-height: 1.65; }
-  .hello-card p.lead { font-size: 20px; font-weight: 700; color: var(--ink); margin-bottom: 20px; }
-  .hello-role { margin: 22px 0 24px; padding: 16px 18px; border-radius: 12px; background: var(--blue-weak); color: var(--ink-2); font-size: 17px; line-height: 1.65; }
-  .hello-role .tag { display: inline-block; margin-bottom: 8px; padding: 2px 10px; border-radius: 999px; background: var(--blue); color: #fff; font-size: 14px; font-weight: 700; }
-  .hello-role b { display: block; color: var(--ink); font-size: 19px; margin-bottom: 4px; }
-  .hello-card p.next { margin: 0 0 14px; color: var(--ink); font-weight: 700; }
-  .hello-card .btn { display: block; width: 100%; padding: 14px; font-size: 18px; font-weight: 800; }
+  /* 인사 카드 — 위계 4단: 제목 묶음(인사+부제) → 본문 → 페르소나 상자 → 행동(안내+버튼). 간격은 8 / 12 / 20 / 28 / 32 */
+  .hello-card { width: 640px; text-align: left; padding: 48px 48px 44px; }
+  .hello-card h2 { margin: 0 0 8px; font-size: 34px; font-weight: 800; line-height: 1.25; letter-spacing: -0.02em; color: var(--ink); }
+  .hello-card p { margin: 0; font-size: 17px; line-height: 1.7; color: var(--ink-2); }
+  .hello-card p.lead { margin: 0 0 28px; font-size: 20px; font-weight: 700; line-height: 1.4; color: var(--ink); }
+  .hello-role { margin: 28px 0 32px; padding: 20px 22px; border-radius: 12px; background: var(--blue-weak); color: var(--ink-2); font-size: 16px; line-height: 1.6; }
+  .hello-role .tag { display: inline-block; margin-bottom: 12px; padding: 3px 10px; border-radius: 999px; background: var(--blue); color: #fff; font-size: 14px; font-weight: 700; line-height: 1.4; }
+  .hello-role b { display: block; margin-bottom: 8px; color: var(--ink); font-size: 20px; font-weight: 800; line-height: 1.4; }
+  .hello-card p.next { margin: 0 0 12px; font-size: 16px; font-weight: 500; color: var(--ink-2); }
+  .hello-card .btn { display: block; width: 100%; padding: 16px; font-size: 18px; font-weight: 800; }
 </style>
 </head>
 <body>
