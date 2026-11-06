@@ -1557,6 +1557,22 @@
         st.textContent = ".rsim, .grid-overlay { display: none !important; }";
         (d.head || d.documentElement).appendChild(st);
         w.open = function () { return null; };
+        // 지도는 조금 확대한 상태로 고정 — 확대 단추를 한 번 누른 뒤 지도 도구를 숨기고, 휠과 끌기를 막는다
+        st.textContent += " .map-tools { display: none !important; }";
+        var t0 = Date.now();
+        (function zoomWhenReady() {
+          var zi = d.querySelector("[data-map-zoom-in]");
+          if (zi && w.APRISM_RR && w.APRISM_RR.ready && w.APRISM_RR.ready()) { setTimeout(function () { zi.click(); }, 600); return; }
+          if (Date.now() - t0 < 20000) { setTimeout(zoomWhenReady, 300); }
+        })();
+        ["wheel", "pointerdown", "mousedown", "touchstart", "dblclick"].forEach(function (type) {
+          w.addEventListener(type, function (e) {
+            var t = e.target && e.target.closest ? e.target : null;
+            if (!t || !t.closest(".map-panel")) { return; }
+            if (type !== "wheel" && t.closest(".map-alert, .map-floors, button, a")) { return; }
+            e.preventDefault(); e.stopImmediatePropagation();
+          }, { capture: true, passive: false });
+        });
         ["pointerdown", "mousedown", "pointerup", "mouseup", "click", "dblclick", "wheel", "contextmenu"].forEach(function (type) {
           w.addEventListener(type, function (e) {
             if (opPickQ === null) { return; }
