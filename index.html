@@ -177,7 +177,12 @@
   .tour-pop { position: absolute; width: 400px; background: #fff; color: var(--ink); border-radius: 14px; padding: 20px 22px 18px;
     box-shadow: 0 0 0 3px var(--blue), 0 12px 40px rgba(0,0,0,.4); transition: left .25s, top .25s; }
   .tour-pop h3 { margin: 0 32px 10px 0; font-size: 20px; font-weight: 800; }
-  .tour-pop p { margin: 0; font-size: 16px; line-height: 1.65; color: var(--ink-2); white-space: pre-line; }
+  .tour-body { font-size: 16px; line-height: 1.6; color: var(--ink-2); }
+  .tour-body p { margin: 0; color: var(--ink); }
+  .tour-body ul { margin: 12px 0 0; padding: 12px 14px; list-style: none; background: #f3f5f8; border-radius: 10px; display: grid; gap: 6px; }
+  .tour-body li { position: relative; padding-left: 14px; }
+  .tour-body li::before { content: ""; position: absolute; left: 0; top: .68em; width: 5px; height: 5px; border-radius: 50%; background: var(--blue); }
+  .tour-body b { color: var(--ink); font-weight: 700; }
   .tour-pop .x { position: absolute; right: 14px; top: 14px; width: 28px; height: 28px; border: 0; background: none; color: var(--ink-3); font-size: 20px; }
   .tour-pop .foot { display: flex; align-items: center; gap: 8px; margin-top: 18px; }
   .tour-pop .foot .cnt { flex: 1; font-size: 14px; color: var(--ink-3); }
@@ -190,6 +195,13 @@
   .end-card { background: #fff; border-radius: 16px; padding: 40px 48px; text-align: center; }
   .end-card h2 { margin: 0 0 8px; font-size: 28px; }
   .end-card p { margin: 0 0 24px; color: var(--ink-2); }
+  .hello-card { width: 640px; text-align: left; padding: 44px 48px 40px; }
+  .hello-card h2 { font-size: 30px; }
+  .hello-card p { margin: 0 0 14px; font-size: 17px; line-height: 1.65; }
+  .hello-card p.lead { font-size: 20px; font-weight: 700; color: var(--ink); margin-bottom: 20px; }
+  .hello-role { margin: 22px 0 28px; padding: 16px 18px; border-radius: 12px; background: var(--blue-weak); color: var(--ink-2); font-size: 17px; line-height: 1.65; }
+  .hello-role b { display: block; color: var(--blue); margin-bottom: 4px; }
+  .hello-card .btn { display: block; width: 100%; padding: 14px; font-size: 18px; font-weight: 800; }
 </style>
 </head>
 <body>
@@ -348,7 +360,7 @@
       <div class="tour-pop" id="tour-pop" role="dialog" aria-labelledby="tour-title">
         <button type="button" class="x" id="tour-x" aria-label="튜토리얼 닫기">×</button>
         <h3 id="tour-title"></h3>
-        <p id="tour-text"></p>
+        <div class="tour-body" id="tour-text"></div>
         <div class="foot">
           <span class="cnt" id="tour-cnt"></span>
           <button type="button" class="btn btn-line" id="tour-prev">이전</button>
@@ -384,6 +396,19 @@
       <span>판단에 쓴 정보를 화면에서 눌러 주세요. 여러 곳을 눌러도 됩니다.</span>
       <span class="pick-n" id="pick-n"></span>
       <button type="button" class="btn btn-primary" id="pick-done">다 골랐어요</button>
+    </div>
+    <div class="end" id="hello" hidden>
+      <div class="end-card hello-card">
+        <h2>안녕하세요!</h2>
+        <p class="lead">에이프리즘 사용성 테스트를 시작하겠습니다.</p>
+        <p>에이프리즘은 설비 시설을 순찰하는 로봇을 모니터링하고, 로봇이 감지한 알림을 조치하는 관제 서비스입니다.</p>
+        <p>이번 테스트는 사용자가 이 서비스로 목적을 이루는 과정에서 어려운 점이 있는지 확인하기 위한 것입니다. 정답은 없으니 평소처럼 편하게 사용해 주세요.</p>
+        <div class="hello-role">
+          <b>테스트 전에 화면을 잠시 설명드리겠습니다.</b>
+          새로 온 관제사가 선임에게 인계 교육을 받는다고 생각하며 봐 주세요.
+        </div>
+        <button type="button" class="btn btn-primary" id="hello-go">화면 설명 시작</button>
+      </div>
     </div>
     <div class="end" id="end" hidden>
       <div class="end-card">
@@ -428,19 +453,21 @@
     return Array.prototype.filter.call(d.querySelectorAll(".context-panel .ah-sec:not(.done-sec) .ah-list > *"), function (r) { return /누출감지/.test(r.textContent); })[0] ||
       d.querySelector(".context-panel .ah-sec:not(.done-sec) .ah-list > *");
   }
+  // 말풍선 본문 — 한 줄 요약 + 글머리 목록
+  function T(lead, items) { return "<p>" + lead + "</p><ul>" + items.map(function (x) { return "<li>" + x + "</li>"; }).join("") + "</ul>"; }
   var TOUR = [
-    { sel: ".sb-tabs", title: "미션 탭", text: "미션이란 발전소를 순찰하는 로봇에게 지정한 점검 업무를 뜻합니다. 예를 들어 ‘1층 설비 순회 점검’이 하나의 미션입니다. 각 탭은 로봇이 수행중인 점검 업무를 나타내며, 탭을 클릭하면 해당 업무의 진행 상황과 로봇 상태를 확인할 수 있습니다. 탭에 삼각형 아이콘이 나타나면 해당 업무에서 위험 또는 주의 알림이 발생했다는 의미입니다." },
-    { sel: ".delta3", rect: [436, 80, 296, 972], title: "Delta | AI 관제 도우미", text: "델타는 에이프리즘의 AI 도우미입니다. 로봇이 점검 중 보내는 여러 알림을 모아 현재 상황을 요약하고, 먼저 확인해야 할 문제와 그 이유를 알려줍니다."+"\n"+"델타를 클릭하면 대화창이 열립니다. 궁금한 내용을 입력하거나 추천 질문을 눌러보세요. 문제의 원인과 위치, 필요한 조치를 안내받아 다음 행동을 판단할 수 있습니다.",
+    { sel: ".sb-tabs", title: "미션 탭", text: T("미션은 로봇에게 맡긴 점검 업무입니다. 예를 들어 ‘1층 설비 순회 점검’이 미션 하나입니다.", ["<b>탭 하나</b>는 로봇이 수행 중인 미션 하나","<b>탭을 누르면</b> 그 미션의 진행 상황과 로봇 상태 확인","<b>삼각형</b>이 붙은 탭은 위험 또는 주의 알림 발생"]) },
+    { sel: ".delta3", rect: [436, 80, 296, 972], title: "Delta | AI 관제 도우미", text: T("에이프리즘의 AI 도우미입니다. 로봇이 보낸 여러 알림을 모아 지금 상황을 요약합니다.", ["먼저 확인할 문제와 그 이유 안내","<b>누르면 대화창</b>이 열림","궁금한 내용 입력 또는 추천 질문 선택","문제의 원인, 위치, 필요한 조치 안내"]),
       act: function (d) { var t = d.querySelector(".delta3 [data-ai-toggle]"); if (t && !d.querySelector(".delta3.is-open")) { t.click(); } return function () { return !!d.querySelector(".delta3.is-open"); }; },
       after: function (d) { var t = d.querySelector(".delta3 [data-ai-toggle]"); if (t && d.querySelector(".delta3.is-open")) { t.click(); } } },
-    { sel: ".map-panel", pop: [16, 200], title: "발전소 현장 지도", text: "발전소 현장의 공간 구조와 설비 위치를 보여주는 입체지도입니다. 로봇이 지금 어디에 있는지, 어떤 경로로 이동하며 어디를 점검하는지 한 눈에 확인할 수 있습니다. 지도에 표시된 숫자는 로봇이 점검하는 지점의 번호입니다. 빨간색 핀은 위험, 노란색 핀은 주의 알람이 발생한 위치를 나타냅니다." },
-    { sel: ".right-panel", title: "로봇 상태와 점검 진행 현황", text: "점검 중인 로봇 상태와 미션 진행 상황을 확인하는 영역입니다. 위쪽에는 로봇의 상태, 아래쪽에는 미션을 보다 자세히 보여줍니다. 현재 수행중인 업무, 전체 진행률, 남은 시간과 종료 시각을 확인할 수 있습니다." },
-    { sel: ".context-panel .ah-sec:not(.done-sec)", also: ".delta3", title: "알림 센터", text: "로봇이 점검 중 감지한 이상징후를 모아 보여주는 영역입니다. 최신 순으로 나열되며 각 알림에서 어떤 문제가 발생했는지 확인할 수 있습니다.",
+    { sel: ".map-panel", pop: [16, 200], title: "발전소 현장 지도", text: T("발전소의 공간 구조와 설비 위치를 보여 주는 입체 지도입니다.", ["로봇의 현재 위치와 이동 경로","<b>숫자</b>는 로봇이 점검하는 지점 번호","<b>빨간 핀</b>은 위험, <b>노란 핀</b>은 주의 알림이 난 위치"]) },
+    { sel: ".right-panel", title: "로봇 상태와 점검 진행 현황", text: T("점검 중인 로봇과 미션 진행 상황을 보는 영역입니다.", ["<b>위쪽</b>은 로봇 상태","<b>아래쪽</b>은 미션 상세","지금 하는 업무, 전체 진행률","남은 시간과 종료 시각"]) },
+    { sel: ".context-panel .ah-sec:not(.done-sec)", also: ".delta3", title: "알림 센터", text: T("로봇이 점검 중 감지한 이상징후를 모아 보여 줍니다.", ["최신 순으로 나열","알림마다 어떤 문제가 났는지 표시","<b>빨간 삼각형</b>은 위험, <b>노란 삼각형</b>은 주의","알림이 오면 <b>Delta</b>도 함께 바뀜"]),
       // 기본 판은 알림이 없다 — 이 단계부터 주의 알림을 들여와 보여 준다(튜토리얼이 끝나면 다시 정상 판으로 연다)
       act: function (d, w) { w.history.replaceState(w.history.state, "", w.location.pathname + w.location.search + "#warning"); w.dispatchEvent(new w.HashChangeEvent("hashchange")); return function () { return !!firstWarnRow(d); }; } },
-    { sel: ".map-alert", title: "조치 팝업 창", text: "알림을 클릭하면 감지된 문제를 확인하고 필요한 조치를 선택할 수 있는 창이 해당 지도 위에 열립니다.\nAI 도우미 델타가 제안하는 대응 방법을 선택하고 [조치 요청]을 눌러주세요. AI의 제안을 참고하되, 최종 조치는 관제사가 판단하고 요청합니다.\n판단에 필요한 정보를 더 확인하려면 [진단 상세] 버튼을 눌러 상세 내용을 살펴보세요.",
+    { sel: ".map-alert", title: "조치 팝업 창", text: T("알림을 누르면 지도 위에 열리는 창입니다. 감지된 문제를 보고 조치를 고릅니다.", ["Delta가 제안한 대응 방법 선택","<b>[조치 요청]</b>으로 현장에 요청","AI 제안은 참고, 최종 판단은 관제사","더 볼 정보는 <b>[진단 상세]</b>"]),
       act: function (d) { realClick(d, firstWarnRow(d)); return function () { var m = d.querySelector(".map-alert"); return !!m && m.getBoundingClientRect().width > 0; }; } },
-    { sel: "main.sf", pop: "bottom", title: "안전진단 상세 화면", text: "로봇이 감지한 이상징후 측정 결과와 현장 영상, 과거 기록을 함께 살펴보고 대응 방법을 결정하는 화면입니다.",
+    { sel: "main.sf", pop: "bottom", title: "안전진단 상세 화면", text: T("로봇이 감지한 이상징후를 자세히 보고 대응 방법을 정하는 화면입니다.", ["측정 결과","현장 영상","과거 측정 기록","<b>오른쪽</b>에서 조치를 골라 요청"]),
       act: function (d, w) { var a = d.querySelector(".map-alert a[href*='safety-v6']"); w.location.href = a ? a.href : "safety-v6.html?mission=" + encodeURIComponent(MISSION); return "load"; } }
   ];
 
@@ -662,8 +689,9 @@
     rec.preview = !!preview;
     phase = "tutorial"; step = null; taskIdx = 0; alertPending = false; alertIn = false;
     show("test"); fit();
-    $("task").hidden = true; $("end").hidden = true; $("tour").hidden = true;
-    loadApp(function () { setTimeout(startTour, 800); });
+    $("task").hidden = true; $("end").hidden = true; $("tour").hidden = true; $("hello").hidden = true;
+    // 화면이 열리면 인사 카드부터 — [화면 설명 시작]을 누르면 튜토리얼
+    loadApp(function () { setTimeout(function () { $("hello").hidden = false; log("hello"); }, 600); });
   }
 
   function appUrl() { return APP + "?mission=" + encodeURIComponent(MISSION) + "&floor=B4#normal"; }
@@ -813,6 +841,7 @@
 
   // ---------- 튜토리얼 ----------
   var tourAt = 0;
+  $("hello-go").addEventListener("click", function () { $("hello").hidden = true; startTour(); });
   function startTour() {
     rec.tutorial.start = now();
     log("tutorial-start");
@@ -878,7 +907,7 @@
     // 말풍선 자리는 두 자리를 합친 범위로 잰다
     if (r2) { r = { left: Math.min(r.left, r2.left), top: Math.min(r.top, r2.top), right: Math.max(r.right, r2.right), bottom: Math.max(r.bottom, r2.bottom) }; r.width = r.right - r.left; r.height = r.bottom - r.top; }
     $("tour-title").textContent = s.title;
-    $("tour-text").textContent = s.text;
+    $("tour-text").innerHTML = s.text;
     $("tour-cnt").textContent = (tourAt + 1) + "/" + TOUR.length;
     $("tour-prev").hidden = tourAt === 0 || !!s.act || !!TOUR[tourAt - 1].act;
     $("tour-next").textContent = tourAt === TOUR.length - 1 ? "시나리오 시작하기" : "다음";
@@ -1304,7 +1333,7 @@
   }
   var PHASE_KO = { tutorial: "튜토리얼", s1: "시나리오 1", s2: "시나리오 2", s3: "시나리오 3", post: "공통질문", done: "끝" };
   var TYPE_KO = { page: "화면 열림", open: "새 창 대신 이동", click: "클릭", check: "문항 체크", "alert-in": "알림 발생",
-    "tutorial-start": "튜토리얼 시작", "tutorial-step": "튜토리얼 단계", "tutorial-end": "튜토리얼 끝",
+    "hello": "인사 카드", "tutorial-start": "튜토리얼 시작", "tutorial-step": "튜토리얼 단계", "tutorial-end": "튜토리얼 끝",
     "scenario-start": "시나리오 시작", "scenario-end": "시나리오 끝", "task-done": "TASK 완료", "task-skip": "TASK 건너뜀",
     "run-done": "수행 완료", "done-shown": "수행 완료 버튼 나옴", "pick-start": "화면 고르기 시작", pick: "화면에서 고름", "pick-end": "화면 고르기 끝", "alert-measure": "위험 지점 측정 시작", "post-start": "공통질문 시작", answer: "답변", "card-fold": "카드 접기", "card-open": "카드 펼치기", "card-move": "카드 옮기기", "test-end": "테스트 끝", "test-stop": "테스트 중단" };
   var STAGE_KO = { intro: "설명", run: "수행", task: "인터뷰" };
