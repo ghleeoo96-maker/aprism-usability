@@ -77,6 +77,7 @@
     ".one-info div { background: #fff; border-radius: 10px; padding: 12px 14px; }",
     ".one-info span { display: block; font-size: 14px; color: var(--rp-ink-3); }",
     ".one-info b { font-size: 16px; }",
+    ".one-scn { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; align-items: start; }",
     ".one-maps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }",
     ".one-lks { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }",
     ".one-lk { display: flex; justify-content: space-between; align-items: center; background: #f6f8fb; border-radius: 8px; padding: 10px 12px; font-size: 15px; }",
@@ -427,7 +428,7 @@
 
       '<div class="rp-sec"><h2>수행 시간</h2><p class="rp-sub">참가자마다 시나리오별로 걸린 시간. 시나리오 시작부터 수행 완료까지. 세 시나리오가 같은 눈금이다.</p><div class="rp-card">' + perPerson(R) + "</div></div>" +
 
-      '<div class="rp-sec"><h2>클릭 지도</h2><p class="rp-sub">수행 중 테스트 화면에서 누른 자리. 참가자를 고르면 누른 순서대로 번호가 붙는다.</p><div class="rp-card" id="cm"></div></div>' +
+      '<div class="rp-sec"><h2>시나리오별 클릭 지도와 인터뷰 답변</h2><p class="rp-sub">시나리오를 고르면 그 시나리오의 클릭 지도와 인터뷰 답변이 함께 나온다. 참가자를 고르면 누른 순서대로 번호가 붙는다.</p><div class="rp-card" id="cm"></div></div>' +
 
       '<div class="rp-sec"><h2>시나리오 2 알림 반응</h2><p class="rp-sub">새 위험 알림이 들어온 뒤의 첫 행동.</p><div class="rp-grid2">' +
       '<div class="rp-card"><h3>알림 뒤 처음 누른 곳</h3>' + firstMap(R) + "</div>" +
@@ -490,6 +491,15 @@
   function screen(n, inner, cls) {
     return '<div class="' + cls + '"><img src="' + BG[n] + '" alt=""><svg viewBox="0 0 1920 1080" preserveAspectRatio="none">' + inner + "</svg></div>";
   }
+  // 그 시나리오 인터뷰 답변 — 문항을 누르면 참가자별 답이 펼쳐진다
+  function scnAnswers(n, people) {
+    var qs = U.QLIST.filter(function (q) { return q[0].charAt(0) === String(n); });
+    return '<h3 class="cm-h">시나리오 ' + n + ' 인터뷰 답변</h3><div class="rp-qa">' + qs.map(function (q) {
+      var list = people.map(function (a) { return [a.participant, U.answerOf(a, q[0], q[1])]; }).filter(function (x) { return x[1] && String(x[1]).trim(); });
+      return "<details><summary><em>TASK " + q[0] + "</em> " + (q[1] + 1) + ". " + esc(q[2]) + ' <span style="color:#8a919e;font-weight:600">답변 ' + list.length + "</span></summary><ul>" +
+        list.map(function (x) { return "<li><b>" + x[0] + "</b><span>" + esc(x[1]) + "</span></li>"; }).join("") + "</ul></details>";
+    }).join("") + "</div>";
+  }
   function paintMap() {
     var box = document.getElementById("cm"); if (!box || !CUR) { return; }
     var R = CUR, n = cm.s, people = R.people;
@@ -515,7 +525,7 @@
         "<span><b>" + a.participant + "</b> 클릭 " + d.on + "회, " + mmss(U.scenStat(a, n).ms) + "</span></button>";
     }).join("") + "</div>";
     box.innerHTML = head + '<div class="cm-main"><div><p class="cm-cap">' + cap + "</p>" + screen(n, inner, "cm-scr cm-big") + legend +
-      (offNote ? '<p class="cm-off">' + esc(offNote) + "</p>" : "") + "</div>" + pick + "</div>" + thumbs;
+      (offNote ? '<p class="cm-off">' + esc(offNote) + "</p>" : "") + "</div>" + pick + "</div>" + thumbs + scnAnswers(n, people);
   }
   sec.addEventListener("click", function (e) {
     var s = e.target.closest("[data-cm-s]"), p = e.target.closest("[data-cm-p]");
@@ -586,8 +596,14 @@
     box.innerHTML = nav +
       '<div class="rp-sec" style="margin-top:20px"><h2>' + a.participant + "</h2>" + head + "</div>" +
       '<div class="rp-sec"><h2>시나리오</h2><div class="rp-card" style="padding:0;overflow:auto">' + sc + "</div></div>" +
-      '<div class="rp-sec"><h2>클릭 지도</h2><p class="rp-sub">숫자는 누른 순서.</p><div class="rp-card">' + maps + "</div></div>" +
-      '<div class="rp-sec"><h2>인터뷰 답변</h2><div class="rp-card" style="padding:0;overflow:auto">' + qa + "</div></div>" +
+      [1, 2, 3].map(function (n) {
+        var d = dots(a, n, "one"), x = U.scenStat(a, n);
+        var rows = U.QLIST.filter(function (q) { return q[0].charAt(0) === String(n); }).map(function (q) {
+          return "<tr><td>" + q[0] + '</td><td class="wrap">' + (q[1] + 1) + ". " + esc(q[2]) + '</td><td class="wrap">' + esc(U.answerOf(a, q[0], q[1])) + "</td></tr>";
+        }).join("");
+        return '<div class="rp-sec"><h2>시나리오 ' + n + " " + esc(U.SCEN[n - 1].title) + '</h2><p class="rp-sub">수행 ' + mmss(x.ms) + ", 화면 클릭 " + d.on + "회. 지도 숫자는 누른 순서.</p>" +
+          '<div class="one-scn"><div class="rp-card">' + screen(n, d.svg, "cm-scr") + '</div><div class="rp-card" style="padding:0;overflow:auto"><table class="rp-tbl"><tr><th>TASK</th><th>문항</th><th>답변</th></tr>' + rows + "</table></div></div></div>";
+      }).join("") +
       '<div class="rp-sec"><h2>공통질문</h2><div class="rp-card"><h3>7점 척도</h3><div class="one-lks">' + lk + "</div>" +
       (op ? '<h3 style="margin-top:20px">주관식</h3><table class="rp-tbl">' + op + "</table>" : "") + "</div></div>";
   }
