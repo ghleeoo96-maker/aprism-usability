@@ -385,19 +385,16 @@
       d.querySelector(".context-panel .ah-sec:not(.done-sec) .ah-list > *");
   }
   var TOUR = [
-    { sel: ".sb-tabs", title: "미션 탭", text: "로봇이 수행 중인 미션이 탭으로 나열됩니다. 미션 이름 옆 삼각형은 그 미션에 위험이나 주의 알림이 있다는 표시입니다." },
-    { sel: ".delta3", title: "Delta", text: "알림 전체를 종합해 지금 먼저 확인할 것을 알려 주는 AI 요약입니다. 색으로 현재 위험 단계를 나타냅니다." },
-    { sel: ".delta3", rect: [436, 80, 296, 972], title: "Delta와 대화", text: "Delta를 마우스로 누르면 대화창이 열립니다. 무엇을 먼저 봐야 하는지, 원인과 조치를 물어보거나 아래 추천 질문을 눌러 Delta와 대화할 수 있습니다.",
-      act: function (d) { var t = d.querySelector(".delta3 [data-ai-toggle]"); if (t && !d.querySelector(".delta3.is-open")) { t.click(); } return 1200; },
+    { sel: ".sb-tabs", title: "미션 탭", text: "로봇이 수행 중인 미션이 탭으로 나열됩니다. 삼각형은 그 미션에 위험이나 주의 알림이 있다는 표시입니다." },
+    { sel: ".delta3", rect: [436, 80, 296, 972], title: "Delta", text: "알림을 종합해 지금 먼저 볼 것을 알려 주는 AI입니다. 누르면 이렇게 대화창이 열려 원인과 조치를 물어볼 수 있습니다.",
+      act: function (d) { var t = d.querySelector(".delta3 [data-ai-toggle]"); if (t && !d.querySelector(".delta3.is-open")) { t.click(); } return function () { return !!d.querySelector(".delta3.is-open"); }; },
       after: function (d) { var t = d.querySelector(".delta3 [data-ai-toggle]"); if (t && d.querySelector(".delta3.is-open")) { t.click(); } } },
-    { sel: ".map-panel", title: "설비 배치도", text: "로봇의 위치와 순회 경로, 점검 지점 번호가 표시됩니다. 빨간 핀과 노란 핀은 알림이 발생한 지점입니다." },
-    { sel: ".right-panel .panel-card:not(.is-fill)", title: "로봇 정보", text: "선택한 로봇의 미션 상태, 배터리, 통신 상태를 보여 줍니다. 자동복귀와 긴급정지(E-STOP) 버튼도 이곳에 있습니다." },
-    { sel: ".right-panel .panel-card.is-fill", title: "미션 진행", text: "미션 진행률과 남은 시간, 지점별 순서를 보여 줍니다. 강조된 칸이 지금 로봇이 있는 지점입니다." },
-    { sel: ".context-panel .ah-sec:not(.done-sec)", title: "최신 알림", text: "로봇이 감지한 위험과 주의 알림이 쌓이는 곳입니다. 빨간 삼각형은 위험, 노란 삼각형은 주의입니다." },
-    { sel: ".map-alert", title: "알림 상세", text: "주의 알림을 누르면 지도 위에 상세 팝오버가 열립니다. 사진과 측정값, Delta 조치 제안을 보고 필요한 조치를 골라 [조치 요청]을 누릅니다.",
-      act: function (d) { realClick(d, firstWarnRow(d)); return 6500; } },
-    { sel: ".map-alert a[href*='safety-v6']", title: "진단 상세", text: "[진단 상세]를 누르면 안전진단 화면에서 같은 알림을 더 자세히 볼 수 있습니다." },
-    { sel: ".sf-main", title: "안전진단 화면", text: "알림의 측정값과 영상, 측정 이력을 자세히 보고, 오른쪽에서 조치를 골라 요청할 수 있습니다. 위쪽 탭으로 다른 감지 알림을 볼 수 있고, 왼쪽 메뉴의 안전진단으로도 들어올 수 있습니다.",
+    { sel: ".map-panel", title: "설비 배치도", text: "로봇의 위치와 순회 경로, 점검 지점 번호가 표시됩니다. 빨간 핀과 노란 핀은 알림이 난 지점입니다." },
+    { sel: ".right-panel", title: "로봇과 미션 진행", text: "위는 로봇 상태와 자동복귀, 긴급정지 버튼, 아래는 미션 진행률과 지점별 순서입니다." },
+    { sel: ".context-panel .ah-sec:not(.done-sec)", title: "최신 알림", text: "로봇이 감지한 알림이 쌓이는 곳입니다. 빨간 삼각형은 위험, 노란 삼각형은 주의입니다." },
+    { sel: ".map-alert", title: "알림 상세", text: "알림을 누르면 상세 팝오버가 열립니다. 조치를 골라 [조치 요청]을 누르고, [진단 상세]를 누르면 안전진단 화면에서 더 자세히 봅니다.",
+      act: function (d) { realClick(d, firstWarnRow(d)); return function () { var m = d.querySelector(".map-alert"); return !!m && m.getBoundingClientRect().width > 0; }; } },
+    { sel: ".sf-main", title: "안전진단 화면", text: "측정값과 영상, 측정 이력을 자세히 보고 오른쪽에서 조치를 요청할 수 있습니다. 왼쪽 메뉴의 안전진단으로도 들어옵니다.",
       act: function (d, w) { var a = d.querySelector(".map-alert a[href*='safety-v6']"); w.location.href = a ? a.href : "safety-v6.html?mission=" + encodeURIComponent(MISSION); return "load"; } }
   ];
 
@@ -620,7 +617,7 @@
     loadApp(function () { setTimeout(startTour, 800); });
   }
 
-  function appUrl() { return APP + "?mission=" + encodeURIComponent(MISSION) + "#warning"; }
+  function appUrl() { return APP + "?mission=" + encodeURIComponent(MISSION) + "&floor=B4#warning"; }
   var onReady = null;
   // 테스트 화면은 늘 다크 모드로 연다 — 관제 화면(theme.js)이 기억해 둔 값을 열기 직전에 다크로(같은 출처라 같은 저장소)
   function loadApp(cb) {
@@ -686,9 +683,11 @@
     if (!s) { s = (t.className && typeof t.className === "string" ? "." + t.className.split(" ")[0] : t.tagName.toLowerCase()); }
     return s.slice(0, 60);
   }
+  var freshApp = false;   // 튜토리얼 끝에 막 새로 연 화면 — 참가자가 아직 아무것도 누르지 않았다
   var autoClick = false;   // 튜토리얼이 대신 누르는 동안은 참가자 클릭으로 적지 않는다
   function onAppClick(e, w) {
     if (autoClick) { return; }
+    freshApp = false;
     var el = e.target.nodeType === 1 ? e.target : e.target.parentElement;
     if (!el) { return; }
     var a = el.closest('a[href="#"]');
@@ -720,13 +719,30 @@
     var s = TOUR[i];
     if (!s.act || !d) { paintTour(); return; }
     tourBusy = true;
-    $("tour-pop").style.visibility = "hidden";
+    // 기다리는 동안 말풍선은 그대로 두고 "화면을 여는 중" — 숨기면 멈춘 것처럼 보인다
+    $("tour-title").textContent = s.title;
+    $("tour-text").textContent = "화면을 여는 중";
+    $("tour-next").disabled = true;
     var wait;
     autoClick = true;
     try { wait = s.act(d, frame.contentWindow); } catch (e) { wait = 0; }
     autoClick = false;
-    function done() { tourBusy = false; $("tour-pop").style.visibility = ""; paintTour(); }
-    if (wait === "load") { onReady = function () { setTimeout(done, 2500); }; }
+    function done() { tourBusy = false; $("tour-next").disabled = false; paintTour(); }
+    // 비출 자리가 움직임을 멈추면(두 번 잰 값이 같으면) 그린다 — 정해진 시간을 기다리지 않는다
+    function settle(getDoc, limit) {
+      var last = "", t0 = Date.now();
+      (function tick() {
+        var dd = getDoc(), el = dd && dd.querySelector(s.sel), r = el && el.getBoundingClientRect();
+        var key = r ? [r.left, r.top, r.width, r.height].map(Math.round).join() : "";
+        if ((key && key === last && r.width > 0) || Date.now() - t0 > limit) { done(); return; }
+        last = key; setTimeout(tick, 120);
+      })();
+    }
+    if (wait === "load") { onReady = function () { settle(appDoc, 6000); }; }
+    else if (typeof wait === "function") {
+      var t0 = Date.now();
+      (function poll() { var ok = false; try { ok = wait(); } catch (e) { } if (ok || Date.now() - t0 > 6000) { settle(appDoc, 2500); } else { setTimeout(poll, 100); } })();
+    }
     else { setTimeout(done, wait || 0); }
   }
   function paintTour() {
@@ -770,6 +786,7 @@
     autoClick = false;
     // 튜토리얼이 안전진단 화면이나 열린 팝오버로 끝나면 관제 화면을 처음 상태로 다시 연다
     loadApp();
+    freshApp = true;   // 시나리오 1 시작 때 또 불러오지 않게
     goScenario(1);
   }
 
@@ -854,7 +871,7 @@
     step = "run"; taskIdx = 0;
     showCard(false);
     // 1: 새로 연다(주의 쌓인 판). 2: 새로 열고 3초 뒤 위험 1건. 3: 2의 상태 그대로 이어서
-    if (sc.no === 1) { alertIn = false; loadApp(); }
+    if (sc.no === 1) { alertIn = false; if (!freshApp) { loadApp(); } freshApp = false; }
     if (sc.no === 2) { alertIn = false; alertPending = true; loadApp(); }
   }
 

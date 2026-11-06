@@ -23,8 +23,15 @@
     // 문장째 — JS 가 숫자를 끼워 만드는 것
     [/^(\d+\.) (.+)$/, function (m, n, rest) { return n + " " + core(rest); }],   // 목차처럼 번호가 붙은 문구는 번호를 떼고 맞춘다
     // Delta 접힌 위젯 — 두 줄이 줄마다 따로 온다(v3-panel.js lines()). main 문장 꼴 그대로 줄 단위로 채운다(한글 남던 것)
-    [/^위험 (\d+)건, 주의 (\d+)건이 있어요\.$/, "$1 critical, $2 warnings."],
-    [/^위험 (\d+)건이 있어요\.$/, "$1 critical."],
+    // 숫자와 낱말 사이는 줄바꿈 안 함( ) — "9 / WARNINGS" 로 갈라지지 않게
+    [/^위험 (\d+)건, 주의 (\d+)건이 있어요\.$/, function (m, c, w) { return c + " critical, " + w + " warnings."; }],
+    [/^위험 (\d+)건이 있어요\.$/, function (m, c) { return c + " critical."; }],
+    // [11/05 v6] 미션 이동 답 단추 · 3번째 줄(하는 일) — monitor.js · v3-panel.js
+    [/^미션 이동하기$/, "Go to mission"],
+    [/^위험 (\d+)건 원인 분석 중\.\.\.$/, "Analyzing $1 critical alerts..."],
+    [/^주의 (\d+)건 추세 비교 중\.\.\.$/, "Comparing trends of $1 warnings..."],
+    [/^알림 (\d+)건 살펴보는 중\.\.\.$/, "Reviewing $1 alerts..."],
+    [/^답변 정리 중\.\.\.$/, "Writing an answer..."],
     [/^(.+?)(?:부터|이|가)? ?확인하세요\.$/, function (m, x) { return "Check " + core(x) + " first."; }],
     [/^이 미션 위험 (\d+), 다른 미션 위험 (\d+)$/, "$1 critical here, $2 in other missions"],
     [/^이 미션 위험 (\d+)$/, "$1 critical here"],
@@ -56,6 +63,11 @@
     [/^위험 (\d+)건부터 보여 드릴까요\?$/, "Start with the $1 critical?"],
     [/^알림 (\d+)건부터 보여 드릴까요\?$/, "Start with the $1 alerts?"],
     [/^어서오세요 (.+?) ?님$/, "Welcome, $1"],
+    [/^(\d.*) 소요$/, function (m, t) { return "Took " + core(t); }],
+    [/^지점 (\d+)곳$/, "$1 waypoints"],
+    [/^로봇 (\d+)대$/, "$1 robots"],
+    [/^(\d+)건 지남$/, "$1 on this floor"],
+    [/^(\d+)대 · (\d+)대 수행중$/, "$1 total, $2 running"],
     [/^주의 (\d+)건 묶어 보기$/, "View $1 warnings together"],
     [/^가장 급한 것은 (.+?)(?:이에요|예요)\.$/, "Most urgent: $1."],
     [/^(.+) — 검출 장면$/, "$1 — detection frame"],

@@ -78,6 +78,20 @@
     function label(a) { return c.label(a); }
     function mine(a) { return (A().mine || []).indexOf(a) >= 0; }
     function missionLine(a) { return [a.floor, A().missionOf ? A().missionOf(a) : ""].filter(Boolean).join(" "); }
+    /*
+     * [11/05 v6] 미션 표식 — 접힘과 같은 모양(v3-panel.js APRISM_DELTA_TOKEN, 문형표 5). 미션 [M번호 이름](괄호만 회색).
+     *   waypoint 번호 표식은 접힘에서만 쓴다 — 펼친 Delta 에는 넣지 않는다(11/05 디자이너). 표식이 없으면(다른 화면) 예전 글.
+     */
+    function tok() { return window.APRISM_DELTA_TOKEN || null; }
+    // [M번호 미션] — 층(B4)은 쓰지 않는다(11/05 디자이너, 펼친 Delta)
+    function missionNode(a) {
+      var T = tok(), name = A().missionOf ? A().missionOf(a) : "";
+      if (!T || !name) { return document.createTextNode(missionLine(a)); }
+      var f = document.createDocumentFragment();
+      f.appendChild(T.mission(name));
+      return f;
+    }
+
     function needLine(a) {
       var w = (a.btn || "").replace(/\s*(요청|예약)$/, "");
       if (!w) { return a.sev === "critical" ? "바로 확인이 필요해요" : "확인이 필요해요"; }
@@ -154,7 +168,7 @@
         var gone = !isOpenAlert(r.a);
         if (gone && !r.at) { r.at = c.nowHM(); }
         r.node.classList.toggle("is-done", gone);
-        r.sub.textContent = gone ? r.at + " 처리" : r.meta;
+        if (gone) { r.sub.textContent = r.at + " 처리"; } else if (!r.sub.querySelector(".dl-m")) { r.sub.textContent = ""; r.sub.appendChild(missionNode(r.a)); }
         var tag = r.node.querySelector(".dc6-tag");
         if (tag) { tag.remove(); }
         r.node.classList.remove("is-next");
@@ -175,7 +189,8 @@
       t.appendChild(el("span", null, label(a)));
       x.appendChild(t);
       var meta = missionLine(a);
-      var sub = el("span", "dc6-row-s", meta);
+      var sub = el("span", "dc6-row-s");
+      sub.appendChild(missionNode(a));
       x.appendChild(sub);
       b.appendChild(x);
       b.appendChild(icon("chevron-right", "dc6-row-c"));
@@ -203,12 +218,6 @@
       list.forEach(function (t) { l.appendChild(el("li", null, t)); });
       return l;
     }
-    function loc(a) {
-      var p = el("p", "dc6-loc");
-      p.appendChild(icon("map-pin"));
-      p.appendChild(el("span", null, place(a) + ", " + c.hhmm(a.time) + " 감지"));
-      return p;
-    }
     function card(m, a, ord) {
       var d = el("div", "dc6-card");
       var top = el("p", "dc6-need is-" + a.sev);
@@ -221,7 +230,7 @@
       why.appendChild(el("span", "dc6-why-l", "먼저 보는 이유"));
       why.appendChild(ul(reasons(a, ord)));
       d.appendChild(why);
-      d.appendChild(loc(a));
+      // [11/05] 위치와 시각 줄("B4 4번 지점, 10:12 감지")은 뺐다(디자이너) — 위치는 [위치 보기] 단추가 맡는다
       var note = el("p", "dc6-done");
       note.hidden = true;
       d.appendChild(note);
@@ -241,7 +250,7 @@
 
     function priority(first) {
       var ord = ordered(), top = ord[0], n = counts(ord);
-      var m = msg("priority", top, first ? "현재 관제 요약" : "처리 순서", "전체 미션");
+      var m = msg("priority", top, first ? "현재 관제 요약" : "처리 순서");   // [11/05] 오른쪽 범위 글("전체 미션")은 뺐다(디자이너)
       if (!top) { text(m, "지금은 확인할 알림이 없어요."); return finish(m); }
       m.node.appendChild(countLine(n, n.c ? "급한 것부터 안내할게요." : "먼저 볼 것부터 안내할게요."));
       m.next = true;
@@ -395,10 +404,12 @@
       var d = el("div", "dc6-card");
       d.appendChild(el("p", "dc6-eq", a.eq || a.title));
       var dl = el("dl", "dc6-dl");
-      [["미션", missionLine(a)], ["지점", wpNo(a)], ["측정", c.robotName(a) + ", " + c.hhmm(a.time)]].forEach(function (r) {
+      [["미션", missionLine(a), missionNode(a)], ["지점", wpNo(a)], ["측정", c.robotName(a) + ", " + c.hhmm(a.time)]].forEach(function (r) {
         if (!r[1]) { return; }
         dl.appendChild(el("dt", null, r[0]));
-        dl.appendChild(el("dd", null, r[1]));
+        var dd = el("dd", null, r[2] ? null : r[1]);
+        if (r[2] && tok()) { dd.appendChild(r[2]); } else if (r[2]) { dd.textContent = r[1]; }
+        dl.appendChild(dd);
       });
       d.appendChild(dl);
       d.appendChild(btnRow(btn("위치 보기", "is-pri", open(a)), btn("상세 확인", "", open(a))));
@@ -415,7 +426,7 @@
     }
     function count() {
       var ord = ordered(), n = counts(ord);
-      var m = msg("count", null, "알림 수", "전체 미션");
+      var m = msg("count", null, "알림 수");
       text(m, "위험 " + n.c + "건, 주의 " + n.w + "건이에요.");
       var crit = ord.filter(function (a) { return a.sev === "critical"; });
       if (crit.length) { m.node.appendChild(rows(m, crit)); }
@@ -495,7 +506,7 @@
       text(m, top === a ? "이 항목부터 확인하세요." : (top ? "먼저 확인할 항목은 그대로 " + topName + (c.batchim(topName) ? "이에요. " : "예요. ") : "") + "지금 " + word + " " + same + "건이에요.");
       var d = el("div", "dc6-card");
       if (a.sum) { d.appendChild(el("p", "dc6-desc", a.sum)); }
-      d.appendChild(loc(a));
+      // [11/05] 위치와 시각 줄은 뺐다(먼저 확인할 항목 카드와 같다)
       d.appendChild(btnRow(detailBtn(a), btn("처리 순서 보기", "", function () { c.ask("뭐부터 처리해?"); })));
       m.node.appendChild(d);
       lastType = "alert";

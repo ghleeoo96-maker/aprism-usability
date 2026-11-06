@@ -7,7 +7,7 @@
 - 모으기: 노트북마다 기록 화면의 [전체 JSON]으로 내보낸 뒤 한 곳에서 [JSON 가져오기]로 합친다
 - 리포트: 처음 화면 [리포트]. 샘플은 주소 끝 `#report-sample`, 튜토리얼 미리보기는 `#tour`
 
-`app/` 은 에이프리즘 관제 화면(aprism-web) 복사본이다. 테스트 기간 동안 화면이 바뀌지 않게 고정해 두었다(`app/.snapshot` 의 커밋).
+`app/` 은 에이프리즘 관제 화면(aprism-web) 복사본이다. 테스트 기간 동안 화면이 바뀌지 않게 고정해 두었다(`app/.snapshot` 의 커밋, 공개 화면 01hye0ne.github.io/aprism-web 의 main 과 같은 판).
 
 로컬에서 열 때: `node serve.mjs` 또는 `열기.bat` → http://localhost:5299/
 관제 화면은 3D 라이브러리와 폰트를 인터넷에서 받으므로 인터넷 연결이 필요하다.
