@@ -187,6 +187,14 @@
   .choice button { min-width: 120px; padding: 12px 20px; border: 2px solid var(--line); border-radius: 10px; background: #fff; font-size: 17px; font-weight: 700; }
   .choice button[aria-checked="true"] { border-color: var(--blue); background: var(--blue-weak); color: var(--blue); }
   .task-lead { margin: -4px 0 12px; font-size: 16px; color: var(--ink-2); }
+  #post-form.is-wide { max-width: none; }
+  .op-wrap { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(360px, 1fr); gap: 20px; align-items: start; }
+  .op-screen { position: sticky; top: 12px; }
+  .op-hint { margin: 0 0 8px; padding: 8px 12px; border-radius: 8px; background: #fff; font-size: 15px; color: var(--ink-2); }
+  .op-hint.is-on { background: var(--blue); color: #fff; font-weight: 700; }
+  .op-marks { position: absolute; inset: 0; pointer-events: none; }
+  .op-qs { max-height: calc(100vh - 140px); overflow: auto; padding-right: 4px; }
+  .pick-btn.is-on { background: var(--blue); color: #fff; border-color: var(--blue); }
   .pick-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
   .pick-chip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 4px 4px 10px; border-radius: 999px; background: var(--blue-weak); font-size: 14px; color: var(--ink); }
   .pick-chip b { color: var(--blue); }
@@ -358,12 +366,15 @@
     </section>
 
     <section data-pg="3" hidden>
-    <div class="sv-card sv-note">
-      <p>객관식 답변에 답해주셔서 감사합니다. 이제부터 주관식 문항입니다.<br>각 문항에 답을 적어 주세요.</p>
-    </div>
-
     <div class="sv-band">주관식 질문 및 심층인터뷰</div>
-    <div id="openq"></div>
+    <!-- 왼쪽 실제 관제 화면(위험과 주의 알림이 있는 판), 오른쪽 문항. 화면과 연결되는 문항은 왼쪽 화면을 눌러 고른다 -->
+    <div class="op-wrap">
+      <div class="op-screen">
+        <p class="op-hint" id="op-hint">화면을 보며 답해 주세요. 알림을 눌러 열어 볼 수도 있습니다.</p>
+        <div class="sv-frame" id="op-box"><iframe id="op-frame" title="에이프리즘 관제 화면"></iframe><div class="op-marks" id="op-marks"></div></div>
+      </div>
+      <div class="op-qs" id="openq"></div>
+    </div>
     </section>
 
     <div class="row" style="margin-top:24px">
@@ -1405,22 +1416,89 @@
   });
   // 주관식 — 1~8 필수, 9(자유 의견)는 선택. 슬라이드 "주관식 질문 및 심층인터뷰" 그대로
   // 주관식 — 시나리오 인터뷰와 겹치는 "조치가 제대로 반영되었다고 느꼈나요?"는 뺐다. [문항, 선택 여부]
+  // [문항, 선택 여부, 화면에서 고르기]
   var OPEN_Q = [
-    ["처음 화면을 보았을때, 로봇이 어떤 업무를 하고 있는지 파악하기 어려웠던 부분이 있었나요?", true],
-    ["위험 알람에서 가장 먼저 눈에 들어온 정보는 무엇이었나요?", false],
-    ["위험 알람이 어떤 느낌이드는지, 상황이 얼마나 긴급하다고 느껴졌으며 그렇게 생각한 이유는 무엇인가요?", false],
-    ["주의 알람과 위험 알람은 어떤 점에서 다르게 느껴졌나요? 차이가 느껴지지 않았다면 그 이유도 말씀해 주세요.", false],
-    ["필요한 조치를 찾거나 실행하면서 망설였던 순간이 있었나요? 이유는 무엇인가요?", true],
-    ["실제 관제 업무에서 사용한다면 추가로 필요한 정보나 기능은 무엇일까요?", true],
-    ["가장 유용했던 부분과 가장 먼저 개선해야 할 부분을 각각 말씀해 주세요.", false],
-    ["자유롭게 의견을 남겨주세요.", true]
+    ["처음 화면을 보았을때, 로봇이 어떤 업무를 하고 있는지 파악하기 어려웠던 부분이 있었나요?", true, true],
+    ["위험 알람에서 가장 먼저 눈에 들어온 정보는 무엇이었나요?", false, true],
+    ["위험 알람이 어떤 느낌이드는지, 상황이 얼마나 긴급하다고 느껴졌으며 그렇게 생각한 이유는 무엇인가요?", false, false],
+    ["주의 알람과 위험 알람은 어떤 점에서 다르게 느껴졌나요? 차이가 느껴지지 않았다면 그 이유도 말씀해 주세요.", false, true],
+    ["필요한 조치를 찾거나 실행하면서 망설였던 순간이 있었나요? 이유는 무엇인가요?", true, true],
+    ["실제 관제 업무에서 사용한다면 추가로 필요한 정보나 기능은 무엇일까요?", true, false],
+    ["가장 유용했던 부분과 가장 먼저 개선해야 할 부분을 각각 말씀해 주세요.", false, true],
+    ["자유롭게 의견을 남겨주세요.", true, false]
   ];
   var OPEN = OPEN_Q.map(function (x) { return x[0]; });
   function openOpt(i) { return OPEN_Q[i][1]; }
   $("openq").innerHTML = OPEN.map(function (q, i) {
     return '<fieldset class="sv-card" data-q="op' + i + '"><legend>' + (i + 1) + ". " + q + (openOpt(i) ? " <span class=\"sv-opt\">(선택)</span>" : " <i>*</i>") + '</legend>' +
-      '<textarea class="sv-ta" name="op' + i + '" rows="3" placeholder="' + (openOpt(i) ? "답변 적기(선택)" : "답변 적기") + '"></textarea><p class="sv-err">필수 질문입니다.</p></fieldset>';
+      '<textarea class="sv-ta" name="op' + i + '" rows="3" placeholder="' + (openOpt(i) ? "답변 적기(선택)" : "답변 적기") + (OPEN_Q[i][2] ? " 또는 왼쪽 화면에서 고르기" : "") + '"></textarea>' +
+      (OPEN_Q[i][2] ? '<div class="pick-chips" id="op-chips' + i + '"></div><button type="button" class="btn btn-line pick-btn" data-op-pick="' + i + '">왼쪽 화면에서 고르기</button>' : "") +
+      '<p class="sv-err">필수 질문입니다.</p></fieldset>';
   }).join("");
+
+  // 주관식 화면 고르기 — 왼쪽 화면(op-frame)을 누르면 그 자리를 이 문항 답으로. 고르는 동안 화면은 반응하지 않는다
+  var opPicks = [], opPickQ = null;
+  function opScale() { return $("op-box").clientWidth / 1920; }
+  function fitOpFrame() { var b = $("op-box"); if (!b || b.offsetParent === null) { return; } $("op-frame").style.transform = "scale(" + opScale() + ")"; paintOpMarks(); }
+  function paintOpMarks() {
+    var box = $("op-marks"); box.innerHTML = "";
+    if (opPickQ === null) { return; }
+    var sc = opScale();
+    (opPicks[opPickQ] || []).forEach(function (p, k) {
+      var m = document.createElement("span"); m.className = "pick-mark"; m.style.left = (p.x * sc) + "px"; m.style.top = (p.y * sc) + "px"; m.textContent = k + 1; box.appendChild(m);
+    });
+  }
+  function paintOpChips(i) {
+    var el = $("op-chips" + i); if (!el) { return; }
+    el.innerHTML = (opPicks[i] || []).map(function (p, k) {
+      return '<span class="pick-chip"><b>' + (k + 1) + "</b>" + esc(pickName(p)) + '<button type="button" data-op-unpick="' + i + '" data-k="' + k + '" aria-label="지우기">×</button></span>';
+    }).join("");
+  }
+  function setOpPick(i) {
+    opPickQ = i;
+    Array.prototype.forEach.call(document.querySelectorAll("[data-op-pick]"), function (b) {
+      var on = Number(b.getAttribute("data-op-pick")) === i;
+      b.classList.toggle("is-on", on); b.textContent = on ? "다 골랐어요" : "왼쪽 화면에서 고르기";
+    });
+    $("op-hint").textContent = i === null ? "화면을 보며 답해 주세요. 알림을 눌러 열어 볼 수도 있습니다." : (i + 1) + "번 문항: 왼쪽 화면에서 해당하는 곳을 눌러 주세요. 여러 곳을 눌러도 됩니다.";
+    $("op-hint").classList.toggle("is-on", i !== null);
+    paintOpMarks();
+  }
+  $("openq").addEventListener("click", function (e) {
+    var b = e.target.closest("[data-op-pick]");
+    if (b) { var i = Number(b.getAttribute("data-op-pick")); setOpPick(opPickQ === i ? null : i); if (rec) { log(opPickQ === null ? "pick-end" : "pick-start", { label: "주관식 " + (i + 1) }); } return; }
+    var u = e.target.closest("[data-op-unpick]");
+    if (u) { var qi = Number(u.getAttribute("data-op-unpick")); opPicks[qi].splice(Number(u.getAttribute("data-k")), 1); paintOpChips(qi); paintOpMarks(); if (rec) { log("unpick", { label: "주관식 " + (qi + 1) }); } }
+  });
+  function openOpFrame() {
+    var fr = $("op-frame");
+    try { localStorage.setItem("aprism-theme", "dark"); } catch (e) { }
+    fr.onload = function () {
+      try {
+        var w = fr.contentWindow, d = fr.contentDocument, st = d.createElement("style");
+        st.textContent = ".rsim, .grid-overlay { display: none !important; }";
+        (d.head || d.documentElement).appendChild(st);
+        w.open = function () { return null; };
+        ["pointerdown", "mousedown", "pointerup", "mouseup", "click", "dblclick", "wheel", "contextmenu"].forEach(function (type) {
+          w.addEventListener(type, function (e) {
+            if (opPickQ === null) { return; }
+            e.preventDefault(); e.stopImmediatePropagation();
+            if (type !== "click") { return; }
+            var el = e.target.nodeType === 1 ? e.target : e.target.parentElement;
+            var p = { area: el ? areaOf(el) : "", label: el ? labelOf(el) : "", x: Math.round(e.clientX), y: Math.round(e.clientY), t: now() };
+            (opPicks[opPickQ] = opPicks[opPickQ] || []).push(p);
+            paintOpChips(opPickQ); paintOpMarks();
+            var c = document.querySelector('.sv-card[data-q="op' + opPickQ + '"]'); if (c) { c.classList.remove("is-err"); }
+            if (rec) { log("pick", { label: "주관식 " + (opPickQ + 1), area: p.area, x: p.x, y: p.y }); }
+          }, { capture: true, passive: false });
+        });
+      } catch (e) { }
+      setTimeout(fitOpFrame, 0);
+    };
+    fr.src = APP + "?mission=" + encodeURIComponent(MISSION) + "&floor=B4#critical";
+    setTimeout(fitOpFrame, 0);
+  }
+  window.addEventListener("resize", fitOpFrame);
   var postStart = 0;
   // 공통질문 쪽 — 1 선호도 조사, 2 7점 척도, 3 주관식. 선호도 쪽을 떠나면 3D 화면을 내리고, 돌아오면 다시 연다
   var PG_NAME = ["", "선호도 조사", "공통질문 응답", "주관식 질문"], postPg = 1;
@@ -1430,6 +1508,8 @@
     $("post-step").textContent = n + "/3 " + PG_NAME[n];
     $("pg-prev").hidden = n === 1; $("pg-next").hidden = n === 3; $("pg-submit").hidden = n !== 3;
     if (n === 1) { openModeFrame(); } else { $("mode-frame").src = "about:blank"; }
+    if (n === 3) { openOpFrame(); } else { $("op-frame").src = "about:blank"; setOpPick(null); }
+    $("post-form").classList.toggle("is-wide", n === 3);
     if (n === 2) { var nx = LK_GROUPS.findIndex(function (g, k) { return !lkDone(k); }); lkOpen = nx < 0 ? -1 : nx; paintLikert(); }
     window.scrollTo(0, 0);
     if (rec) { log("post-page", { label: n + " " + PG_NAME[n] }); }
@@ -1448,6 +1528,8 @@
   $("pg-prev").addEventListener("click", function () { goPg(postPg - 1); });
 
   function openPost() {
+    opPicks = []; opPickQ = null;
+    for (var oi = 0; oi < OPEN.length; oi++) { paintOpChips(oi); }
     $("post-form").reset();
     $("post-form").hidden = false; $("post-done").hidden = true;
     Array.prototype.forEach.call(document.querySelectorAll("#post .sv-card"), function (c) { c.classList.remove("is-err"); });
@@ -1520,15 +1602,16 @@
     lk.forEach(function (v, i) { var c = document.querySelector('.sv-card[data-q="lk' + i + '"]'); c.classList.toggle("is-err", !v); if (!v && bad < 0) { bad = i; } });
     if (bad >= 0) { goPg(2); checkLikert(); return; }
     var open = OPEN.map(function (q, i) { return (document.querySelector('#post-form textarea[name="op' + i + '"]') || {}).value || ""; });
-    open.forEach(function (v, i) { var c = document.querySelector('.sv-card[data-q="op' + i + '"]'); var miss = !openOpt(i) && !v.trim(); c.classList.toggle("is-err", miss); if (miss && bad < 0) { bad = i; } });
+    open.forEach(function (v, i) { var c = document.querySelector('.sv-card[data-q="op' + i + '"]'); var miss = !openOpt(i) && !v.trim() && !(opPicks[i] && opPicks[i].length); c.classList.toggle("is-err", miss); if (miss && bad < 0) { bad = i; } });
+    open = open.map(function (v, i) { var pk = (opPicks[i] || []).map(function (p) { return "[화면] " + pickName(p); }).join("\n"); return [v, pk].filter(Boolean).join("\n"); });
     if (bad >= 0) { document.querySelector('.sv-card[data-q="op' + bad + '"]').scrollIntoView({ behavior: "smooth", block: "center" }); return; }
-    rec.post = { mode: val("mode"), likert: lk, open: open, start: postStart, answeredAt: now() };
+    rec.post = { mode: val("mode"), likert: lk, open: open, openPicks: opPicks, start: postStart, answeredAt: now() };
     phase = "done";
     rec.endedAt = now();
     log("test-end");
     save(true);
     backup(rec);
-    $("mode-frame").src = "about:blank";
+    $("mode-frame").src = "about:blank"; $("op-frame").src = "about:blank";
     $("post-form").hidden = true; $("post-done").hidden = false; window.scrollTo(0, 0);
   });
   $("post-home").addEventListener("click", function () { leave(); });
@@ -1772,7 +1855,7 @@
 
   // 리포트(report.js)가 쓰는 것
   window.UT = { pull: function (cb) { pullCloud(cb); }, db: function () { return DB; }, SCEN: SCEN, QLIST: QLIST, PEOPLE: PEOPLE, scenStat: scenStat, answerOf: answerOf, latest: latest,
-    doneAll: doneAll, LIKERT: LIKERT, OPEN: OPEN, SHEET_LINK: SHEET_LINK, mmss: mmss, clock: clock, esc: esc, show: show, pid: pid };
+    doneAll: doneAll, LIKERT: LIKERT, OPEN: OPEN, OPEN_PICK: OPEN_Q.map(function (x) { return !!x[2]; }), PICK: PICK, pickName: pickName, SHEET_LINK: SHEET_LINK, mmss: mmss, clock: clock, esc: esc, show: show, pid: pid };
 
   renderHome();
   paintCloud();

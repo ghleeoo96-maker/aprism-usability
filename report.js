@@ -83,6 +83,9 @@
     ".one-lk { display: flex; justify-content: space-between; align-items: center; background: #f6f8fb; border-radius: 8px; padding: 10px 12px; font-size: 15px; }",
     ".one-lk b { font-size: 18px; }",
     ".rp-tbl td.wrap { white-space: normal; }",
+    ".pick-shot { width: 320px; margin-top: 8px; }",
+    ".pick-sum { padding: 0 18px 12px 46px; }",
+    ".pick-sum .pick-big { max-width: 760px; }",
     ".pp { display: grid; gap: 2px; }",
     ".pp-row { display: grid; grid-template-columns: 56px repeat(3, 1fr); gap: 24px; align-items: center; min-height: 30px; }",
     ".pp-head { font-size: 14px; color: var(--rp-ink-2); padding-bottom: 8px; border-bottom: 1px solid var(--rp-line); margin-bottom: 6px; }",
@@ -147,7 +150,7 @@
   document.body.appendChild(tip);
 
   // 클릭 지도 배경 — 시나리오 1은 주의 쌓인 판, 2와 3은 위험 알림 상세가 열린 판(img/rects.json 과 같은 때 찍음)
-  var BG = { 1: "img/s1.jpg", 2: "img/s2.jpg", 3: "img/s2.jpg" };
+  var BG = { 1: "img/s1.jpg", 2: "img/s2.jpg", 3: "img/s2.jpg", op: "img/op.jpg" };
   var RECTS = {"s1":{"미션 탭":[76,0,1257,52],"GNB":[0,52,76,1028],"Delta":[416,60,260,260],"최신 알림":[76,141,340,469],"오늘 확인 완료":[76,610,340,470],"지도 도구":[1508,80,44,286],"설비 배치도":[436,80,1116,972],"미션 진행률":[1576,288,312,94],"미션 진행 지점 목록":[1576,424,312,624],"로봇 정보":[1576,84,312,204],"_gnb":{"관제":[3,60,70,64],"안전진단":[3,128,70,64],"로봇":[3,196,70,64],"AI":[3,264,70,64],"스케줄러":[3,332,70,64],"Delta":[3,400,70,64],"보고서":[3,468,70,64],"계정관리":[3,536,70,64],"환경설정":[3,996,70,64]}},"s2":{"미션 탭":[76,0,1257,52],"GNB":[0,52,76,1028],"Delta":[416,60,260,260],"최신 알림":[76,141,340,469],"오늘 확인 완료":[76,610,340,470],"지도 도구":[1508,80,44,286],"설비 배치도":[436,80,1116,972],"미션 진행률":[1576,288,312,94],"미션 진행 지점 목록":[1576,424,312,624],"로봇 정보":[1576,84,312,204],"알림 상세":[809,234,370,561],"알림 상세 Delta":[818,518,352,212],"조치 버튼":[1092,750,74,32],"_gnb":{"관제":[3,60,70,64],"안전진단":[3,128,70,64],"로봇":[3,196,70,64],"AI":[3,264,70,64],"스케줄러":[3,332,70,64],"Delta":[3,400,70,64],"보고서":[3,468,70,64],"계정관리":[3,536,70,64],"환경설정":[3,996,70,64]}}};
 
   var esc = U.esc;
@@ -220,7 +223,15 @@
         t = end; s.done = t; push(ph, "run", "run-done");
         U.SCEN[n - 1].tasks.forEach(function (tk) {
           var st = s.tasks[tk.id] = { start: t, end: 0, answers: [] };
-          ANS[tk.id].forEach(function (opts) { st.answers.push(pick(opts)); t += logn(18, 0.5) * 1000; });
+          ANS[tk.id].forEach(function (opts, qi) {
+            if ((U.PICK && U.PICK[tk.id] || []).indexOf(qi) >= 0 && rnd() < 0.7) {
+              st.picks = st.picks || []; st.picks[qi] = [];
+              var cnt = 1 + Math.floor(rnd() * 2);
+              for (var c = 0; c < cnt; c++) { var ar = pick(n === 1 ? ["미션 진행률", "미션 진행 지점 목록", "설비 배치도", "로봇 정보"] : ["알림 상세", "최신 알림", "Delta", "설비 배치도"]); var xy = spot(n === 1 ? "s1" : "s2", { area: ar }); st.picks[qi].push({ area: ar, label: ar, x: xy[0], y: xy[1] }); }
+              st.answers.push(rnd() < 0.5 ? pick(opts) : "");
+            } else { st.answers.push(pick(opts)); }
+            t += logn(18, 0.5) * 1000;
+          });
           st.end = t;
         });
         s.end = t;
@@ -233,7 +244,12 @@
         ["현장 작업자 위치", "조치 이력", "알림 소리"],
         ["Delta 요약이 유용, 지도 번호는 개선 필요", "알림 상세가 유용, 글씨 크기 개선", "한눈에 보이는 진행률이 유용"],
         ["", "전체적으로 깔끔하다", ""]];
-      a.post = { open: OPA.map(function (o) { return pick(o); }), mode: pick(["블랙 모드", "블랙 모드", "화이트 모드", "상관없다", ""]), likert: [5, 4, 4, 5, 5, 3, 5, 6, 5, 5].map(function (m) { return Math.max(1, Math.min(7, m + Math.round((rnd() + rnd() - 1) * 2))); }), start: t, answeredAt: t + 120000 };
+      var opk = (U.OPEN_PICK || []).map(function (on) {
+        if (!on || rnd() < 0.4) { return []; }
+        var ar = pick(["최신 알림", "Delta", "설비 배치도", "미션 진행 지점 목록"]), xy = spot("s2", { area: ar });
+        return [{ area: ar, label: ar, x: xy[0], y: xy[1] }];
+      });
+      a.post = { openPicks: opk, open: OPA.map(function (o) { return pick(o); }), mode: pick(["블랙 모드", "블랙 모드", "화이트 모드", "상관없다", ""]), likert: [5, 4, 4, 5, 5, 3, 5, 6, 5, 5].map(function (m) { return Math.max(1, Math.min(7, m + Math.round((rnd() + rnd() - 1) * 2))); }), start: t, answeredAt: t + 120000 };
       a.endedAt = t;
       out.push(a);
     }
@@ -381,7 +397,8 @@
     var Q = U.OPEN || [];
     return '<div class="rp-qa">' + Q.map(function (q, i) {
       var list = R.people.map(function (a) { return [a.participant, a.post && a.post.open ? a.post.open[i] : ""]; }).filter(function (x) { return x[1] && String(x[1]).trim(); });
-      return "<details><summary><em>" + (i + 1) + "</em>" + esc(q) + ' <span style="color:#8a919e;font-weight:600">답변 ' + list.length + "</span></summary><ul>" +
+      var shot = U.OPEN_PICK && U.OPEN_PICK[i] ? '<div class="pick-sum"><p class="cm-cap">화면에서 고른 곳 — 숫자는 참가자 번호</p>' + pickShot("op", R.people.map(function (a) { return { who: a.participant, list: openPicksOf(a, i) }; }), "cm-scr pick-big") + "</div>" : "";
+      return "<details><summary><em>" + (i + 1) + "</em>" + esc(q) + ' <span style="color:#8a919e;font-weight:600">답변 ' + list.length + "</span></summary>" + shot + "<ul>" +
         list.map(function (x) { return "<li><b>" + x[0] + "</b><span>" + esc(x[1]) + "</span></li>"; }).join("") + "</ul></details>";
     }).join("") + "</div>";
   }
@@ -493,12 +510,31 @@
   function screen(n, inner, cls) {
     return '<div class="' + cls + '"><img src="' + BG[n] + '" alt=""><svg viewBox="0 0 1920 1080" preserveAspectRatio="none">' + inner + "</svg></div>";
   }
+  // 고른 곳 그림 — one: 한 사람(고른 순서 1, 2, 3), all: 여러 사람(점에 참가자 번호)
+  function picksOf(a, id, i) { var s0 = a.scenarios[id.charAt(0)], t = s0 && s0.tasks[id]; return t && t.picks && t.picks[i] || []; }
+  function openPicksOf(a, i) { return a.post && a.post.openPicks && a.post.openPicks[i] || []; }
+  function pickShot(bg, groups, cls) {
+    var g = "";
+    groups.forEach(function (gr) {
+      gr.list.forEach(function (p, k) {
+        if (p.x == null) { return; }
+        var label = gr.who ? gr.who.slice(1) : String(k + 1);
+        var tip = esc((gr.who ? gr.who + "  " : (k + 1) + "번째  ") + (U.pickName ? U.pickName(p) : p.area || ""));
+        g += '<g data-tip="' + tip + '"><circle cx="' + p.x + '" cy="' + p.y + '" r="30" fill="#2a78d6" stroke="#fff" stroke-width="5"/>' +
+          '<text x="' + p.x + '" y="' + (p.y + 9) + '" text-anchor="middle" font-size="26" font-weight="800" fill="#fff">' + label + "</text></g>";
+      });
+    });
+    return screen(bg, g, cls || "cm-scr pick-shot");
+  }
+
   // 그 시나리오 인터뷰 답변 — 문항을 누르면 참가자별 답이 펼쳐진다
   function scnAnswers(n, people) {
     var qs = U.QLIST.filter(function (q) { return q[0].charAt(0) === String(n); });
     return '<h3 class="cm-h">시나리오 ' + n + ' 인터뷰 답변</h3><div class="rp-qa">' + qs.map(function (q) {
       var list = people.map(function (a) { return [a.participant, U.answerOf(a, q[0], q[1])]; }).filter(function (x) { return x[1] && String(x[1]).trim(); });
-      return "<details><summary><em>TASK " + q[0] + "</em> " + (q[1] + 1) + ". " + esc(q[2]) + ' <span style="color:#8a919e;font-weight:600">답변 ' + list.length + "</span></summary><ul>" +
+      var isPick = (U.PICK && U.PICK[q[0]] || []).indexOf(q[1]) >= 0;
+      var shot = isPick ? '<div class="pick-sum"><p class="cm-cap">화면에서 고른 곳 — 숫자는 참가자 번호</p>' + pickShot(Number(q[0].charAt(0)), people.map(function (a) { return { who: a.participant, list: picksOf(a, q[0], q[1]) }; }), "cm-scr pick-big") + "</div>" : "";
+      return "<details><summary><em>TASK " + q[0] + "</em> " + (q[1] + 1) + ". " + esc(q[2]) + ' <span style="color:#8a919e;font-weight:600">답변 ' + list.length + "</span></summary>" + shot + "<ul>" +
         list.map(function (x) { return "<li><b>" + x[0] + "</b><span>" + esc(x[1]) + "</span></li>"; }).join("") + "</ul></details>";
     }).join("") + "</div>";
   }
@@ -594,14 +630,16 @@
       return "<tr><td>" + q[0] + '</td><td class="wrap">' + (q[1] + 1) + ". " + esc(q[2]) + '</td><td class="wrap">' + esc(U.answerOf(a, q[0], q[1])) + "</td></tr>";
     }).join("") + "</table>";
     var lk = (U.LIKERT || []).map(function (q, k) { var v = post.likert ? post.likert[k] : ""; return '<div class="one-lk"><span>' + esc(lkName(q)) + "</span><b>" + (v || "-") + "</b></div>"; }).join("");
-    var op = (U.OPEN || []).map(function (q, k) { var v = post.open ? post.open[k] : ""; return v && String(v).trim() ? "<tr><td class=\"wrap\">" + (k + 1) + ". " + esc(q) + '</td><td class="wrap">' + esc(v) + "</td></tr>" : ""; }).join("");
+    var op = (U.OPEN || []).map(function (q, k) { var v = post.open ? post.open[k] : ""; var pk = openPicksOf(a, k); return v && String(v).trim() ? "<tr><td class=\"wrap\">" + (k + 1) + ". " + esc(q) + '</td><td class="wrap">' + esc(v) + (pk.length ? pickShot("op", [{ list: pk }]) : "") + "</td></tr>" : ""; }).join("");
     box.innerHTML = nav +
       '<div class="rp-sec" style="margin-top:20px"><h2>' + a.participant + "</h2>" + head + "</div>" +
       '<div class="rp-sec"><h2>시나리오</h2><div class="rp-card" style="padding:0;overflow:auto">' + sc + "</div></div>" +
       [1, 2, 3].map(function (n) {
         var d = dots(a, n, "one"), x = U.scenStat(a, n);
         var rows = U.QLIST.filter(function (q) { return q[0].charAt(0) === String(n); }).map(function (q) {
-          return "<tr><td>" + q[0] + '</td><td class="wrap">' + (q[1] + 1) + ". " + esc(q[2]) + '</td><td class="wrap">' + esc(U.answerOf(a, q[0], q[1])) + "</td></tr>";
+          var pk = picksOf(a, q[0], q[1]);
+          return "<tr><td>" + q[0] + '</td><td class="wrap">' + (q[1] + 1) + ". " + esc(q[2]) + '</td><td class="wrap">' + esc(U.answerOf(a, q[0], q[1])) +
+            (pk.length ? pickShot(Number(q[0].charAt(0)), [{ list: pk }]) : "") + "</td></tr>";
         }).join("");
         return '<div class="rp-sec"><h2>시나리오 ' + n + " " + esc(U.SCEN[n - 1].title) + '</h2><p class="rp-sub">수행 ' + mmss(x.ms) + ", 화면 클릭 " + d.on + "회. 지도 숫자는 누른 순서.</p>" +
           '<div class="one-scn"><div class="rp-card">' + screen(n, d.svg, "cm-scr") + '</div><div class="rp-card" style="padding:0;overflow:auto"><table class="rp-tbl"><tr><th>TASK</th><th>문항</th><th>답변</th></tr>' + rows + "</table></div></div></div>";
