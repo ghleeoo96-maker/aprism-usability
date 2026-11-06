@@ -472,7 +472,7 @@
   ];
 
   var SCEN = [
-    { no: 1, title: "로봇의 업무 파악", ask: "로봇이 어떤 업무를 하고 있는지 화면에서 확인해 주세요!", done: "확인완료",
+    { no: 1, title: "로봇의 업무 파악", ask: "로봇이 어떤 업무를 하고 있는지 화면에서 확인해 주세요!", done: "확인완료", doneAfter: 15000, doneClicks: 0,
       desc: "관제 업무를 인계받았습니다. 현재 로봇은 현장에서 정기 순회 점검을 수행하고 있습니다. 화면을 살펴보고 로봇이 어떤 업무를 하고 있는지 확인해 주세요.",
       tasks: [
         { id: "1-1", qs: ["로봇이 수행 중인 미션의 이름은 무엇인가요?", "로봇은 지금 몇 번 지점에 있나요?"] },
@@ -738,7 +738,7 @@
         w.dispatchEvent(new w.HashChangeEvent("hashchange"));
       }
       if (alertPending) { alertPending = false; alertIn = true; injectAlert(ALERT_AFTER, ALERT_LEAD); }
-      else if (alertIn) { injectAlert(0, 0, function () { if (alertDone) { try { w.document.dispatchEvent(new w.CustomEvent("aprism:ut-resolve", { detail: alertDone })); } catch (e) { } } }); }
+      else if (alertIn && alertLive) { injectAlert(0, 0, function () { if (alertDone) { try { w.document.dispatchEvent(new w.CustomEvent("aprism:ut-resolve", { detail: alertDone })); } catch (e) { } } }); }
     }
     var cb = onReady; onReady = null;
     if (cb) { cb(); }
@@ -784,15 +784,17 @@
     })();
   }
 
+  var alertLive = false;   // 시나리오 2 알림 흐름을 이미 보냈나 — 화면을 다시 열 때만 다시 넣는다(처음 열리는 중에는 두 번 넣지 않게)
   function injectAlert(after, lead, onIn) {
     var w = frame.contentWindow, t0 = Date.now();
     (function wait() {
-      if (frame.contentWindow !== w) { return; }   // 그새 다른 화면으로 갔다
+      w = frame.contentWindow;   // 아직 열리는 중이면 새로 열린 화면을 기다린다
       if (!simReady(w) && Date.now() - t0 < 25000) { setTimeout(wait, 200); return; }
       setTimeout(function () {
         if (frame.contentWindow !== w) { return; }
         try {
           w.document.dispatchEvent(new w.CustomEvent("aprism:delta-sim", { detail: { from: "normal", after: after } }));
+          alertLive = true;
           if (after) { log("alert-measure", { label: "로봇이 위험 지점에서 측정 시작" }); }
           // 새 알림 기능이 없는 판이면 위험 판으로 — 처음 넣을 때만(다시 넣을 때는 조치 완료로 정상이 될 수 있다)
           if (after) {
@@ -827,7 +829,8 @@
     if (alertIn && tgt && (tgt.closest("[data-ma-confirm]") || tgt.closest("[data-req]"))) {
       alertDone = { time: new Date().toTimeString().slice(0, 5), how: tgt.closest("[data-req]") ? "현장 조치 요청(안전진단)" : "조치 요청" };
     }
-    if (step === "run" && ++runClicks >= DONE_CLICKS) { setTimeout(function () { revealDone("클릭 " + DONE_CLICKS + "번"); }, 0); }
+    var needClicks = curScen && phase && /^s[123]$/.test(phase) && curScen().doneClicks !== undefined ? curScen().doneClicks : DONE_CLICKS;   // 0 이면 클릭으로는 안 나온다(시나리오 1)
+    if (step === "run" && needClicks && ++runClicks >= needClicks) { setTimeout(function () { revealDone("클릭 " + DONE_CLICKS + "번"); }, 0); }
     var el = e.target.nodeType === 1 ? e.target : e.target.parentElement;
     if (!el) { return; }
     var a = el.closest('a[href="#"]');
@@ -950,6 +953,10 @@
   // ---------- 시나리오 ----------
   function goScenario(n) {
     phase = "s" + n; step = "intro"; taskIdx = 0;
+    // 다음 시나리오의 테스트 화면을 먼저 열고, 그 위에 덮개와 안내 카드를 띄운다
+    //   2: 정상 판으로 새로 연다. 3: 관제 화면이 아니면(안전진단 등) 관제로 다시 연다(위험 알림은 load 에서 다시 띄운다)
+    if (n === 2) { alertIn = false; alertLive = false; alertDone = null; alertPending = false; loadApp(); }
+    if (n === 3) { var pth = ""; try { pth = frame.contentWindow.location.pathname; } catch (e) { } if (!/main-v6.html$/.test(pth)) { loadApp(); } }
     showCard(true);
     paintTask();
   }
@@ -974,7 +981,8 @@
   var DONE_AFTER = 10000, DONE_CLICKS = 3, doneTimer = null, runClicks = 0, hintTimer = null;
   function armDone() {
     clearTimeout(doneTimer); runClicks = 0;
-    doneTimer = setTimeout(function () { revealDone("10초"); }, DONE_AFTER);
+    var ms = curScen().doneAfter || DONE_AFTER;   // 시나리오 1 은 15초
+    doneTimer = setTimeout(function () { revealDone(Math.round(ms / 1000) + "초"); }, ms);
   }
   function revealDone(why) {
     if (step !== "run" || !$("rb-done").hidden) { return; }
@@ -1119,9 +1127,8 @@
     armDone();
     // 1: 새로 연다(주의 쌓인 판). 2: 새로 열고 3초 뒤 위험 1건. 3: 2의 상태 그대로 이어서
     if (sc.no === 1) { alertIn = false; if (!freshApp) { loadApp(); } freshApp = false; robotWalk(); }
-    if (sc.no === 2) { alertIn = false; alertDone = null; alertPending = true; loadApp(); }
-    // 시나리오 3 은 관제 화면에서 시작 — 안전진단 등 다른 화면에 있으면 관제로 다시 연다(위험 알림은 그대로 다시 띄운다)
-    if (sc.no === 3) { var pth = ""; try { pth = frame.contentWindow.location.pathname; } catch (e) { } if (!/main-v6.html$/.test(pth)) { loadApp(); } }
+    // 시나리오 2: 화면은 안내 카드가 뜰 때 이미 새로 열어 두었다(goScenario) — 여기서는 알림 흐름만 시작한다
+    if (sc.no === 2) { alertIn = true; alertDone = null; alertPending = false; injectAlert(ALERT_AFTER, ALERT_LEAD); }
   }
 
   // [수행 완료] — 시나리오 시간이 여기서 끝나고 TASK 인터뷰가 열린다
