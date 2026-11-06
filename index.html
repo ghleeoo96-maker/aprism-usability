@@ -62,8 +62,13 @@
   .sv-card.is-err { border-color: var(--red); }
   .sv-card.is-err .sv-err { display: block; }
   .sv-band { margin: 24px 0 12px; padding: 14px 24px; border-radius: 10px; background: #2b8fd8; color: #fff; font-size: 16px; font-weight: 700; }
-  .sv-intro p { margin: 0 0 16px; font-size: 18px; }
-  .sv-intro img { width: 100%; border-radius: 12px; display: block; }
+  .sv-intro-t { margin: 8px 0 12px; font-size: 18px; font-weight: 700; }
+  /* 소개 화면 — 설문 폭(680)을 벗어나 화면 너비를 꽉 채운다 */
+  .sv-shot { width: calc(100vw - 48px); max-width: 1920px; margin: 0 0 16px 50%; transform: translateX(-50%); }
+  .sv-shot figcaption { margin: 0 0 8px; font-size: 18px; font-weight: 800; }
+  .sv-shot img { display: block; width: 100%; border-radius: 12px; cursor: zoom-in; box-shadow: 0 4px 16px rgba(0,0,0,.12); }
+  .zoom { position: fixed; inset: 0; z-index: 100; background: #000; display: grid; place-items: center; cursor: zoom-out; }
+  .zoom img { max-width: 100vw; max-height: 100vh; }
   .sv-clear { justify-self: end; border: 0; background: none; color: var(--ink-2); font-size: 14px; padding: 6px 8px; }
   .sv-note p { margin: 0; font-size: 16px; line-height: 1.7; }
   .sv-note ul { margin: 12px 0 0; padding-left: 22px; font-size: 16px; line-height: 1.8; }
@@ -245,10 +250,10 @@
     <h1 class="sv-title">공통질문 <span id="post-p"></span></h1>
 
     <div class="sv-band">플랫폼 소개 및 화이트 모드와 블랙 모드 선택</div>
-    <div class="sv-card sv-intro">
-      <p>에이프리즘 관제 플랫폼</p>
-      <img src="img/mode.jpg" alt="에이프리즘 관제 화면. 왼쪽 반은 화이트 모드, 오른쪽 반은 블랙 모드">
-    </div>
+    <p class="sv-intro-t">에이프리즘 관제 플랫폼</p>
+    <!-- 화이트, 블랙 화면을 한 장씩 화면 너비를 꽉 채워. 누르면 전체 화면으로 -->
+    <figure class="sv-shot"><figcaption>화이트 모드</figcaption><img src="img/mode-light.jpg" alt="에이프리즘 관제 화면 화이트 모드" data-zoom></figure>
+    <figure class="sv-shot"><figcaption>블랙 모드</figcaption><img src="img/mode-dark.jpg" alt="에이프리즘 관제 화면 블랙 모드" data-zoom></figure>
     <fieldset class="sv-card" data-q="mode">
       <legend>플랫폼 화이트모드와 블랙모드 중 선호하는 화면은 어떤건가요?</legend>
       <label><input type="radio" name="mode" value="화이트 모드"> 화이트 모드</label>
@@ -263,13 +268,6 @@
     <div class="sv-card sv-note">
       <p>객관식 답변에 답해주셔서 감사합니다. 이제부터 주관식 문항입니다.<br>감독관이 8개 항목을 질문하면 편하게 대답해주세요.</p>
     </div>
-    <div class="sv-card sv-note">
-      <p>또한 사례비 지급을 위해 본인 명의의 계좌번호가 필요합니다.<br>사용성 테스트를 마치신 후, <b>신분증과 통장사본을 inx@i-nx.com</b>으로 보내주시기 바랍니다.</p>
-      <ul>
-        <li>제출 필요 항목 : 신분증 사본, 통장 사본</li>
-        <li>제출 처 : inx@i-nx.com</li>
-      </ul>
-    </div>
 
     <div class="row" style="margin-top:24px">
       <button type="submit" class="btn btn-primary">제출</button>
@@ -278,7 +276,16 @@
   <div class="sv" id="post-done" hidden>
     <div class="sv-card sv-note" style="text-align:center;padding:40px">
       <h2 style="margin:0 0 8px;font-size:26px">테스트가 끝났습니다</h2>
-      <p style="margin:0 0 24px;color:var(--ink-2)">참여해 주셔서 감사합니다.</p>
+      <p style="margin:0;color:var(--ink-2)">참여해 주셔서 감사합니다.</p>
+    </div>
+    <div class="sv-card sv-note">
+      <p>또한 사례비 지급을 위해 본인 명의의 계좌번호가 필요합니다.<br>사용성 테스트를 마치신 후, <b>신분증과 통장사본을 inx@i-nx.com</b>으로 보내주시기 바랍니다.</p>
+      <ul>
+        <li>제출 필요 항목 : 신분증 사본, 통장 사본</li>
+        <li>제출 처 : inx@i-nx.com</li>
+      </ul>
+    </div>
+    <div class="row" style="margin-top:24px;justify-content:center">
       <button type="button" class="btn btn-primary" id="post-home">처음으로</button>
     </div>
   </div>
@@ -1031,6 +1038,17 @@
     $("post-form").hidden = true; $("post-done").hidden = false; window.scrollTo(0, 0);
   });
   $("post-home").addEventListener("click", function () { leave(); });
+  // 소개 화면을 누르면 전체 화면으로, 다시 누르거나 Esc 로 닫는다
+  document.addEventListener("click", function (e) {
+    var img = e.target.closest("img[data-zoom]");
+    if (img) {
+      var z = document.createElement("div"); z.className = "zoom"; z.innerHTML = '<img alt="" src="' + img.getAttribute("src") + '">';
+      z.addEventListener("click", function () { z.remove(); });
+      document.body.appendChild(z);
+      if (rec) { log("mode-zoom", { label: img.getAttribute("alt") }); }
+    }
+  });
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape") { var z = document.querySelector(".zoom"); if (z) { z.remove(); } } });
 
   $("end-home").addEventListener("click", function () { leave(); });
 
