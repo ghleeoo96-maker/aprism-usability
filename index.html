@@ -385,13 +385,15 @@
       d.querySelector(".context-panel .ah-sec:not(.done-sec) .ah-list > *");
   }
   var TOUR = [
-    { sel: ".sb-tabs", title: "미션 탭", text: "로봇이 수행 중인 미션이 탭으로 나열됩니다. 삼각형은 그 미션에 위험이나 주의 알림이 있다는 표시입니다." },
+    { sel: ".sb-tabs", title: "미션 탭", text: "로봇이 수행 중인 미션이 탭으로 나열됩니다. 알림이 생기면 미션 이름 옆에 삼각형이 붙습니다." },
     { sel: ".delta3", rect: [436, 80, 296, 972], title: "Delta", text: "알림을 종합해 지금 먼저 볼 것을 알려 주는 AI입니다. 누르면 이렇게 대화창이 열려 원인과 조치를 물어볼 수 있습니다.",
       act: function (d) { var t = d.querySelector(".delta3 [data-ai-toggle]"); if (t && !d.querySelector(".delta3.is-open")) { t.click(); } return function () { return !!d.querySelector(".delta3.is-open"); }; },
       after: function (d) { var t = d.querySelector(".delta3 [data-ai-toggle]"); if (t && d.querySelector(".delta3.is-open")) { t.click(); } } },
     { sel: ".map-panel", title: "설비 배치도", text: "로봇의 위치와 순회 경로, 점검 지점 번호가 표시됩니다. 빨간 핀과 노란 핀은 알림이 난 지점입니다." },
     { sel: ".right-panel", title: "로봇과 미션 진행", text: "위는 로봇 상태와 자동복귀, 긴급정지 버튼, 아래는 미션 진행률과 지점별 순서입니다." },
-    { sel: ".context-panel .ah-sec:not(.done-sec)", title: "최신 알림", text: "로봇이 감지한 알림이 쌓이는 곳입니다. 빨간 삼각형은 위험, 노란 삼각형은 주의입니다." },
+    { sel: ".context-panel .ah-sec:not(.done-sec)", title: "최신 알림", text: "로봇이 이상을 감지하면 이렇게 알림이 쌓입니다. 빨간 삼각형은 위험, 노란 삼각형은 주의입니다.",
+      // 기본 판은 알림이 없다 — 이 단계부터 주의 알림을 들여와 보여 준다(튜토리얼이 끝나면 다시 정상 판으로 연다)
+      act: function (d, w) { w.history.replaceState(w.history.state, "", w.location.pathname + w.location.search + "#warning"); w.dispatchEvent(new w.HashChangeEvent("hashchange")); return function () { return !!firstWarnRow(d); }; } },
     { sel: ".map-alert", title: "알림 상세", text: "알림을 누르면 상세 팝오버가 열립니다. 조치를 골라 [조치 요청]을 누르고, [진단 상세]를 누르면 안전진단 화면에서 더 자세히 봅니다.",
       act: function (d) { realClick(d, firstWarnRow(d)); return function () { var m = d.querySelector(".map-alert"); return !!m && m.getBoundingClientRect().width > 0; }; } },
     { sel: ".sf-main", title: "안전진단 화면", text: "측정값과 영상, 측정 이력을 자세히 보고 오른쪽에서 조치를 요청할 수 있습니다. 왼쪽 메뉴의 안전진단으로도 들어옵니다.",
@@ -617,7 +619,7 @@
     loadApp(function () { setTimeout(startTour, 800); });
   }
 
-  function appUrl() { return APP + "?mission=" + encodeURIComponent(MISSION) + "&floor=B4#warning"; }
+  function appUrl() { return APP + "?mission=" + encodeURIComponent(MISSION) + "&floor=B4#normal"; }
   var onReady = null;
   // 테스트 화면은 늘 다크 모드로 연다 — 관제 화면(theme.js)이 기억해 둔 값을 열기 직전에 다크로(같은 출처라 같은 저장소)
   function loadApp(cb) {
@@ -648,9 +650,9 @@
     w.open = function (url) { log("open", { page: String(url) }); w.location.href = url; return null; };   // 새 창 대신 같은 화면에서
 
     if (/main-v6\.html$/.test(path)) {
-      // 단계는 늘 "주의 쌓인 판" 에서 시작 — 다른 화면에 갔다 오면 주소의 #warning 이 빠진다
+      // 단계는 늘 정상 판(알림 없음, Delta 정상)에서 시작 — 다른 화면에 갔다 오면 주소의 #normal 이 빠진다
       if (!w.location.hash) {
-        w.history.replaceState(w.history.state, "", w.location.pathname + w.location.search + "#warning");
+        w.history.replaceState(w.history.state, "", w.location.pathname + w.location.search + "#normal");
         w.dispatchEvent(new w.HashChangeEvent("hashchange"));
       }
       if (alertPending) { alertPending = false; alertIn = true; injectAlert(ALERT_AFTER); }
@@ -664,7 +666,7 @@
   function injectAlert(after) {
     var w = frame.contentWindow;
     try {
-      w.document.dispatchEvent(new w.CustomEvent("aprism:delta-sim", { detail: { from: "warning", after: after } }));
+      w.document.dispatchEvent(new w.CustomEvent("aprism:delta-sim", { detail: { from: "normal", after: after } }));
       setTimeout(function () {
         try { if (w.document.body.getAttribute("data-level") !== "critical") { w.location.hash = "critical"; } } catch (e) { }
       }, after + 800);
