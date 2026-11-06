@@ -208,8 +208,10 @@
   .hello-card h2 { font-size: 30px; }
   .hello-card p { margin: 0 0 14px; font-size: 17px; line-height: 1.65; }
   .hello-card p.lead { font-size: 20px; font-weight: 700; color: var(--ink); margin-bottom: 20px; }
-  .hello-role { margin: 22px 0 28px; padding: 16px 18px; border-radius: 12px; background: var(--blue-weak); color: var(--ink-2); font-size: 17px; line-height: 1.65; }
-  .hello-role b { display: block; color: var(--blue); margin-bottom: 4px; }
+  .hello-role { margin: 22px 0 24px; padding: 16px 18px; border-radius: 12px; background: var(--blue-weak); color: var(--ink-2); font-size: 17px; line-height: 1.65; }
+  .hello-role .tag { display: inline-block; margin-bottom: 8px; padding: 2px 10px; border-radius: 999px; background: var(--blue); color: #fff; font-size: 14px; font-weight: 700; }
+  .hello-role b { display: block; color: var(--ink); font-size: 19px; margin-bottom: 4px; }
+  .hello-card p.next { margin: 0 0 14px; color: var(--ink); font-weight: 700; }
   .hello-card .btn { display: block; width: 100%; padding: 14px; font-size: 18px; font-weight: 800; }
 </style>
 </head>
@@ -422,9 +424,11 @@
         <p>에이프리즘은 설비 시설을 순찰하는 로봇을 모니터링하고, 로봇이 감지한 알림을 조치하는 관제 서비스입니다.</p>
         <p>이번 테스트는 사용자가 이 서비스로 목적을 이루는 과정에서 어려운 점이 있는지 확인하기 위한 것입니다. 정답은 없으니 평소처럼 편하게 사용해 주세요.</p>
         <div class="hello-role">
-          <b>테스트 전에 화면을 잠시 설명드리겠습니다.</b>
-          새로 온 관제사가 선임에게 인계 교육을 받는다고 생각하며 봐 주세요.
+          <span class="tag">페르소나 설정</span>
+          <b>당신은 새로 입사한 관제사입니다.</b>
+          관제 서비스 인계 교육을 받고 업무를 수행하는 신입 관제사입니다.
         </div>
+        <p class="next">테스트 전에 화면을 잠시 설명드리겠습니다.</p>
         <button type="button" class="btn btn-primary" id="hello-go">화면 설명 시작</button>
       </div>
     </div>
