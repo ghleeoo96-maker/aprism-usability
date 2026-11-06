@@ -152,6 +152,9 @@
   .pickmarks { position: absolute; inset: 0; z-index: 24; pointer-events: none; }
   .pick-mark { position: absolute; width: 34px; height: 34px; margin: -17px 0 0 -17px; border-radius: 50%; background: var(--blue); color: #fff; border: 3px solid #fff;
     display: grid; place-items: center; font-size: 16px; font-weight: 800; box-shadow: 0 2px 8px rgba(0,0,0,.4); }
+  .choice { display: flex; gap: 8px; }
+  .choice button { min-width: 120px; padding: 12px 20px; border: 2px solid var(--line); border-radius: 10px; background: #fff; font-size: 17px; font-weight: 700; }
+  .choice button[aria-checked="true"] { border-color: var(--blue); background: var(--blue-weak); color: var(--blue); }
   .pick-btn { margin-top: 8px; padding: 8px 14px; font-size: 15px; }
   .runbar { position: absolute; left: 50%; bottom: 20px; transform: translateX(-50%); z-index: 20; display: flex; align-items: center; gap: 14px;
     padding: 8px 8px 8px 20px; border-radius: 14px; background: rgba(14,18,26,.94); border: 1px solid #2f3a4c; color: #e4e8ef;
@@ -443,7 +446,7 @@
     { no: 1, title: "로봇의 업무 파악", ask: "로봇이 어떤 업무를 하고 있는지 화면에서 확인해 주세요!",
       desc: "관제 업무를 인계받았습니다. 현재 로봇은 현장에서 정기 순회 점검을 수행하고 있습니다. 화면을 살펴보고 로봇이 어떤 업무를 하고 있는지 확인해 주세요.",
       tasks: [
-        { id: "1-1", qs: ["현재 수행중인 임무는 무엇인가요?", "로봇은 현재 어디에 있나요?<br>(로봇의 현재 위치 번호는 몇번인가요?)"] },
+        { id: "1-1", qs: ["로봇이 수행 중인 미션의 이름은 무엇인가요?", "로봇은 지금 몇 번 지점에 있나요?"] },
         { id: "1-2", qs: ["임무는 현재 몇% 진행되었나요?", "로봇은 현재 무엇을 하고 있나요?", "그렇게 판단한 화면의 정보는 무엇인가요?"] }
       ] },
     { no: 2, title: "위험 알람 확인", ask: "새로 발생한 위험 알림을 확인해 주세요!",
@@ -453,9 +456,9 @@
         { id: "2-2", qs: ["발생 위치는 어디인가요?", "위험 등급은 무엇인가요?"] }
       ] },
     { no: 3, title: "위험 대응 수행", ask: "위험 상황에 필요한 조치를 진행해 주세요!",
-      desc: "앞서 확인한 위험 상황에 대해 대응이 필요합니다. 화면에서 제공하는 정보를 바탕으로 필요한 조치를 진행해 주세요.<br><u>(시나리오 3에서는 감독자가 시간을 측정합니다.)</u>",
+      desc: "앞서 확인한 위험 상황에 대해 대응이 필요합니다. 화면에서 제공하는 정보를 바탕으로 필요한 조치를 진행해 주세요.",
       tasks: [
-        { id: "3-1", qs: ["해당 상황에 적절한 조치를 선택하고 실행해주세요."] },
+        { id: "3-1", qs: ["조치를 완료하였나요?"] },
         { id: "3-2", qs: ["조치가 반영되었다는 것을 어디에서 확인할 수 있나요?"] }
       ] }
   ];
@@ -722,9 +725,9 @@
   /*
    * 시나리오 1 — 로봇이 이동 중이다가 다음 지점에 서서 "지점 측정 중"이 되고 그대로 머문다.
    * 움직임 시뮬레이션(route-sim.js)은 재생하면 지점마다 3.6초 재고 다시 걷는다 — 측정을 시작하는 순간 재생을 멈춰 그 자리에 둔다.
-   * 다음 지점 MOVE_SEC 초 앞에 세운 뒤 재생한다(한 바퀴 70초 기준).
+   * WALK_TO 번 지점 MOVE_SEC 초 앞(앞 지점은 지난 자리)에 세운 뒤 재생한다(한 바퀴 70초 기준).
    */
-  var MOVE_SEC = 4;
+  var MOVE_SEC = 4, WALK_TO = 8;   // 7번을 지나 8번 지점(냉각수 열교환기 HX-1)으로 걸어가 거기서 잰다
   function robotWalk() {
     var t0 = Date.now(), w0 = frame.contentWindow;
     (function wait() {
@@ -733,8 +736,10 @@
       if ((w === w0 && Date.now() - t0 < 400) || !simReady(w)) { if (Date.now() - t0 < 30000) { setTimeout(wait, 200); } return; }
       try {
         var d = w.document, api = w.APRISM_RR, play = d.querySelector(".rsim-play");
-        var s0 = api.get(), next = api.stops().filter(function (m) { return m > s0 + 1e-6; })[0];
-        if (next !== undefined) { api.set(Math.max(0, next - api.total() * MOVE_SEC / 70)); }
+        // 다음 지점(next)까지 걷되, 바로 앞 지점(prev)은 지나친 자리에서 출발 — 앞 지점에서 먼저 멈추지 않게
+        var s0 = api.get(), stops = api.stops(), next = stops[WALK_TO - 1], prev = stops[WALK_TO - 2];
+        if (next === undefined) { next = stops.filter(function (m) { return m > s0 + 1e-6; })[0]; prev = undefined; }
+        if (next !== undefined) { api.set(Math.max(prev === undefined ? 0 : prev + api.total() * 0.002, next - api.total() * MOVE_SEC / 70)); }
         var run = d.querySelector(".rsim-chips [data-m='run']"); if (run) { run.click(); }
         if (play && play.textContent !== "멈춤") { play.click(); }
         var t1 = Date.now();
@@ -956,6 +961,13 @@
     var last = taskIdx === sc.tasks.length - 1;
     body.innerHTML = '<p class="task-no">TASK ' + t.id + " 인터뷰</p>" +
       '<ul class="qa">' + t.qs.map(function (q, i) {
+        var ch = choicesOf(t.id, i);
+        if (ch) {
+          return '<li><div class="qt"><span class="n">' + (i + 1) + '</span><span>' + q + "</span></div>" +
+            '<div class="choice" role="radiogroup">' + ch.map(function (c) {
+              return '<button type="button" role="radio" aria-checked="' + (st.answers[i] === c) + '" data-act="choose" data-q="' + i + '" data-v="' + c + '">' + c + "</button>";
+            }).join("") + "</div></li>";
+        }
         return '<li><div class="qt"><span class="n">' + (i + 1) + '</span><span>' + q + "</span></div>" +
           '<textarea data-a="' + i + '" placeholder="' + (isPick(t.id, i) ? "답변 적기 또는 화면에서 눌러 고르기" : "답변 적기") + '" aria-label="문항 ' + (i + 1) + ' 답변">' + esc(st.answers[i] || "") + "</textarea>" +
           (isPick(t.id, i) ? '<button type="button" class="btn btn-line pick-btn" data-act="pick" data-q="' + i + '">화면에서 눌러 고르기' + (st.picks && st.picks[i] && st.picks[i].length ? " (" + st.picks[i].length + "곳 고름)" : "") + "</button>" : "") + "</li>";
@@ -994,6 +1006,12 @@
     if (act === "start") { startScenario(sc); }
     else if (act === "next") { finishTask(sc); }
     else if (act === "pick") { startPick(Number(b.getAttribute("data-q"))); }
+    else if (act === "choose") {
+      var t = sc.tasks[taskIdx], st = rec.scenarios[sc.no].tasks[t.id], qi = Number(b.getAttribute("data-q"));
+      st.answers[qi] = b.getAttribute("data-v");
+      log("answer", { label: "TASK " + t.id + " 문항 " + (qi + 1), text: st.answers[qi] });
+      save(); paintTask();
+    }
   });
 
   /*
@@ -1002,6 +1020,9 @@
    * 누른 자리에 번호를 찍는다. [다 골랐어요] 를 누르면 고른 곳을 답변 칸에 적고 카드로 돌아간다.
    */
   var PICK = { "1-2": [2] };
+  // 고르는 문항 — 답변 칸 대신 단추로 고른다
+  var CHOICE = { "3-1": { 0: ["예", "아니오"] } };
+  function choicesOf(id, i) { return (CHOICE[id] || {})[i] || null; }
   function isPick(id, i) { return (PICK[id] || []).indexOf(i) >= 0; }
   var pick = null;   // { q: 문항 번호, list: [{area, label, x, y, t}] }
   function startPick(q) {
