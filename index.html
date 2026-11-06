@@ -972,12 +972,22 @@
           '<textarea data-a="' + i + '" placeholder="' + (isPick(t.id, i) ? "답변 적기 또는 화면에서 눌러 고르기" : "답변 적기") + '" aria-label="문항 ' + (i + 1) + ' 답변">' + esc(st.answers[i] || "") + "</textarea>" +
           (isPick(t.id, i) ? '<button type="button" class="btn btn-line pick-btn" data-act="pick" data-q="' + i + '">화면에서 눌러 고르기' + (st.picks && st.picks[i] && st.picks[i].length ? " (" + st.picks[i].length + "곳 고름)" : "") + "</button>" : "") + "</li>";
       }).join("") + "</ul>" +
-      '<div class="task-foot"><span class="grow">' + (taskIdx + 1) + "/" + sc.tasks.length + "</span>" +
-      '<button type="button" class="btn btn-primary" data-act="next">' +
+      '<div class="task-foot"><span class="grow" id="iv-left"></span>' +
+      '<button type="button" class="btn btn-primary" data-act="next" id="iv-next">' +
       (!last ? "다음 TASK" : sc.no < 3 ? "시나리오 " + (sc.no + 1) + "로" : "테스트 마치기") + "</button></div>";
+    syncNext();
     clampCard();
     var first = body.querySelector("textarea");
     if (first) { setTimeout(function () { first.focus(); }, 50); }
+  }
+
+  // 인터뷰는 모든 문항이 필수 — 답이 다 있어야 [다음] 이 눌린다. 남은 문항 수를 버튼 왼쪽에
+  function syncNext() {
+    var b = $("iv-next"); if (!b || step !== "task") { return; }
+    var sc = curScen(), t = sc.tasks[taskIdx], st = rec.scenarios[sc.no].tasks[t.id];
+    var left = t.qs.filter(function (q, i) { return !String(st.answers[i] || "").trim(); }).length;
+    b.disabled = left > 0;
+    $("iv-left").textContent = left ? "모든 문항에 답해야 넘어갑니다. 남은 문항 " + left + "개" : (taskIdx + 1) + "/" + sc.tasks.length;
   }
 
   // 카드가 화면 아래로 넘치면 위로 올린다
@@ -993,6 +1003,7 @@
     var sc = curScen(), st = rec.scenarios[sc.no].tasks[sc.tasks[taskIdx].id];
     st.answers[Number(ta.getAttribute("data-a"))] = ta.value;
     save();
+    syncNext();
   });
   $("task-body").addEventListener("focusout", function (e) {
     var ta = e.target.closest("[data-a]"); if (!ta) { return; }
@@ -1004,7 +1015,7 @@
     var b = e.target.closest("[data-act]"); if (!b) { return; }
     var act = b.getAttribute("data-act");
     if (act === "start") { startScenario(sc); }
-    else if (act === "next") { finishTask(sc); }
+    else if (act === "next") { if (!b.disabled) { finishTask(sc); } }
     else if (act === "pick") { startPick(Number(b.getAttribute("data-q"))); }
     else if (act === "choose") {
       var t = sc.tasks[taskIdx], st = rec.scenarios[sc.no].tasks[t.id], qi = Number(b.getAttribute("data-q"));
