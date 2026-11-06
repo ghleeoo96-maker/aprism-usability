@@ -66,6 +66,13 @@
   .sv-band { margin: 24px 0 12px; padding: 14px 24px; border-radius: 10px; background: #2b8fd8; color: #fff; font-size: 16px; font-weight: 700; }
   .sv-intro-t { margin: 8px 0 12px; font-size: 18px; font-weight: 700; }
   /* 소개 화면 — 설문 폭(680)을 벗어나 화면 너비를 꽉 채운다 */
+  .sv-live { width: calc(100vw - 48px); max-width: 1920px; margin: 0 0 16px 50%; transform: translateX(-50%); }
+  .mode-tabs { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+  .mode-tabs button { padding: 10px 20px; border: 2px solid var(--line); border-radius: 10px; background: #fff; font-size: 16px; font-weight: 800; }
+  .mode-tabs button[aria-pressed="true"] { border-color: var(--blue); background: var(--blue); color: #fff; }
+  .mode-tabs span { margin-left: 8px; font-size: 15px; color: var(--ink-2); }
+  .sv-frame { position: relative; width: 100%; aspect-ratio: 16 / 9; overflow: hidden; border-radius: 12px; background: #0b0d12; box-shadow: 0 4px 16px rgba(0,0,0,.12); }
+  .sv-frame iframe { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; border: 0; transform-origin: 0 0; }
   .sv-shot { width: calc(100vw - 48px); max-width: 1920px; margin: 0 0 16px 50%; transform: translateX(-50%); }
   .sv-shot figcaption { margin: 0 0 8px; font-size: 18px; font-weight: 800; }
   .sv-shot img { display: block; width: 100%; border-radius: 12px; cursor: zoom-in; box-shadow: 0 4px 16px rgba(0,0,0,.12); }
@@ -283,11 +290,17 @@
   <form class="sv" id="post-form" novalidate>
     <h1 class="sv-title">공통질문 <span id="post-p"></span></h1>
 
-    <div class="sv-band">플랫폼 소개 및 화이트 모드와 블랙 모드 선택</div>
+    <div class="sv-band">화이트 모드와 블랙 모드 선호도 조사</div>
     <p class="sv-intro-t">에이프리즘 관제 플랫폼</p>
-    <!-- 화이트, 블랙 화면을 한 장씩 화면 너비를 꽉 채워. 누르면 전체 화면으로 -->
-    <figure class="sv-shot"><figcaption>화이트 모드</figcaption><img src="img/mode-light.jpg" alt="에이프리즘 관제 화면 화이트 모드" data-zoom></figure>
-    <figure class="sv-shot"><figcaption>블랙 모드</figcaption><img src="img/mode-dark.jpg" alt="에이프리즘 관제 화면 블랙 모드" data-zoom></figure>
+    <!-- 캡처 대신 실제 관제 화면을 화면 너비로. 단추로 같은 화면의 모드만 바꾼다(3D 화면을 둘 띄우면 무거워서 하나로) -->
+    <div class="sv-live" id="mode-live">
+      <div class="mode-tabs" role="group" aria-label="화면 모드">
+        <button type="button" data-mode="light" aria-pressed="true">화이트 모드</button>
+        <button type="button" data-mode="dark" aria-pressed="false">블랙 모드</button>
+        <span>버튼으로 두 모드를 바꿔 보고, 화면도 직접 눌러 보세요.</span>
+      </div>
+      <div class="sv-frame" id="mode-box"><iframe id="mode-frame" title="에이프리즘 관제 화면"></iframe></div>
+    </div>
     <fieldset class="sv-card" data-q="mode">
       <legend>플랫폼 화이트모드와 블랙모드 중 선호하는 화면은 어떤건가요?</legend>
       <label><input type="radio" name="mode" value="화이트 모드"> 화이트 모드</label>
@@ -1214,8 +1227,43 @@
     Array.prototype.forEach.call(document.querySelectorAll("#post .sv-card"), function (c) { c.classList.remove("is-err"); });
     $("post-p").textContent = rec.participant;
     postStart = now();
+    frame.src = "about:blank";   // 시나리오 화면은 이제 쓰지 않는다 — 3D 화면 하나만 남게
     show("post"); window.scrollTo(0, 0);
+    openModeFrame();
   }
+
+  // 선호도 조사 — 실제 관제 화면(주의 판). 1920×1080 을 상자 너비에 맞춰 줄인다. 모드는 html[data-theme] 만 바꾼다(다시 불러오지 않는다)
+  var modeNow = "light";
+  function fitModeFrame() {
+    var box = $("mode-box"), fr = $("mode-frame"); if (!box || box.offsetParent === null) { return; }
+    fr.style.transform = "scale(" + (box.clientWidth / 1920) + ")";
+  }
+  function setMode(m) {
+    modeNow = m;
+    Array.prototype.forEach.call(document.querySelectorAll("[data-mode]"), function (b) { b.setAttribute("aria-pressed", String(b.getAttribute("data-mode") === m)); });
+    try { $("mode-frame").contentDocument.documentElement.setAttribute("data-theme", m); } catch (e) { }
+  }
+  function openModeFrame() {
+    var fr = $("mode-frame");
+    modeNow = "light"; setMode("light");
+    fr.onload = function () {
+      try {
+        var d = fr.contentDocument, st = d.createElement("style");
+        st.textContent = ".rsim, .grid-overlay { display: none !important; }";
+        (d.head || d.documentElement).appendChild(st);
+        d.documentElement.setAttribute("data-theme", modeNow);
+        fr.contentWindow.open = function () { return null; };   // 새 창은 열지 않는다
+      } catch (e) { }
+    };
+    fr.src = APP + "?mission=" + encodeURIComponent(MISSION) + "&floor=B4&theme=light#warning";
+    setTimeout(fitModeFrame, 0);
+  }
+  document.addEventListener("click", function (e) {
+    var b = e.target.closest("[data-mode]"); if (!b) { return; }
+    setMode(b.getAttribute("data-mode"));
+    if (rec) { log("mode-view", { label: b.textContent }); }
+  });
+  window.addEventListener("resize", fitModeFrame);
   $("post-form").addEventListener("click", function (e) {
     var c = e.target.closest("[data-clear]"); if (!c) { return; }
     Array.prototype.forEach.call(document.querySelectorAll('#post-form input[name="' + c.getAttribute("data-clear") + '"]'), function (r) { r.checked = false; });
@@ -1237,6 +1285,7 @@
     log("test-end");
     save(true);
     backup(rec);
+    $("mode-frame").src = "about:blank";
     $("post-form").hidden = true; $("post-done").hidden = false; window.scrollTo(0, 0);
   });
   $("post-home").addEventListener("click", function () { leave(); });
