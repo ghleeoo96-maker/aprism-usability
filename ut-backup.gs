@@ -8,6 +8,7 @@
  *           2) 이 시트의 "응답" 탭에 참가자 한 줄. 열은 사이트가 보낸 것(요약 CSV 와 같다): 참가자, 기록ID, 기본정보,
  *              단계별 시간, 선호 화면, 7점 척도, 주관식, 시나리오 인터뷰 답. 같은 기록ID 줄이 있으면 덮어쓴다
  *   doGet   action=has&id=…   그 기록의 저장된 판(rev)을 알려 준다(사이트가 저장됐는지 확인)
+ *           action=del&id=…   그 기록을 지운다(드라이브 파일은 휴지통, 응답 탭 줄 삭제)
  *           action=list        저장된 기록 전부를 돌려준다(사이트 기록 화면, 리포트가 노트북 4대 기록을 합칠 때)
  *
  * 노트북 여러 대가 동시에 보내도 잠금(LockService)으로 하나씩 처리한다.
@@ -65,6 +66,19 @@ function doGet(e) {
   if (p.action === "has") {
     var it = folder_().getFilesByName(p.id + ".json");
     data = { rev: it.hasNext() ? storedRev_(it.next()) : 0 };
+  } else if (p.action === "del" && p.id) {
+    // 기록 지우기 — 드라이브 파일은 휴지통으로, 응답 탭의 그 줄은 삭제
+    var lock = LockService.getScriptLock(); lock.waitLock(30000);
+    try {
+      var fi = folder_().getFilesByName(p.id + ".json"), n = 0;
+      while (fi.hasNext()) { fi.next().setTrashed(true); n++; }
+      var sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAME);
+      if (sh && sh.getLastRow() > 1) {
+        var head = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0], col = head.indexOf("기록ID") + 1;
+        if (col > 0) { var hit = sh.getRange(2, col, sh.getLastRow() - 1, 1).createTextFinder(String(p.id)).matchEntireCell(true).findNext(); if (hit) { sh.deleteRow(hit.getRow()); } }
+      }
+      data = { ok: true, trashed: n };
+    } finally { lock.releaseLock(); }
   } else if (p.action === "list") {
     var files = folder_().getFiles(), list = [];
     while (files.hasNext()) { try { list.push(JSON.parse(files.next().getBlob().getDataAsString())); } catch (x) { } }

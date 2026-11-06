@@ -1908,6 +1908,7 @@
     }
     $("rec-table").innerHTML = h;
   }
+  function deadIds() { try { return JSON.parse(localStorage.getItem("aprism-ut-deleted")) || []; } catch (e) { return []; } }
   var delArm = null;
   $("rec-table").addEventListener("click", function (e) {
     var d = e.target.closest("[data-detail]");
@@ -1916,8 +1917,16 @@
     if (x) {
       var id = x.getAttribute("data-del");
       if (delArm !== id) { delArm = id; x.textContent = "한 번 더 누르면 지움"; x.classList.add("confirm-del"); return; }
-      DB.attempts = DB.attempts.filter(function (a) { return a.id !== id; });
+      // 그 참가자의 기록을 모두 지운다(표는 최근 하나만 보여서, 하나만 지우면 이전 기록이 대신 뜬다).
+      // 지운 기록 ID 는 남겨 두어 구글 시트에서 다시 합쳐지지 않게, 구글 드라이브 파일과 시트 줄도 지운다
+      var who = (DB.attempts.filter(function (a) { return a.id === id; })[0] || {}).participant;
+      var gone = DB.attempts.filter(function (a) { return a.participant === who; }).map(function (a) { return a.id; });
+      DB.attempts = DB.attempts.filter(function (a) { return a.participant !== who; });
+      var dead = deadIds(); gone.forEach(function (g) { if (dead.indexOf(g) < 0) { dead.push(g); } });
+      try { localStorage.setItem("aprism-ut-deleted", JSON.stringify(dead)); } catch (x2) { }
+      gone.forEach(function (g) { if (Cloud.url()) { Cloud.jsonp({ action: "del", id: g }).catch(function () { }); } });
       delArm = null; save(true); renderResults();
+      $("io-note").textContent = who + " 기록 " + gone.length + "건을 지웠습니다";
     }
   });
   // 기록 화면과 CSV 에 쓰는 문항 목록 — [TASK id, 문항 번호(0부터), 문항 글]
@@ -2022,7 +2031,7 @@
       var ids = {}, added = 0;
       DB.attempts.forEach(function (a) { ids[a.id] = a; });
       (got.attempts || []).forEach(function (a) {
-        if (/^TEST/.test(a.id)) { return; }
+        if (/^TEST/.test(a.id) || deadIds().indexOf(a.id) >= 0) { return; }
         var mine = ids[a.id];
         if (!mine) { a.synced = a.rev || 0; DB.attempts.push(a); added++; }
         else if ((a.rev || 0) > (mine.rev || 0)) { a.synced = a.rev || 0; DB.attempts[DB.attempts.indexOf(mine)] = a; added++; }
