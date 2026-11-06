@@ -574,7 +574,7 @@
     { sel: ".map-alert", title: "조치 팝업 창", text: "<p>알림을 누르면 열리는 창으로, 빠르게 조치를 취할 수 있습니다. 더 자세한 정보를 보려면 <b>[진단 상세]</b>를 누르면 됩니다.</p>",
       act: function (d) { realClick(d, firstWarnRow(d)); return function () { var m = d.querySelector(".map-alert"); return !!m && m.getBoundingClientRect().width > 0; }; } },
     { sel: "main.sf", pop: "bottom", title: "안전진단 상세 화면", text: T("로봇이 감지한 이상징후를 자세히 보고 대응 방법을 정하는 화면입니다.", ["측정 결과","현장 영상","과거 측정 기록","<b>오른쪽</b>에서 조치를 골라 요청"]),
-      act: function (d, w) { var a = d.querySelector(".map-alert a[href*='safety-v6']"); w.location.href = a ? a.href : "safety-v6.html?mission=" + encodeURIComponent(MISSION); return "load"; } }
+      act: function (d, w) { var a = d.querySelector(".map-alert a[href*='safety-v6']"); w.location.replace(a ? a.href : "safety-v6.html?mission=" + encodeURIComponent(MISSION)); return "load"; } }
   ];
 
   var SCEN = [
@@ -720,15 +720,61 @@
     var a2 = chosen && latest(chosen);
     $("pick-note").className = "note" + (a2 ? " is-warn" : "");
     $("pick-note").textContent = !chosen ? "참가자 번호를 고른 뒤 시작합니다." :
-      a2 ? chosen + "는 이미 기록이 있습니다. 시작하면 새 기록으로 따로 저장되고, 기록 화면에는 최근 기록이 보입니다." : chosen + " 선택됨";
+      a2 ? (doneAll(a2) ? chosen + "는 이미 완료한 기록이 있습니다. 시작하면 새 기록으로 따로 저장됩니다." : a2.profile ? chosen + "의 진행 중 기록이 있습니다. [이어서 하기]를 누르면 끊긴 곳부터 이어서 합니다." : chosen + " 선택됨") : chosen + " 선택됨";
     $("go").disabled = !chosen;
+    $("go").textContent = a2 && !doneAll(a2) && a2.profile ? "이어서 하기" : "평가 시작";
   }
   $("picks").addEventListener("click", function (e) {
     var b = e.target.closest("[data-p]"); if (!b) { return; }
     chosen = b.getAttribute("data-p");
     renderHome();
   });
-  $("go").addEventListener("click", function () { if (chosen) { openSurvey(chosen); } });
+  $("go").addEventListener("click", function () {
+    if (!chosen) { return; }
+    var a = latest(chosen);
+    if (a && !doneAll(a) && a.profile) { resumeTest(a); return; }   // 진행 중 기록이면 이어서
+    openSurvey(chosen);
+  });
+  // 이어서 시작 — 끝내지 못한 단계부터. 시작한 시나리오가 수행 중에 끊겼으면 그 시나리오를 처음부터, 인터뷰 중이면 남은 TASK 부터
+  function resumeTest(a) {
+    rec = a; delete rec.stopped; rec.endedAt = null;
+    phase = null; step = null; taskIdx = 0; pick = null;
+    guardBack();
+    alertPending = false; alertIn = false; alertLive = false; alertDone = null;
+    show("test"); fit();
+    $("task").hidden = true; $("end").hidden = true; $("tour").hidden = true; $("hello").hidden = true; $("runbar").hidden = true; $("explorebar").hidden = true;
+    log("resume");
+    if (!a.tutorial || !a.tutorial.end) {
+      phase = "tutorial"; step = null;
+      loadApp(function () { setTimeout(function () { $("hello").hidden = false; }, 600); });
+      return;
+    }
+    if (!a.explore || !a.explore.end) { startExplore(); return; }
+    for (var n = 1; n <= 3; n++) {
+      var sc = a.scenarios[n];
+      if (!sc || !sc.done) {   // 시작 전 또는 수행 중에 끊김 — 그 시나리오 안내부터
+        delete a.scenarios[n];
+        if (n === 1) { loadApp(); freshApp = true; }
+        if (n === 3) { alertIn = true; alertLive = true; }   // 시나리오 3 은 위험 알림이 있는 판에서
+        goScenario(n);
+        return;
+      }
+      if (!sc.end) {   // 인터뷰 중에 끊김 — 남은 TASK 부터
+        phase = "s" + n; step = "task";
+        var tasks = SCEN[n - 1].tasks; taskIdx = tasks.findIndex(function (t) { return !(sc.tasks[t.id] && sc.tasks[t.id].end); });
+        if (taskIdx < 0) { taskIdx = tasks.length - 1; }
+        if (!sc.tasks[tasks[taskIdx].id].start) { sc.tasks[tasks[taskIdx].id].start = now(); }
+        if (n >= 2) { alertIn = true; alertLive = true; }   // 시나리오 2, 3 인터뷰는 위험 알림이 있는 판
+        loadApp();
+        showCard(true); paintTask();
+        return;
+      }
+    }
+    // 시나리오는 다 끝남 — 공통질문부터
+    phase = "post"; step = null;
+    $("task").hidden = true;
+    openPost();
+  }
   $("to-results").addEventListener("click", function () { show("results"); renderResults(); pullCloud(renderResults); });
   $("back-home").addEventListener("click", function () { show("home"); renderHome(); });
 
@@ -793,7 +839,19 @@
     startTest(chosen, prof);
   });
 
+  // 테스트 중 브라우저 뒤로가기 — 막는다(지킴 기록을 하나 넣어 두고, 돌아오면 다시 넣는다)
+  var lastAppHref = "";
+  function guardBack() { try { history.pushState({ utGuard: 1 }, ""); } catch (e) { } }
+  // 뒤로가기는 앞 기록의 상태(빈 화면)까지 되돌린다 — 테스트 중이면 곧바로 앞으로 돌려 화면을 복구한다
+  window.addEventListener("popstate", function () {
+    if (!rec || $("test").hidden && $("post").hidden) { return; }
+    log("back-press");
+    var want = lastAppHref;   // 뒤로가기 직전 화면 — 뒤로가기가 화면을 예전 것으로 바꾸면 다시 연다
+    guardBack();
+    setTimeout(function () { var cur = ""; try { cur = frame.contentWindow.location.href; } catch (e) { } if (want && cur !== want && !$("test").hidden) { setFrame(frame, want); } }, 400);
+  });
   function startTest(p, profile, preview) {
+    guardBack();
     rec = { id: p + "-" + now(), participant: p, startedAt: now(), endedAt: null, profile: profile || null, tutorial: {}, scenarios: {}, events: [] };
     if (!preview) { DB.attempts.push(rec); save(true); }
     rec.preview = !!preview;
@@ -804,6 +862,11 @@
     loadApp(function () { setTimeout(function () { $("hello").hidden = false; log("hello"); }, 600); });
   }
 
+  // iframe 주소를 바꿀 때 브라우저 뒤로가기 기록이 쌓이지 않게 — src 대신 location.replace
+  function setFrame(fr, url) {
+    try { fr.contentWindow.location.replace(url === "about:blank" ? url : new URL(url, location.href).href); return; } catch (e) { }
+    fr.src = url;
+  }
   function appUrl(hash) { return APP + "?mission=" + encodeURIComponent(MISSION) + "&floor=B4" + (hash || "#normal"); }
   var onReady = null;
   // 테스트 화면은 늘 다크 모드로 연다 — 관제 화면(theme.js)이 기억해 둔 값을 열기 직전에 다크로(같은 출처라 같은 저장소)
@@ -811,8 +874,7 @@
     try { localStorage.setItem("aprism-theme", "dark"); } catch (e) { }
     onReady = cb || null;
     $("loading").hidden = false;
-    frame.src = "about:blank";
-    setTimeout(function () { frame.src = appUrl(hash); }, 30);
+    setFrame(frame, appUrl(hash));   // 바로 바꾼다(빈 화면을 거치면 뒤로가기 기록이 하나 생긴다)
   }
 
   // 테스트 화면이 바뀔 때마다(처음 열기, 참가자가 다른 화면으로 이동) — 개발 장치 숨김, 클릭 기록, 상태 맞추기
@@ -821,6 +883,8 @@
     try { d = frame.contentDocument; } catch (e) { return; }
     if (!d || w.location.href === "about:blank") { return; }
     var path = w.location.pathname.split("/").pop();
+    lastAppHref = w.location.href;
+    w.addEventListener("hashchange", function () { try { lastAppHref = w.location.href; } catch (e) { } });
     $("loading").hidden = true;
     if (rec) { log("page", { page: path }); }
 
@@ -829,6 +893,13 @@
     (d.head || d.documentElement).appendChild(css);
 
     d.addEventListener("click", function (e) { onAppClick(e, w); }, true);
+    if (w.navigation && !w.__utNav) {
+      w.__utNav = true;
+      w.navigation.addEventListener("navigate", function (e) {
+        if (e.navigationType !== "push" || !e.cancelable || e.hashChange || e.downloadRequest) { return; }
+        e.preventDefault(); w.location.replace(e.destination.url);
+      });
+    }
     ["pointerdown", "mousedown", "pointerup", "mouseup", "click", "dblclick", "wheel", "contextmenu"].forEach(function (type) {
       w.addEventListener(type, function (e) {
         if (!pick) { return; }
@@ -1277,6 +1348,7 @@
 
   // 답변 — 적는 대로 저장, 칸을 떠날 때 기록에 한 줄
   $("task-body").addEventListener("input", function (e) {
+    if (step !== "task" || !rec) { return; }
     var rr = e.target.closest("[data-r]");
     if (rr) { var sc0 = curScen(), st0 = rec.scenarios[sc0.no].tasks[sc0.tasks[taskIdx].id]; st0.reasons = st0.reasons || []; st0.reasons[Number(rr.getAttribute("data-r"))] = rr.value; save(); return; }
     var ta = e.target.closest("[data-a]"); if (!ta) { return; }
@@ -1286,6 +1358,7 @@
     syncNext();
   });
   $("task-body").addEventListener("focusout", function (e) {
+    if (step !== "task" || !rec) { return; }   // 중단으로 카드가 닫힐 때도 불린다
     var ta = e.target.closest("[data-a]"); if (!ta) { return; }
     var t = curScen().tasks[taskIdx];
     log("answer", { label: "TASK " + t.id + " 문항 " + (Number(ta.getAttribute("data-a")) + 1), text: ta.value });
@@ -1631,7 +1704,7 @@
     Array.prototype.forEach.call(document.querySelectorAll("#post .sv-card"), function (c) { c.classList.remove("is-err"); });
     $("post-p").textContent = rec.participant;
     postStart = now();
-    frame.src = "about:blank";   // 시나리오 화면은 이제 쓰지 않는다 — 3D 화면 하나만 남게
+    setFrame(frame, "about:blank");   // 시나리오 화면은 이제 쓰지 않는다 — 3D 화면 하나만 남게
     show("post"); window.scrollTo(0, 0);
     goPg(1);
   }
@@ -1764,8 +1837,8 @@
     save(true);
     unlockGoal();
     $("runbar").hidden = true;
-    rec = null; phase = null;
-    frame.src = "about:blank";
+    rec = null; phase = null; step = null;
+    setFrame(frame, "about:blank");
     show("home"); chosen = null; renderHome();
   }
 
@@ -1861,7 +1934,7 @@
   var TYPE_KO = { page: "화면 열림", open: "새 창 대신 이동", click: "클릭", check: "문항 체크", "alert-in": "알림 발생",
     "hello": "인사 카드", "tutorial-start": "튜토리얼 시작", "tutorial-step": "튜토리얼 단계", "tutorial-end": "튜토리얼 끝",
     "scenario-start": "시나리오 시작", "scenario-end": "시나리오 끝", "task-done": "TASK 완료", "task-skip": "TASK 건너뜀",
-    "run-done": "수행 완료", "done-shown": "수행 완료 버튼 나옴", "pick-start": "화면 고르기 시작", unpick: "고른 곳 지움", "detail-open": "알림 상세 처음 엶", goal: "목표 도달", "explore-start": "자유 탐색 시작", "explore-end": "자유 탐색 끝", "s2-early-action": "시나리오 2에서 미리 조치", "post-page": "공통질문 쪽 이동", "mode-view": "모드 보기", "mode-full": "전체 화면 보기", pick: "화면에서 고름", "pick-end": "화면 고르기 끝", "alert-measure": "위험 지점 측정 시작", "post-start": "공통질문 시작", answer: "답변", "card-fold": "카드 접기", "card-open": "카드 펼치기", "card-move": "카드 옮기기", "test-end": "테스트 끝", "test-stop": "테스트 중단" };
+    "run-done": "수행 완료", "done-shown": "수행 완료 버튼 나옴", "pick-start": "화면 고르기 시작", resume: "이어서 시작", unpick: "고른 곳 지움", "detail-open": "알림 상세 처음 엶", goal: "목표 도달", "explore-start": "자유 탐색 시작", "explore-end": "자유 탐색 끝", "s2-early-action": "시나리오 2에서 미리 조치", "post-page": "공통질문 쪽 이동", "mode-view": "모드 보기", "mode-full": "전체 화면 보기", pick: "화면에서 고름", "pick-end": "화면 고르기 끝", "alert-measure": "위험 지점 측정 시작", "post-start": "공통질문 시작", answer: "답변", "card-fold": "카드 접기", "card-open": "카드 펼치기", "card-move": "카드 옮기기", "test-end": "테스트 끝", "test-stop": "테스트 중단" };
   var STAGE_KO = { intro: "설명", run: "수행", task: "인터뷰" };
   function ko(map, k) { return map[k] || k || ""; }
   // 내보내기 · 가져오기
