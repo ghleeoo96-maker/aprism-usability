@@ -111,12 +111,10 @@
   table.rec { border-collapse: collapse; width: 100%; background: var(--card); border-radius: 12px; overflow: hidden; font-size: 15px; }
   table.rec th, table.rec td { padding: 10px 12px; border-bottom: 1px solid var(--line); text-align: left; white-space: nowrap; }
   table.rec th { background: #f6f8fb; font-size: 14px; color: var(--ink-2); font-weight: 700; }
-  table.rec td.num { text-align: right; }
+  table.rec td.num, table.rec th.num { text-align: right; }
   table.rec tr.is-empty td { color: var(--ink-3); }
-  .detail { margin-top: 24px; background: var(--card); border-radius: 12px; padding: 20px; }
-  .detail h3 { margin: 0 0 12px; font-size: 18px; }
-  .detail .scroll { max-height: 520px; overflow: auto; }
-  .detail table { font-size: 14px; }
+  .rec-home { text-decoration: none; font-size: 16px; font-weight: 700; color: var(--ink-2); margin-right: 8px; }
+  .dl-panel { margin-top: 10px; padding: 12px; border-radius: 12px; background: #fff; }
   .confirm-del { color: var(--red); font-weight: 700; }
 
   /* ---------- 테스트 무대(1920×1080 을 창에 맞춰 줄임) ---------- */
@@ -373,25 +371,23 @@
 <!-- 기록 화면 -->
 <section class="page" id="results" hidden>
   <h1>기록</h1>
-  <p class="lead">참가자별 최근 기록. 수행 시간은 시나리오 시작부터 수행 완료까지, 클릭은 수행 중 테스트 화면 안 클릭 수, 인터뷰는 수행 완료부터 마지막 TASK 답변까지.</p>
-  <div class="row" style="margin-top:24px">
-    <button type="button" class="btn btn-line" id="back-home">처음으로</button>
-    <a class="btn btn-line" id="sheet-link" href="https://docs.google.com/spreadsheets/d/1DxGK50IZOgngDIKqthJtNzzffVx6tLJLFD9rRBqosDw/edit?gid=1443028626#gid=1443028626" target="_blank" rel="noopener" style="text-decoration:none;color:inherit">구글 시트 열기</a>
+  <p class="lead">참가자별 최근 기록. 시나리오 시간은 [시작]부터 [확인완료], [조치완료]까지. [자세히]는 리포트의 개별 보기로 연다. 노트북 4대의 기록은 구글 시트에서 자동으로 합친다.</p>
+  <!-- 버튼 위계: 처음으로(글자) · 구글 시트로 보기(주) · 리포트 · 내려받기(누르면 CSV, JSON, 가져오기가 펼쳐짐) -->
+  <div class="row rec-bar" style="margin-top:24px">
+    <button type="button" class="btn-text rec-home" id="back-home">← 처음으로</button>
+    <a class="btn btn-primary" id="sheet-link" href="https://docs.google.com/spreadsheets/d/1DxGK50IZOgngDIKqthJtNzzffVx6tLJLFD9rRBqosDw/edit?gid=1443028626#gid=1443028626" target="_blank" rel="noopener" style="text-decoration:none">구글 시트로 보기</a>
     <a class="btn btn-line" href="#report" style="text-decoration:none;color:inherit">리포트</a>
+    <button type="button" class="btn btn-line" id="dl-toggle" aria-expanded="false">내려받기 ▾</button>
+    <span class="note" data-cloud></span>
+  </div>
+  <div class="row dl-panel" id="dl-panel" hidden>
     <button type="button" class="btn btn-line" id="csv-sum">요약 CSV</button>
     <button type="button" class="btn btn-line" id="csv-ev">클릭 기록 CSV</button>
     <button type="button" class="btn btn-line" id="json-out">전체 JSON</button>
     <label class="btn btn-line" style="cursor:pointer">JSON 가져오기<input type="file" id="json-in" accept="application/json" multiple hidden /></label>
-    <span class="note" id="io-note"></span>
   </div>
-  <div class="row" style="margin-top:12px">
-    <span class="note" data-cloud></span>
-    <button type="button" class="btn btn-line" id="cloud-now">지금 백업</button>
-    <button type="button" class="btn btn-line" id="cloud-pull">구글 시트에서 불러오기</button>
-    <button type="button" class="btn-text" id="cloud-set">백업 주소 넣기</button>
-  </div>
+  <p class="note" id="io-note" style="margin-top:8px"></p>
   <div style="margin-top:24px; overflow:auto"><table class="rec" id="rec-table"></table></div>
-  <div class="detail" id="detail" hidden></div>
 </section>
 
 <!-- 테스트 -->
@@ -673,7 +669,7 @@
     renderHome();
   });
   $("go").addEventListener("click", function () { if (chosen) { openSurvey(chosen); } });
-  $("to-results").addEventListener("click", function () { show("results"); renderResults(); });
+  $("to-results").addEventListener("click", function () { show("results"); renderResults(); pullCloud(renderResults); });
   $("back-home").addEventListener("click", function () { show("home"); renderHome(); });
 
   function show(which) {
@@ -1548,19 +1544,20 @@
     var clicks = a.events.filter(function (e) { return e.phase === ph && e.type === "click" && e.stage === "run"; }).length;
     return { ms: s.done ? s.done - s.start : null, iv: s.end && s.done ? s.end - s.done : null, clicks: clicks };
   }
+  // 기록 표 — 참가자, 진행일시, 상태, 시나리오별 수행 시간(초), 전체 소요, 시트 저장. 기본정보와 답변은 [자세히](리포트 개별 보기)
+  function secs(ms) { return ms == null || isNaN(ms) ? "" : Math.round(ms / 1000) + "초"; }
   function renderResults() {
-    var h = "<tr><th>참가자</th><th>성별</th><th>연령대</th><th>담당 업무</th><th>시작</th><th>튜토리얼</th>" +
-      [1, 2, 3].map(function (n) { return "<th>S" + n + " 수행</th><th>S" + n + " 클릭</th><th>S" + n + " 인터뷰</th>"; }).join("") +
-      "<th>상태</th><th>기록 수</th><th></th></tr>";
+    var h = "<tr><th>참가자</th><th>진행일시</th><th>상태</th>" + [1, 2, 3].map(function (n) { return '<th class="num">시나리오 ' + n + "</th>"; }).join("") +
+      '<th class="num">전체 소요</th><th>시트 저장</th><th></th></tr>';
     for (var i = 1; i <= PEOPLE; i++) {
-      var p = pid(i), a = latest(p), n = DB.attempts.filter(function (x) { return x.participant === p; }).length;
-      if (!a) { h += '<tr class="is-empty"><td>' + p + '</td><td colspan="17">기록 없음</td></tr>'; continue; }
+      var p = pid(i), a = latest(p);
+      if (!a) { h += '<tr class="is-empty"><td>' + p + '</td><td colspan="8">기록 없음</td></tr>'; continue; }
       var ss = [1, 2, 3].map(function (k) { return scenStat(a, k); });
-      var tut = a.tutorial && a.tutorial.end ? mmss(a.tutorial.end - a.tutorial.start) + (a.tutorial.skipped ? " (" + a.tutorial.skipped + "에서 닫음)" : "") : "";
-      var pf = a.profile || {};
-      h += "<tr><td><b>" + p + "</b></td><td>" + esc(pf.gender || "") + "</td><td>" + esc(pf.age || "") + "</td><td>" + esc(pf.job || "") + "</td><td>" + clock(a.startedAt) + "</td><td>" + esc(tut) + "</td>" +
-        ss.map(function (s) { return '<td class="num">' + mmss(s.ms) + '</td><td class="num">' + s.clicks + '</td><td class="num">' + mmss(s.iv) + "</td>"; }).join("") +
-        "<td>" + (doneAll(a) ? "완료" : a.stopped ? "중단" : "진행 중") + '</td><td class="num">' + n + "</td>" +
+      var total = a.endedAt ? a.endedAt - a.startedAt : null;
+      var synced = !Cloud.url() ? "-" : (a.synced || 0) >= (a.rev || 0) ? "저장됨" : "대기";
+      h += "<tr><td><b>" + p + "</b></td><td>" + clock(a.startedAt).slice(5, 16) + "</td><td>" + (doneAll(a) ? "완료" : a.stopped ? "중단" : "진행 중") + "</td>" +
+        ss.map(function (x) { return '<td class="num">' + secs(x.ms) + "</td>"; }).join("") +
+        '<td class="num">' + (total ? mmss(total) : "") + "</td><td>" + synced + "</td>" +
         '<td><button type="button" class="btn-text" data-detail="' + p + '">자세히</button>' +
         '<button type="button" class="btn-text" data-del="' + a.id + '">지우기</button></td></tr>';
     }
@@ -1569,13 +1566,13 @@
   var delArm = null;
   $("rec-table").addEventListener("click", function (e) {
     var d = e.target.closest("[data-detail]");
-    if (d) { renderDetail(d.getAttribute("data-detail")); return; }
+    if (d) { location.hash = "report-" + d.getAttribute("data-detail").toLowerCase(); return; }
     var x = e.target.closest("[data-del]");
     if (x) {
       var id = x.getAttribute("data-del");
       if (delArm !== id) { delArm = id; x.textContent = "한 번 더 누르면 지움"; x.classList.add("confirm-del"); return; }
       DB.attempts = DB.attempts.filter(function (a) { return a.id !== id; });
-      delArm = null; save(true); renderResults(); $("detail").hidden = true;
+      delArm = null; save(true); renderResults();
     }
   });
   // 기록 화면과 CSV 에 쓰는 문항 목록 — [TASK id, 문항 번호(0부터), 문항 글]
@@ -1592,24 +1589,6 @@
     "run-done": "수행 완료", "done-shown": "수행 완료 버튼 나옴", "pick-start": "화면 고르기 시작", "detail-open": "알림 상세 처음 엶", "post-page": "공통질문 쪽 이동", "mode-view": "모드 보기", "mode-full": "전체 화면 보기", pick: "화면에서 고름", "pick-end": "화면 고르기 끝", "alert-measure": "위험 지점 측정 시작", "post-start": "공통질문 시작", answer: "답변", "card-fold": "카드 접기", "card-open": "카드 펼치기", "card-move": "카드 옮기기", "test-end": "테스트 끝", "test-stop": "테스트 중단" };
   var STAGE_KO = { intro: "설명", run: "수행", task: "인터뷰" };
   function ko(map, k) { return map[k] || k || ""; }
-  function renderDetail(p) {
-    var a = latest(p); if (!a) { return; }
-    var rows = a.events.map(function (e) {
-      return "<tr><td class='num'>" + mmss(e.at) + "</td><td>" + esc(ko(PHASE_KO, e.phase)) + "</td><td>" + esc(ko(STAGE_KO, e.stage)) + "</td><td>" + esc(e.task) + "</td><td>" + esc(ko(TYPE_KO, e.type)) + "</td><td>" +
-        esc(e.area || "") + "</td><td>" + esc(e.label || "") + (e.text ? ": " + esc(e.text) : "") + (e.dead ? " (빈 링크)" : "") + (e.confirm ? " (조치 버튼)" : "") +
-        "</td><td>" + esc(e.page || "") + "</td><td class='num'>" + (e.x != null ? e.x + ", " + e.y : "") + "</td></tr>";
-    }).join("");
-    var answers = QLIST.map(function (q) {
-      return "<tr><td>TASK " + q[0] + "</td><td>" + (q[1] + 1) + ". " + esc(q[2]) + "</td><td style='white-space:normal'>" + esc(answerOf(a, q[0], q[1])) + "</td></tr>";
-    }).join("");
-    $("detail").hidden = false;
-    $("detail").innerHTML = "<h3>" + p + " 기록 (" + clock(a.startedAt) + ")</h3>" +
-      "<h3 style='margin-top:20px'>인터뷰 답변</h3><table class='rec'><tr><th>TASK</th><th>문항</th><th>답변</th></tr>" + answers + "</table>" +
-      "<h3 style='margin-top:24px'>전체 기록</h3>" +
-      "<div class='scroll'><table class='rec'><tr><th>경과</th><th>단계</th><th>구간</th><th>TASK</th><th>종류</th><th>영역</th><th>대상</th><th>화면</th><th>좌표</th></tr>" + rows + "</table></div>";
-    $("detail").scrollIntoView({ behavior: "smooth" });
-  }
-
   // 내보내기 · 가져오기
   // 참가자 한 명 기록을 파일로 — 브라우저 기록이 지워져도 남게. 기록 화면의 JSON 가져오기로 합친다
   function backup(a) {
@@ -1682,38 +1661,32 @@
   });
 
   // 온라인 백업 버튼 — 지금 보내기, 시트의 기록 전부 가져와 합치기, 이 브라우저에만 쓸 주소 넣기
-  $("cloud-now").addEventListener("click", function () { Cloud.flush(); });
-  $("cloud-pull").addEventListener("click", function () {
-    if (!Cloud.url()) { $("io-note").textContent = "백업 주소가 없습니다"; return; }
-    $("io-note").textContent = "구글 시트에서 불러오는 중";
+  // 구글 시트의 기록을 이 브라우저로 합친다 — 기록 화면, 리포트를 열 때 자동(노트북 4대 기록이 한곳에 보이게). 시험 기록(TEST…)은 뺀다
+  function pullCloud(then) {
+    if (!Cloud.url()) { if (then) { then(); } return; }
+    $("io-note").textContent = "구글 시트에서 다른 노트북 기록을 불러오는 중";
     Cloud.jsonp({ action: "list" }, 60000).then(function (got) {
       var ids = {}, added = 0;
       DB.attempts.forEach(function (a) { ids[a.id] = a; });
       (got.attempts || []).forEach(function (a) {
+        if (/^TEST/.test(a.id)) { return; }
         var mine = ids[a.id];
-        if (!mine) { DB.attempts.push(a); added++; }
-        else if ((a.rev || 0) > (mine.rev || 0)) { DB.attempts[DB.attempts.indexOf(mine)] = a; added++; }
+        if (!mine) { a.synced = a.rev || 0; DB.attempts.push(a); added++; }
+        else if ((a.rev || 0) > (mine.rev || 0)) { a.synced = a.rev || 0; DB.attempts[DB.attempts.indexOf(mine)] = a; added++; }
       });
       DB.attempts.sort(function (a, b) { return a.startedAt - b.startedAt; });
-      save(true); renderResults(); paintCloud();
-      $("io-note").textContent = "구글 시트 기록 " + (got.attempts || []).length + "건 중 새로 받은 것 " + added + "건";
-    }).catch(function () { $("io-note").textContent = "구글 시트에서 불러오지 못했습니다"; });
-  });
-  $("cloud-set").addEventListener("click", function () {
-    var box = $("cloud-box");
-    if (box) { box.hidden = !box.hidden; return; }
-    box = document.createElement("div"); box.id = "cloud-box"; box.className = "row";
-    box.innerHTML = '<input id="cloud-input" type="url" placeholder="https://script.google.com/macros/s/.../exec" style="flex:1;min-width:420px;font:inherit;padding:10px 12px;border:1px solid var(--line);border-radius:8px"><button type="button" class="btn btn-line" id="cloud-save">저장</button>';
-    this.parentNode.insertAdjacentElement("afterend", box);
-    $("cloud-input").value = Cloud.url();
-    $("cloud-save").addEventListener("click", function () {
-      try { localStorage.setItem("aprism-ut-cloud", $("cloud-input").value.trim()); } catch (e) { }
-      paintCloud(); Cloud.flush();
-    });
+      save(true); paintCloud();
+      $("io-note").textContent = added ? "구글 시트에서 기록 " + added + "건을 새로 합쳤습니다" : "";
+      if (then) { then(); }
+    }).catch(function () { $("io-note").textContent = "구글 시트에 연결하지 못해 이 노트북 기록만 보입니다"; if (then) { then(); } });
+  }
+  $("dl-toggle").addEventListener("click", function () {
+    var open = $("dl-panel").hidden;
+    $("dl-panel").hidden = !open; this.setAttribute("aria-expanded", String(open)); this.textContent = open ? "내려받기 ▴" : "내려받기 ▾";
   });
 
   // 리포트(report.js)가 쓰는 것
-  window.UT = { db: function () { return DB; }, SCEN: SCEN, QLIST: QLIST, PEOPLE: PEOPLE, scenStat: scenStat, answerOf: answerOf, latest: latest,
+  window.UT = { pull: function (cb) { pullCloud(cb); }, db: function () { return DB; }, SCEN: SCEN, QLIST: QLIST, PEOPLE: PEOPLE, scenStat: scenStat, answerOf: answerOf, latest: latest,
     doneAll: doneAll, LIKERT: LIKERT, OPEN: OPEN, SHEET_LINK: SHEET_LINK, mmss: mmss, clock: clock, esc: esc, show: show, pid: pid };
 
   renderHome();

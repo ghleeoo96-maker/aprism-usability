@@ -65,6 +65,23 @@
     ".rp-legend i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: var(--rp-blue); margin-right: 6px; vertical-align: 0; }",
     ".rp-legend i.med { width: 3px; height: 14px; border-radius: 1px; background: var(--rp-ink); vertical-align: -2px; }",
     ".rp-empty { color: var(--rp-ink-3); font-size: 15px; }",
+    ".rp-view { display: flex; gap: 4px; margin-top: 20px; border-bottom: 2px solid var(--rp-line); }",
+    ".rp-view button { border: 0; background: none; padding: 10px 18px; font-size: 17px; font-weight: 800; color: var(--rp-ink-3); border-bottom: 3px solid transparent; margin-bottom: -2px; }",
+    ".rp-view button[aria-selected='true'] { color: var(--rp-ink); border-bottom-color: var(--rp-blue); }",
+    ".one-nav { display: flex; align-items: center; gap: 10px; margin-top: 20px; }",
+    ".one-nav button { width: 40px; height: 40px; border: 1px solid var(--rp-line); border-radius: 10px; background: #fff; font-size: 22px; line-height: 1; }",
+    ".one-nav button:disabled { opacity: .35; cursor: default; }",
+    ".one-nav select { font: inherit; font-size: 16px; font-weight: 800; padding: 8px 10px; border: 1px solid var(--rp-line); border-radius: 10px; background: #fff; }",
+    ".one-nav span { font-size: 16px; color: var(--rp-ink-2); }",
+    ".one-info { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; }",
+    ".one-info div { background: #fff; border-radius: 10px; padding: 12px 14px; }",
+    ".one-info span { display: block; font-size: 14px; color: var(--rp-ink-3); }",
+    ".one-info b { font-size: 16px; }",
+    ".one-maps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }",
+    ".one-lks { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }",
+    ".one-lk { display: flex; justify-content: space-between; align-items: center; background: #f6f8fb; border-radius: 8px; padding: 10px 12px; font-size: 15px; }",
+    ".one-lk b { font-size: 18px; }",
+    ".rp-tbl td.wrap { white-space: normal; }",
     ".pp { display: grid; gap: 2px; }",
     ".pp-row { display: grid; grid-template-columns: 56px repeat(3, 1fr); gap: 24px; align-items: center; min-height: 30px; }",
     ".pp-head { font-size: 14px; color: var(--rp-ink-2); padding-bottom: 8px; border-bottom: 1px solid var(--rp-line); margin-bottom: 6px; }",
@@ -400,6 +417,9 @@
       (U.SHEET_LINK ? '<a class="btn btn-line" href="' + U.SHEET_LINK + '" target="_blank" rel="noopener" style="text-decoration:none;color:inherit">구글 시트 열기</a>' : '') +
       '<button type="button" class="btn btn-line" onclick="window.print()">인쇄, PDF</button></div></div>' +
       '<p class="rp-meta">에이프리즘 관제 화면 v6, 미션 정기 순회 점검. 참가자 ' + R.people.length + "명. 만든 시각 " + stamp + "</p>" +
+      '<div class="rp-view rp-noprint" role="tablist"><button type="button" role="tab" data-view="sum" aria-selected="' + (VIEW.mode === "sum") + '">요약</button>' +
+      '<button type="button" role="tab" data-view="one" aria-selected="' + (VIEW.mode === "one") + '">개별</button></div>' +
+      '<div id="rp-sum"' + (VIEW.mode === "sum" ? "" : " hidden") + ">" +
 
       '<div class="rp-sec">' + tiles(R) + "</div>" +
 
@@ -426,8 +446,9 @@
 
       '<div class="rp-sec"><h2>주관식 답변</h2><p class="rp-sub">문항을 누르면 참가자별 답변이 펼쳐진다.</p>' + openAnswers(R) + '</div>' +
 
-      "</div>";
+      '</div><div id="rp-one"' + (VIEW.mode === "one" ? "" : " hidden") + "></div>" + "</div>";
     CUR = R;
+    paintOne();
     paintMap();
   }
 
@@ -522,6 +543,69 @@
     return '<p class="cm-cap">알림이 뜬 화면(알림 상세가 열린 판) 위에 첫 클릭. 숫자는 참가자 번호</p>' + screen(2, g, "cm-scr");
   }
 
+  // ================================================================
+  // 개별 보기 — 한 사람씩. ‹ › 로 넘기고, 목록에서 고른다. 기록 화면 [자세히] 는 #report-p03 으로 바로 연다
+  // ================================================================
+  var VIEW = { mode: "sum", p: null };
+  function lkName(q) { return q.split(":")[0]; }
+  function paintOne() {
+    var box = document.getElementById("rp-one"); if (!box || !CUR) { return; }
+    var R = CUR, ppl = R.people;
+    if (!ppl.length) { box.innerHTML = '<p class="rp-empty">기록 없음</p>'; return; }
+    var i = Math.max(0, ppl.findIndex(function (a) { return a.participant === VIEW.p; }));
+    var a = ppl[i]; VIEW.p = a.participant;
+    var pf = a.profile || {}, post = a.post || {};
+    function info(k, v) { return "<div><span>" + k + "</span><b>" + esc(v || "-") + "</b></div>"; }
+    var total = a.endedAt ? a.endedAt - a.startedAt : null;
+    var dOpen = a.events.filter(function (e) { return e.phase === "s2" && e.type === "detail-open"; })[0];
+    var conf = a.events.filter(function (e) { return e.phase === "s3" && e.confirm; })[0], s3 = a.scenarios[3];
+    var nav = '<div class="one-nav"><button type="button" data-one-step="-1" aria-label="앞 참가자"' + (i === 0 ? " disabled" : "") + ">‹</button>" +
+      '<select id="one-pick" aria-label="참가자 고르기">' + ppl.map(function (x, k) { return '<option value="' + x.participant + '"' + (k === i ? " selected" : "") + ">" + x.participant + "</option>"; }).join("") + "</select>" +
+      "<span>" + (i + 1) + " / " + ppl.length + "</span>" +
+      '<button type="button" data-one-step="1" aria-label="다음 참가자"' + (i === ppl.length - 1 ? " disabled" : "") + ">›</button></div>";
+    var head = '<div class="one-info">' + info("진행일시", U.clock(a.startedAt).slice(0, 16)) + info("상태", U.doneAll(a) ? "완료" : a.stopped ? "중단" : "진행 중") +
+      info("전체 소요", total ? mmss(total) : "") + info("성별", pf.gender) + info("연령대", pf.age) + info("담당 업무", pf.job) + info("선호 화면 모드", post.mode) + "</div>";
+    var sc = '<table class="rp-tbl"><tr><th>시나리오</th><th class="num">수행 시간</th><th class="num">클릭</th><th class="num">인터뷰 시간</th><th>참고</th></tr>' +
+      [1, 2, 3].map(function (n) {
+        var x = U.scenStat(a, n), note = "";
+        if (n === 2 && dOpen) { note = "알림 상세를 " + mmss(dOpen.ms) + " 만에 엶(" + esc(dOpen.area || "") + ")"; }
+        if (n === 3 && s3) { note = conf ? "조치 버튼 첫 클릭 " + mmss(conf.t - s3.start) : "조치 버튼 안 누름"; }
+        return "<tr><td>시나리오 " + n + " " + esc(U.SCEN[n - 1].title) + '</td><td class="num">' + mmss(x.ms) + '</td><td class="num">' + x.clicks + '</td><td class="num">' + mmss(x.iv) + "</td><td>" + note + "</td></tr>";
+      }).join("") + "</table>";
+    var maps = '<div class="one-maps">' + [1, 2, 3].map(function (n) {
+      var d = dots(a, n, "one");
+      return '<div><p class="cm-cap"><b>시나리오 ' + n + "</b> 화면 클릭 " + d.on + "회</p>" + screen(n, d.svg, "cm-scr") + "</div>";
+    }).join("") + "</div>";
+    var qa = '<table class="rp-tbl"><tr><th>TASK</th><th>문항</th><th>답변</th></tr>' + U.QLIST.map(function (q) {
+      return "<tr><td>" + q[0] + '</td><td class="wrap">' + (q[1] + 1) + ". " + esc(q[2]) + '</td><td class="wrap">' + esc(U.answerOf(a, q[0], q[1])) + "</td></tr>";
+    }).join("") + "</table>";
+    var lk = (U.LIKERT || []).map(function (q, k) { var v = post.likert ? post.likert[k] : ""; return '<div class="one-lk"><span>' + esc(lkName(q)) + "</span><b>" + (v || "-") + "</b></div>"; }).join("");
+    var op = (U.OPEN || []).map(function (q, k) { var v = post.open ? post.open[k] : ""; return v && String(v).trim() ? "<tr><td class=\"wrap\">" + (k + 1) + ". " + esc(q) + '</td><td class="wrap">' + esc(v) + "</td></tr>" : ""; }).join("");
+    box.innerHTML = nav +
+      '<div class="rp-sec" style="margin-top:20px"><h2>' + a.participant + "</h2>" + head + "</div>" +
+      '<div class="rp-sec"><h2>시나리오</h2><div class="rp-card" style="padding:0;overflow:auto">' + sc + "</div></div>" +
+      '<div class="rp-sec"><h2>클릭 지도</h2><p class="rp-sub">숫자는 누른 순서.</p><div class="rp-card">' + maps + "</div></div>" +
+      '<div class="rp-sec"><h2>인터뷰 답변</h2><div class="rp-card" style="padding:0;overflow:auto">' + qa + "</div></div>" +
+      '<div class="rp-sec"><h2>공통질문</h2><div class="rp-card"><h3>7점 척도</h3><div class="one-lks">' + lk + "</div>" +
+      (op ? '<h3 style="margin-top:20px">주관식</h3><table class="rp-tbl">' + op + "</table>" : "") + "</div></div>";
+  }
+  sec.addEventListener("click", function (e) {
+    var v = e.target.closest("[data-view]");
+    if (v) {
+      VIEW.mode = v.getAttribute("data-view");
+      document.getElementById("rp-sum").hidden = VIEW.mode !== "sum";
+      document.getElementById("rp-one").hidden = VIEW.mode !== "one";
+      Array.prototype.forEach.call(sec.querySelectorAll("[data-view]"), function (b) { b.setAttribute("aria-selected", String(b === v)); });
+      paintOne(); return;
+    }
+    var st = e.target.closest("[data-one-step]");
+    if (st && CUR) {
+      var ppl = CUR.people, i = ppl.findIndex(function (a) { return a.participant === VIEW.p; }) + Number(st.getAttribute("data-one-step"));
+      if (ppl[i]) { VIEW.p = ppl[i].participant; paintOne(); window.scrollTo(0, 0); }
+    }
+  });
+  sec.addEventListener("change", function (e) { if (e.target.id === "one-pick") { VIEW.p = e.target.value; paintOne(); } });
+
   // 마우스를 올리면 값
   sec.addEventListener("mousemove", function (e) {
     var el = e.target.closest("[data-tip]");
@@ -536,7 +620,13 @@
   // 주소 — #report · #report-sample. 그 밖이면 처음 화면
   function route() {
     var h = location.hash.replace("#", "");
-    if (h === "report" || h === "report-sample") { render(h === "report-sample"); U.show("report"); window.scrollTo(0, 0); }
+    var m = /^report(-sample)?(?:-(p\d\d))?$/.exec(h);
+    if (m) {
+      var sampleOn = !!m[1];
+      if (m[2]) { VIEW.mode = "one"; VIEW.p = m[2].toUpperCase(); } else { VIEW.mode = "sum"; }
+      render(sampleOn); U.show("report"); window.scrollTo(0, 0);
+      if (!sampleOn && U.pull) { U.pull(function () { render(false); }); }
+    }
     else if (!document.getElementById("report").hidden) { U.show("home"); }
   }
   window.addEventListener("hashchange", route);
