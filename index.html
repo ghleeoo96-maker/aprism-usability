@@ -1557,7 +1557,7 @@
       var synced = !Cloud.url() ? "-" : (a.synced || 0) >= (a.rev || 0) ? "저장됨" : "대기";
       h += "<tr><td><b>" + p + "</b></td><td>" + clock(a.startedAt).slice(5, 16) + "</td><td>" + (doneAll(a) ? "완료" : a.stopped ? "중단" : "진행 중") + "</td>" +
         ss.map(function (x) { return '<td class="num">' + secs(x.ms) + "</td>"; }).join("") +
-        '<td class="num">' + (total ? mmss(total) : "") + "</td><td>" + synced + "</td>" +
+        '<td class="num">' + (total ? Math.floor(Math.round(total / 1000) / 60) + "분 " + (Math.round(total / 1000) % 60) + "초" : "") + "</td><td>" + synced + "</td>" +
         '<td><button type="button" class="btn-text" data-detail="' + p + '">자세히</button>' +
         '<button type="button" class="btn-text" data-del="' + a.id + '">지우기</button></td></tr>';
     }

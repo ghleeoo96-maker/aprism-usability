@@ -547,6 +547,8 @@
   // 개별 보기 — 한 사람씩. ‹ › 로 넘기고, 목록에서 고른다. 기록 화면 [자세히] 는 #report-p03 으로 바로 연다
   // ================================================================
   var VIEW = { mode: "sum", p: null };
+  // 긴 시간은 "11분 33초"
+  function minSec(ms) { var t = Math.round(ms / 1000), m = Math.floor(t / 60), s = t % 60; return m ? m + "분 " + s + "초" : s + "초"; }
   function lkName(q) { return q.split(":")[0]; }
   function paintOne() {
     var box = document.getElementById("rp-one"); if (!box || !CUR) { return; }
@@ -564,7 +566,7 @@
       "<span>" + (i + 1) + " / " + ppl.length + "</span>" +
       '<button type="button" data-one-step="1" aria-label="다음 참가자"' + (i === ppl.length - 1 ? " disabled" : "") + ">›</button></div>";
     var head = '<div class="one-info">' + info("진행일시", U.clock(a.startedAt).slice(0, 16)) + info("상태", U.doneAll(a) ? "완료" : a.stopped ? "중단" : "진행 중") +
-      info("전체 소요", total ? mmss(total) : "") + info("성별", pf.gender) + info("연령대", pf.age) + info("담당 업무", pf.job) + info("선호 화면 모드", post.mode) + "</div>";
+      info("전체 소요", total ? minSec(total) : "") + info("성별", pf.gender) + info("연령대", pf.age) + info("담당 업무", pf.job) + info("선호 화면 모드", post.mode) + "</div>";
     var sc = '<table class="rp-tbl"><tr><th>시나리오</th><th class="num">수행 시간</th><th class="num">클릭</th><th class="num">인터뷰 시간</th><th>참고</th></tr>' +
       [1, 2, 3].map(function (n) {
         var x = U.scenStat(a, n), note = "";
