@@ -114,6 +114,18 @@
   table.rec td.num, table.rec th.num { text-align: right; }
   table.rec tr.is-empty td { color: var(--ink-3); }
   .rec-home { text-decoration: none; font-size: 16px; font-weight: 700; color: var(--ink-2); margin-right: 8px; }
+  /* 기록 화면 — 14인치(배율 150%, 창 약 1280×650)에서 가로 세로 스크롤 없이. 열 너비 고정, 표는 늘이지 않는다 */
+  #results.page { padding: 16px 48px; }
+  #results h1 { font-size: 26px; margin: 0; }
+  #results .lead { margin-top: 4px; font-size: 14px; }
+  #results .rec-bar { margin-top: 8px !important; }
+  #results .rec-bar .btn { padding: 8px 16px; }
+  #rec-table { table-layout: fixed; width: 960px; font-size: 14px; }
+  #rec-table th, #rec-table td { padding: 4px 12px; line-height: 20px; overflow: hidden; text-overflow: ellipsis; }
+  #rec-table th:nth-child(1) { width: 72px; } #rec-table th:nth-child(2) { width: 120px; } #rec-table th:nth-child(3) { width: 80px; }
+  #rec-table th:nth-child(4), #rec-table th:nth-child(5), #rec-table th:nth-child(6) { width: 96px; }
+  #rec-table th:nth-child(7) { width: 120px; } #rec-table th:nth-child(8) { width: 88px; } #rec-table th:nth-child(9) { width: 112px; }
+  #rec-table .btn-text { padding: 0 4px; line-height: 20px; }
   .dl-panel { margin-top: 10px; padding: 12px; border-radius: 12px; background: #fff; }
   .confirm-del { color: var(--red); font-weight: 700; }
 
@@ -371,7 +383,7 @@
 <!-- 기록 화면 -->
 <section class="page" id="results" hidden>
   <h1>기록</h1>
-  <p class="lead">참가자별 최근 기록. 시나리오 시간은 [시작]부터 [확인완료], [조치완료]까지. [자세히]는 리포트의 개별 보기로 연다. 노트북 4대의 기록은 구글 시트에서 자동으로 합친다.</p>
+  <p class="lead">시나리오 시간은 [시작]부터 [확인완료], [조치완료]까지. 노트북 4대의 기록은 구글 시트에서 자동으로 합친다.</p>
   <!-- 버튼 위계: 처음으로(글자) · 구글 시트로 보기(주) · 리포트 · 내려받기(누르면 CSV, JSON, 가져오기가 펼쳐짐) -->
   <div class="row rec-bar" style="margin-top:24px">
     <button type="button" class="btn-text rec-home" id="back-home">← 처음으로</button>
@@ -379,6 +391,7 @@
     <a class="btn btn-line" href="#report" style="text-decoration:none;color:inherit">리포트</a>
     <button type="button" class="btn btn-line" id="dl-toggle" aria-expanded="false">내려받기 ▾</button>
     <span class="note" data-cloud></span>
+    <span class="note" id="io-note"></span>
   </div>
   <div class="row dl-panel" id="dl-panel" hidden>
     <button type="button" class="btn btn-line" id="csv-sum">요약 CSV</button>
@@ -386,8 +399,7 @@
     <button type="button" class="btn btn-line" id="json-out">전체 JSON</button>
     <label class="btn btn-line" style="cursor:pointer">JSON 가져오기<input type="file" id="json-in" accept="application/json" multiple hidden /></label>
   </div>
-  <p class="note" id="io-note" style="margin-top:8px"></p>
-  <div style="margin-top:24px; overflow:auto"><table class="rec" id="rec-table"></table></div>
+  <div style="margin-top:8px"><table class="rec" id="rec-table"></table></div>
 </section>
 
 <!-- 테스트 -->
