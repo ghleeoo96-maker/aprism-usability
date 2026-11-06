@@ -73,7 +73,7 @@
     ".one-nav button:disabled { opacity: .35; cursor: default; }",
     ".one-nav select { font: inherit; font-size: 16px; font-weight: 800; padding: 8px 10px; border: 1px solid var(--rp-line); border-radius: 10px; background: #fff; }",
     ".one-nav span { font-size: 16px; color: var(--rp-ink-2); }",
-    ".one-info { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; }",
+    ".one-info { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }",
     ".one-info div { background: #fff; border-radius: 10px; padding: 12px 14px; }",
     ".one-info span { display: block; font-size: 14px; color: var(--rp-ink-3); }",
     ".one-info b { font-size: 16px; }",
@@ -175,8 +175,8 @@
               ["빨간색이라서", "[화면] 알림 상세 '위험'", "기준 0.80보다 높은 값을 봐서", "Delta가 빨개져서"]],
       "2-3": [["Delta가 빨개진 것", "왼쪽 알림 목록", "화면 테두리가 빨개짐", "지도 위 빨간 핀"],
               ["측정값", "위치", "사진", "Delta 조치 제안"],
-              ["없었다", "지도에서 번호가 작아 찾기 어려웠다", "층을 바꿔야 해서 헷갈렸다"],
-              ["충분했다", "기준값이 있어 이해됐다", "원인이 무엇인지는 알기 어려웠다"]],
+              ["6", "5", "3", "7", "4"],
+              ["예", "예", "아니오"]],
       "3-1": [["예", "예", "예", "아니오"]],
       "3-2": [["알림이 목록에서 사라졌다", "오늘 확인 완료로 옮겨졌다", "화면 아래 안내 문구", "잘 모르겠다, 반영됐는지 확신이 없다"]]
     };
@@ -578,7 +578,7 @@
       "<span>" + (i + 1) + " / " + ppl.length + "</span>" +
       '<button type="button" data-one-step="1" aria-label="다음 참가자"' + (i === ppl.length - 1 ? " disabled" : "") + ">›</button></div>";
     var head = '<div class="one-info">' + info("진행일시", U.clock(a.startedAt).slice(0, 16)) + info("상태", U.doneAll(a) ? "완료" : a.stopped ? "중단" : "진행 중") +
-      info("전체 소요", total ? minSec(total) : "") + info("성별", pf.gender) + info("연령대", pf.age) + info("담당 업무", pf.job) + info("선호 화면 모드", post.mode) + "</div>";
+      info("전체 소요", total ? minSec(total) : "") + info("자유 탐색", a.explore && a.explore.end ? minSec(a.explore.end - a.explore.start) : "") + info("성별", pf.gender) + info("연령대", pf.age) + info("담당 업무", pf.job) + info("선호 화면 모드", post.mode) + "</div>";
     var sc = '<table class="rp-tbl"><tr><th>시나리오</th><th class="num">수행 시간</th><th class="num">클릭</th><th class="num">인터뷰 시간</th><th>참고</th></tr>' +
       [1, 2, 3].map(function (n) {
         var x = U.scenStat(a, n), note = "";
