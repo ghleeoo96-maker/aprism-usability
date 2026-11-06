@@ -437,6 +437,7 @@
     <button type="button" class="btn btn-line" id="csv-ev">클릭 기록 CSV</button>
     <button type="button" class="btn btn-line" id="json-out">전체 JSON</button>
     <label class="btn btn-line" style="cursor:pointer">JSON 가져오기<input type="file" id="json-in" accept="application/json" multiple hidden /></label>
+    <button type="button" class="btn-text confirm-del" id="wipe-all" style="margin-left:auto">이 노트북 기록 모두 지우기</button>
   </div>
   <div style="margin-top:8px"><table class="rec" id="rec-table"></table></div>
 </section>
@@ -1908,6 +1909,19 @@
     }
     $("rec-table").innerHTML = h;
   }
+  // 이 노트북(브라우저)의 기록을 모두 지운다 — 두 번 눌러야. 지운 기록은 구글 시트에서도 지우고, 다시 합쳐지지 않게 남긴다
+  var wipeArm = null;
+  $("wipe-all").addEventListener("click", function () {
+    var b = this;
+    if (!wipeArm) { b.textContent = "한 번 더 누르면 모두 지움(" + DB.attempts.length + "건)"; wipeArm = setTimeout(function () { wipeArm = null; b.textContent = "이 노트북 기록 모두 지우기"; }, 4000); return; }
+    clearTimeout(wipeArm); wipeArm = null;
+    var ids = DB.attempts.map(function (a) { return a.id; }), dead = deadIds();
+    ids.forEach(function (g) { if (dead.indexOf(g) < 0) { dead.push(g); } if (Cloud.url()) { Cloud.jsonp({ action: "del", id: g }).catch(function () { }); } });
+    try { localStorage.setItem("aprism-ut-deleted", JSON.stringify(dead)); } catch (e) { }
+    DB.attempts = []; save(true); renderResults(); renderHome();
+    b.textContent = "이 노트북 기록 모두 지우기";
+    $("io-note").textContent = "이 노트북 기록 " + ids.length + "건을 지웠습니다";
+  });
   function deadIds() { try { return JSON.parse(localStorage.getItem("aprism-ut-deleted")) || []; } catch (e) { return []; } }
   var delArm = null;
   $("rec-table").addEventListener("click", function (e) {
