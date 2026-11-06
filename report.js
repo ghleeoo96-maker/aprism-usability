@@ -271,6 +271,7 @@
       if (hit) { react.push({ p: a.participant, ms: hit.t - ai.t }); }
     });
     // 막힌 신호
+    var early = people.filter(function (a) { return a.events.some(function (e) { return e.type === "s2-early-action"; }); });
     var dead = people.filter(function (a) { return a.events.some(function (e) { return e.dead; }); });
     var deadMenus = {};
     people.forEach(function (a) { a.events.forEach(function (e) { if (e.dead) { deadMenus[e.label] = (deadMenus[e.label] || 0) + 1; } }); });
@@ -278,7 +279,7 @@
     var noConfirm = s3.filter(function (a) { return !a.events.some(function (e) { return e.phase === "s3" && e.confirm; }); });
     var slow = [];
     S.forEach(function (s) { s.rows.forEach(function (r) { if (s.med && r.st.ms > s.med * 2) { slow.push(r.p + " 시나리오 " + s.n); } }); });
-    return { people: people, S: S, first: first, react: react, via: via, opens: opens, dead: dead, deadMenus: deadMenus, s3: s3, noConfirm: noConfirm, slow: slow };
+    return { early: early, people: people, S: S, first: first, react: react, via: via, opens: opens, dead: dead, deadMenus: deadMenus, s3: s3, noConfirm: noConfirm, slow: slow };
   }
 
   // ================================================================
@@ -333,6 +334,7 @@
     function f(c, of, title, body) { return '<div class="rp-flag"><div class="c">' + c + "<small>/" + of + '</small></div><div><b>' + title + "</b><span>" + body + "</span></div></div>"; }
     return '<div class="rp-flags">' +
       f(R.noConfirm.length, R.s3.length, "시나리오 3에서 조치 버튼을 누르지 않고 끝냄", R.noConfirm.length ? R.noConfirm.map(function (a) { return a.participant; }).join(", ") : "없음") +
+      f(R.early.length, R.people.length, "시나리오 2(확인만)에서 미리 조치 버튼을 누름", R.early.length ? R.early.map(function (a) { return a.participant; }).join(", ") : "없음") +
       f(R.dead.length, R.people.length, "연결 안 된 메뉴(빈 링크)를 누름", dm || "없음") +
       f(R.slow.length, R.people.length * 3, "수행 시간이 중앙값의 2배를 넘음", R.slow.join(", ") || "없음") +
       "</div>";

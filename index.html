@@ -536,8 +536,8 @@
         { id: "1-1", qs: ["로봇이 수행 중인 미션의 이름은 무엇인가요?", "로봇은 지금 몇 번 지점에 있나요?"] },
         { id: "1-2", qs: ["임무는 현재 몇% 진행되었나요?", "로봇은 현재 무엇을 하고 있나요?", "그렇게 판단한 화면의 정보는 무엇인가요?"] }
       ] },
-    { no: 2, title: "위험 알람 확인", ask: "새롭게 발생한 위험 알림을 찾아 확인해 주세요!", done: "확인완료",
-      desc: "정기 순회 점검 중 위험 알림이 발생했습니다. 관제 대시보드에서 어떤 상황이 발생했는지 확인해 주세요.",
+    { no: 2, title: "위험 알람 확인", ask: "새로 발생한 위험 알림을 찾아 상세 내용을 열어 보세요! 조치는 아직 하지 않습니다.", done: "확인완료",
+      desc: "정기 순회 점검 중 위험 알림이 발생했습니다. 관제 대시보드에서 어떤 상황이 발생했는지 확인해 주세요. 조치는 다음 시나리오에서 진행합니다.",
       tasks: [
         { id: "2-1", title: "위험 알림 발견 및 확인", qs: ["어떤 이상이 감지되었는지 설명해 주세요."] },
         { id: "2-2", title: "위험 상황 이해", lead: "방금 확인한 위험 알림을 바탕으로 다음 질문에 답해 주세요.",
@@ -934,6 +934,7 @@
     var tgt = e.target.nodeType === 1 ? e.target : e.target.parentElement;
     if (alertIn && tgt && (tgt.closest("[data-ma-confirm]") || tgt.closest("[data-req]"))) {
       alertDone = { time: new Date().toTimeString().slice(0, 5), how: tgt.closest("[data-req]") ? "현장 조치 요청(안전진단)" : "조치 요청" };
+      if (phase === "s2") { log("s2-early-action", { label: "시나리오 2에서 미리 조치함(" + alertDone.how + ")" }); alertDone.inS2 = true; }
     }
     var needClicks = curScen && phase && /^s[123]$/.test(phase) && curScen().doneClicks !== undefined ? curScen().doneClicks : DONE_CLICKS;   // 0 이면 클릭으로는 안 나온다(시나리오 1)
     if (step === "run" && needClicks && ++runClicks >= needClicks) { setTimeout(function () { revealDone("클릭 " + DONE_CLICKS + "번"); }, 0); }
@@ -1074,7 +1075,12 @@
     // 다음 시나리오의 테스트 화면을 먼저 열고, 그 위에 덮개와 안내 카드를 띄운다
     //   2: 정상 판으로 새로 연다. 3: 관제 화면이 아니면(안전진단 등) 관제로 다시 연다(위험 알림은 load 에서 다시 띄운다)
     if (n === 2) { alertIn = false; alertLive = false; alertDone = null; alertPending = false; loadApp(); }
-    if (n === 3) { var pth = ""; try { pth = frame.contentWindow.location.pathname; } catch (e) { } if (!/main-v6.html$/.test(pth)) { loadApp(); } }
+    if (n === 3) {
+      var pth = ""; try { pth = frame.contentWindow.location.pathname; } catch (e) { }
+      // 시나리오 2 에서 미리 조치했으면 처리 전 알림으로 다시 연다 — 시나리오 3 에서 조치할 알림이 남게
+      if (alertDone && alertDone.inS2) { alertDone = null; loadApp(); }
+      else if (!/main-v6.html$/.test(pth)) { loadApp(); }
+    }
     showCard(true);
     paintTask();
   }
@@ -1598,7 +1604,7 @@
   var TYPE_KO = { page: "화면 열림", open: "새 창 대신 이동", click: "클릭", check: "문항 체크", "alert-in": "알림 발생",
     "hello": "인사 카드", "tutorial-start": "튜토리얼 시작", "tutorial-step": "튜토리얼 단계", "tutorial-end": "튜토리얼 끝",
     "scenario-start": "시나리오 시작", "scenario-end": "시나리오 끝", "task-done": "TASK 완료", "task-skip": "TASK 건너뜀",
-    "run-done": "수행 완료", "done-shown": "수행 완료 버튼 나옴", "pick-start": "화면 고르기 시작", "detail-open": "알림 상세 처음 엶", "post-page": "공통질문 쪽 이동", "mode-view": "모드 보기", "mode-full": "전체 화면 보기", pick: "화면에서 고름", "pick-end": "화면 고르기 끝", "alert-measure": "위험 지점 측정 시작", "post-start": "공통질문 시작", answer: "답변", "card-fold": "카드 접기", "card-open": "카드 펼치기", "card-move": "카드 옮기기", "test-end": "테스트 끝", "test-stop": "테스트 중단" };
+    "run-done": "수행 완료", "done-shown": "수행 완료 버튼 나옴", "pick-start": "화면 고르기 시작", "detail-open": "알림 상세 처음 엶", "s2-early-action": "시나리오 2에서 미리 조치", "post-page": "공통질문 쪽 이동", "mode-view": "모드 보기", "mode-full": "전체 화면 보기", pick: "화면에서 고름", "pick-end": "화면 고르기 끝", "alert-measure": "위험 지점 측정 시작", "post-start": "공통질문 시작", answer: "답변", "card-fold": "카드 접기", "card-open": "카드 펼치기", "card-move": "카드 옮기기", "test-end": "테스트 끝", "test-stop": "테스트 중단" };
   var STAGE_KO = { intro: "설명", run: "수행", task: "인터뷰" };
   function ko(map, k) { return map[k] || k || ""; }
   // 내보내기 · 가져오기
