@@ -3,7 +3,7 @@
  *   1 요약 숫자   완료 인원, 시나리오별 수행 시간 중앙값, 시나리오 3 조치 실행 인원
  *   2 수행 시간   시나리오마다 참가자 16명 점 + 중앙값 눈금
  *   3 누른 곳     시나리오마다 영역별 "누른 참가자 수"
- *   4 알림 반응   시나리오 2 알림 뒤 처음 누른 곳, 알림 확인까지 걸린 시간
+ *   4 알림 반응   시나리오 2 알림 뒤 처음 누른 곳, 알림 확인까지 걸린 시간, 알림 상세를 연 경로와 시간
  *   5 막힌 신호   빈 링크, 조치 버튼 안 누름, 중앙값 2배 넘김
  *   6 참가자별 표 · 7 공통질문(인터뷰 답변은 구두라 리포트에서 뺐다)
  * 색은 한 가지(파랑) — 시나리오는 행으로 나눠 색으로 구분하지 않는다. 글자는 글자색, 값은 tabular-nums.
@@ -151,10 +151,14 @@
       "1-2": [["35%", "35%, 7/20 지점", "약 3분의 1", "35%인데 시간이 1시간 57분 남았다고 나옴"],
               ["8번 지점으로 이동 중", "냉각수 열교환기 판독 중", "측정하고 있는 것 같다", "이동 중"],
               ["오른쪽 진행 막대", "지점 목록의 '이동 중' 표시", "지도 위 로봇 위치", "오른쪽 위 냉각수 열교환기 HX-1 판독 글자"]],
-      "2-1": [["N₂ 배관 압력계 압력 0.86 MPa", "계기인식 압력 이상", "위험 알림을 열어 사진까지 봤다", "Delta가 알려준 N₂ 압력계"],
-              ["압력이 기준보다 높다", "압력 이상", "가스 누출 같은 것", "계기 수치 이상"]],
+      "2-1": [["N₂ 배관 압력계 압력이 기준보다 높다", "계기인식 압력 0.86 MPa", "압력 이상", "가스 누출 같은 것"]],
       "2-2": [["B4 WP-04", "지하 4층 N₂ 배관 압력계", "4번 지점", "B4 터빈 2"],
-              ["위험", "위험(빨간색)", "위험 단계", "처음엔 주의인 줄 알았다"]],
+              ["위험, 바로 조치가 필요하다", "높다", "주의 정도", "매우 위험"],
+              ["빨간색이라서", "[화면] 알림 상세 '위험'", "기준 0.80보다 높은 값을 봐서", "Delta가 빨개져서"]],
+      "2-3": [["Delta가 빨개진 것", "왼쪽 알림 목록", "화면 테두리가 빨개짐", "지도 위 빨간 핀"],
+              ["측정값", "위치", "사진", "Delta 조치 제안"],
+              ["없었다", "지도에서 번호가 작아 찾기 어려웠다", "층을 바꿔야 해서 헷갈렸다"],
+              ["충분했다", "기준값이 있어 이해됐다", "원인이 무엇인지는 알기 어려웠다"]],
       "3-1": [["예", "예", "예", "아니오"]],
       "3-2": [["알림이 목록에서 사라졌다", "오늘 확인 완료로 옮겨졌다", "화면 아래 안내 문구", "잘 모르겠다, 반영됐는지 확신이 없다"]]
     };
@@ -189,7 +193,7 @@
         var runMs = logn([0, 72, 58, 85][n], 0.6) * 1000;
         if (n === 3 && (i === 4 || i === 11)) { runMs = 260000 + rnd() * 60000; }   // 조치 버튼을 못 찾은 두 명
         var end = t + runMs;
-        if (n === 2) { t += 3000; push(ph, "run", "alert-in", { label: "새 위험 알림 발생" }); var f = FIRST[Math.min(3, Math.floor(rnd() * 16) < 9 ? 0 : Math.floor(rnd() * 16) < 4 ? 1 : Math.floor(rnd() * 3) + 1)]; t += logn(9, 0.6) * 1000; push(ph, "run", "click", { area: f[0], label: f[0] }); }
+        if (n === 2) { t += 3000; push(ph, "run", "alert-in", { label: "새 위험 알림 발생" }); var dOpen = logn(14, 0.6) * 1000; (function (tt) { var ev0 = { t: tt, at: tt - t0, phase: ph, stage: "run", task: "", type: "detail-open", area: pick(["최신 알림", "최신 알림", "최신 알림", "설비 배치도", "Delta"]), ms: dOpen }; ev.push(ev0); })(t + dOpen); var f = FIRST[Math.min(3, Math.floor(rnd() * 16) < 9 ? 0 : Math.floor(rnd() * 16) < 4 ? 1 : Math.floor(rnd() * 3) + 1)]; t += logn(9, 0.6) * 1000; push(ph, "run", "click", { area: f[0], label: f[0] }); }
         AREA[ph].forEach(function (ar) {
           if (rnd() < ar[1]) { var c = 1 + Math.floor(rnd() * 3); for (var k = 0; k < c; k++) { t = Math.min(end - 1000, t + rnd() * runMs / 6); push(ph, "run", "click", { area: ar[0], label: ar[0] }); } }
         });
@@ -238,7 +242,8 @@
       return { n: n, rows: rows, med: median(ms), min: Math.min.apply(null, ms), max: Math.max.apply(null, ms), areas: areas };
     });
     // 시나리오 2 — 알림 뒤 처음 누른 곳, 알림 확인(최신 알림 또는 알림 상세를 처음 누름)까지
-    var first = {}, react = [];
+    var first = {}, react = [], via = {}, opens = [];
+    people.forEach(function (a) { var d = a.events.filter(function (e) { return e.phase === "s2" && e.type === "detail-open"; })[0]; if (d) { via[d.area || "기타"] = (via[d.area || "기타"] || 0) + 1; opens.push(d.ms); } });
     people.forEach(function (a) {
       var ai = a.events.filter(function (e) { return e.phase === "s2" && e.type === "alert-in"; })[0];
       if (!ai) { return; }
@@ -255,7 +260,7 @@
     var noConfirm = s3.filter(function (a) { return !a.events.some(function (e) { return e.phase === "s3" && e.confirm; }); });
     var slow = [];
     S.forEach(function (s) { s.rows.forEach(function (r) { if (s.med && r.st.ms > s.med * 2) { slow.push(r.p + " 시나리오 " + s.n); } }); });
-    return { people: people, S: S, first: first, react: react, dead: dead, deadMenus: deadMenus, s3: s3, noConfirm: noConfirm, slow: slow };
+    return { people: people, S: S, first: first, react: react, via: via, opens: opens, dead: dead, deadMenus: deadMenus, s3: s3, noConfirm: noConfirm, slow: slow };
   }
 
   // ================================================================
@@ -407,6 +412,9 @@
       '<div class="rp-sec"><h2>시나리오 2 알림 반응</h2><p class="rp-sub">새 위험 알림이 들어온 뒤의 첫 행동.</p><div class="rp-grid2">' +
       '<div class="rp-card"><h3>알림 뒤 처음 누른 곳</h3>' + firstMap(R) + "</div>" +
       '<div class="rp-tile"><div class="k">알림 확인까지 걸린 시간(중앙값)</div><div class="v">' + (reactMed != null ? mmss(reactMed) : "-") + '</div><div class="s">알림이 들어온 뒤 최신 알림이나 알림 상세를 처음 누를 때까지. ' + R.react.length + "명 기준</div></div>" +
+      "</div>" +
+      '<div class="rp-grid2" style="margin-top:12px"><div class="rp-card"><h3>알림 상세를 연 경로</h3>' + bars(R.via, R.opens.length, 6) + '</div>' +
+      '<div class="rp-tile"><div class="k">알림 상세를 열기까지(중앙값)</div><div class="v">' + (median(R.opens) != null ? mmss(median(R.opens)) : "-") + '</div><div class="s">위험 알림이 뜬 뒤 알림 상세 팝오버(또는 안전진단 화면)가 처음 열릴 때까지. ' + R.opens.length + "명 기준</div></div>" +
       "</div></div>" +
 
       '<div class="rp-sec"><h2>막힌 신호</h2><p class="rp-sub">인터뷰에서 함께 짚어 볼 장면.</p><div class="rp-card">' + flags(R) + "</div></div>" +
