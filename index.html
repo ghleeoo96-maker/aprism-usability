@@ -1457,8 +1457,9 @@
     var firstOpen = LK_GROUPS.findIndex(function (g, gi) { return !lkDone(gi); });   // 아직 답하지 않은 첫 묶음 — 늘 보인다
     Array.prototype.forEach.call(document.querySelectorAll(".lk-group"), function (el) {
       var gi = Number(el.getAttribute("data-g")), g = LK_GROUPS[gi], done = lkDone(gi);
-      el.hidden = !(gi === lkOpen || done || gi === firstOpen);
-      el.classList.toggle("is-folded", gi !== lkOpen && done);
+      // 접지 않는다 — 답한 묶음은 그대로 두고, 아직 답하지 않은 첫 묶음까지 보인다(그 아래는 숨김)
+      el.hidden = !(done || gi === firstOpen || firstOpen < 0);
+      el.classList.remove("is-folded");
       el.querySelector(".lk-sum").textContent = g.name + " " + g.items.map(function (i, k) { return (k ? "② " : "① ") + (lkVal(i) || "-") + "점"; }).join("  ") + "  고치기";
     });
   }
@@ -1472,7 +1473,7 @@
         lkOpen = next < 0 ? -1 : next;
         paintLikert();
         var cur = document.querySelector('.lk-group[data-g="' + lkOpen + '"]');
-        (cur || $("pg-next")).scrollIntoView({ behavior: "smooth", block: "center" });
+        (cur || $("pg-next")).scrollIntoView({ behavior: "smooth", block: cur ? "start" : "center" });
       }, 250);
     }
     paintLikert();
