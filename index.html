@@ -250,11 +250,11 @@
   .hello-card { width: 640px; text-align: left; padding: 48px 48px 44px; }
   .hello-card h2 { margin: 0 0 8px; font-size: 34px; font-weight: 800; line-height: 1.25; letter-spacing: -0.02em; color: var(--ink); }
   .hello-card p { margin: 0; font-size: 17px; line-height: 1.7; color: var(--ink-2); }
-  .hello-card p.lead { margin: 0 0 28px; font-size: 20px; font-weight: 700; line-height: 1.4; color: var(--ink); }
+  .hello-card p.lead { margin: 0; font-size: 20px; font-weight: 700; line-height: 1.4; color: var(--ink); }
   .hello-role { margin: 28px 0 32px; padding: 20px 22px; border-radius: 12px; background: var(--blue-weak); color: var(--ink-2); font-size: 16px; line-height: 1.6; }
   .hello-role .tag { display: inline-block; margin-bottom: 12px; padding: 3px 10px; border-radius: 999px; background: var(--blue); color: #fff; font-size: 14px; font-weight: 700; line-height: 1.4; }
   .hello-role b { display: block; margin-bottom: 8px; color: var(--ink); font-size: 20px; font-weight: 800; line-height: 1.4; }
-  .hello-card p.next { margin: 0 0 12px; font-size: 16px; font-weight: 500; color: var(--ink-2); }
+  .hello-card p.next { margin: 0 0 16px; font-size: 16px; line-height: 1.7; font-weight: 500; color: var(--ink-2); }
   .hello-card .btn { display: block; width: 100%; padding: 16px; font-size: 18px; font-weight: 800; }
 </style>
 </head>
@@ -484,13 +484,12 @@
       <div class="end-card hello-card">
         <h2>안녕하세요!</h2>
         <p class="lead">에이프리즘 사용성 테스트를 시작하겠습니다.</p>
-        <p>이번 테스트는 사용자가 이 서비스로 목적을 이루는 과정에서 어려운 점이 있는지 확인하기 위한 것입니다. 정답은 없으니 편하게 사용해 주세요.</p>
         <div class="hello-role">
           <span class="tag">페르소나 설정</span>
           <b>당신은 새로 입사한 관제사입니다.</b>
           관제 서비스 인계 교육을 받고 업무를 수행하는 신입 관제사입니다.
         </div>
-        <p class="next">테스트 전에 화면을 잠시 설명드리겠습니다.</p>
+        <p class="next">이번 테스트는 사용자가 이 서비스로 목적을 이루는 과정에서 어려운 점이 있는지 확인하기 위한 것입니다. 정답은 없으니 편하게 사용해 주세요.<br>테스트전 화면설명을 드리겠습니다.</p>
         <button type="button" class="btn btn-primary" id="hello-go">화면 설명 시작</button>
       </div>
     </div>
@@ -542,7 +541,7 @@
   // 말풍선 본문 — 한 줄 요약 + 글머리 목록
   function T(lead, items) { return "<p>" + lead + "</p><ul>" + items.map(function (x) { return "<li>" + x + "</li>"; }).join("") + "</ul>"; }
   var TOUR = [
-    { sel: ".sb-tabs", title: "미션 탭", text: T("미션은 로봇에게 맡긴 점검 업무입니다. 예를 들어 ‘1층 설비 순회 점검’이 미션 하나입니다.", ["<b>탭 하나</b>는 로봇이 수행 중인 미션 하나","<b>탭을 누르면</b> 그 미션의 진행 상황과 로봇 상태 확인","<b>삼각형</b>이 붙은 탭은 위험 또는 주의 알림 발생"]) },
+    { sel: ".sb-tabs", title: "미션 탭", text: T("미션은 로봇에게 맡긴 점검 업무입니다. 예를 들어 ‘M1 정기순회점검’이 미션 하나입니다.", ["<b>탭 하나</b>는 로봇이 수행 중인 미션 하나","<b>탭을 누르면</b> 그 미션의 진행 상황과 로봇 상태 확인","<b>삼각형</b>이 붙은 탭은 위험 또는 주의 알림 발생"]) },
     { sel: ".delta3", rect: [436, 80, 296, 972], title: "Delta | AI 관제 도우미", text: T("에이프리즘의 AI 도우미입니다. 로봇이 보낸 여러 알림을 모아 지금 상황을 요약합니다.", ["먼저 확인할 문제와 그 이유 안내","<b>누르면 대화창</b>이 열림","궁금한 내용 입력 또는 추천 질문 선택","문제의 원인, 위치, 필요한 조치 안내"]),
       act: function (d) { var t = d.querySelector(".delta3 [data-ai-toggle]"); if (t && !d.querySelector(".delta3.is-open")) { t.click(); } return function () { return !!d.querySelector(".delta3.is-open"); }; },
       after: function (d) { var t = d.querySelector(".delta3 [data-ai-toggle]"); if (t && d.querySelector(".delta3.is-open")) { t.click(); } } },
