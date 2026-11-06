@@ -188,6 +188,8 @@
   .choice button[aria-checked="true"] { border-color: var(--blue); background: var(--blue-weak); color: var(--blue); }
   .task-lead { margin: -4px 0 12px; font-size: 16px; color: var(--ink-2); }
   #post-form.is-wide { max-width: none; }
+  /* 공통질문 쪽 이동 — [이전] 은 왼쪽, [다음] [제출] 은 오른쪽 */
+  .pg-row #pg-next, .pg-row #pg-submit { margin-left: auto; }
   .op-wrap { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(360px, 1fr); gap: 20px; align-items: start; }
   .op-screen { position: sticky; top: 12px; }
   .op-hint { margin: 0 0 8px; padding: 8px 12px; border-radius: 8px; background: #fff; font-size: 15px; color: var(--ink-2); }
@@ -377,7 +379,7 @@
     </div>
     </section>
 
-    <div class="row" style="margin-top:24px">
+    <div class="row pg-row" style="margin-top:24px">
       <button type="button" class="btn btn-line" id="pg-prev">이전</button>
       <button type="button" class="btn btn-primary" id="pg-next">다음</button>
       <button type="submit" class="btn btn-primary" id="pg-submit">제출</button>
