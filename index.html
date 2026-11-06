@@ -62,6 +62,7 @@
   .sv-card.is-err { border-color: var(--red); }
   .sv-card.is-err .sv-err { display: block; }
   .sv-opt { color: var(--ink-3); font-size: 14px; }
+  .sv-step { margin: 4px 0 12px; font-size: 15px; font-weight: 700; color: var(--blue); }
   .sv-ta { width: 100%; resize: vertical; border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; font: inherit; font-size: 16px; line-height: 1.6; background: #f8fafc; }
   .sv-ta:focus { outline: 2px solid var(--blue); outline-offset: -1px; background: #fff; }
   .sv-band { margin: 24px 0 12px; padding: 14px 24px; border-radius: 10px; background: #2b8fd8; color: #fff; font-size: 16px; font-weight: 700; }
@@ -72,7 +73,13 @@
   .mode-tabs button { padding: 10px 20px; border: 2px solid var(--line); border-radius: 10px; background: #fff; font-size: 16px; font-weight: 800; }
   .mode-tabs button[aria-pressed="true"] { border-color: var(--blue); background: var(--blue); color: #fff; }
   .mode-tabs span { margin-left: 8px; font-size: 15px; color: var(--ink-2); }
-  .sv-frame { position: relative; width: 100%; aspect-ratio: 16 / 9; overflow: hidden; border-radius: 12px; background: #0b0d12; box-shadow: 0 4px 16px rgba(0,0,0,.12); }
+  .mode-full { margin-left: 8px; padding: 10px 16px; border: 0; border-radius: 10px; background: #16191f; color: #fff; font-size: 15px; font-weight: 700; }
+  /* 전체 화면 — 모니터 전체를 검정 바탕으로, 화면은 가운데 */
+  .sv-live:fullscreen { width: 100vw; max-width: none; margin: 0; transform: none; background: #05070b; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+  .sv-live:fullscreen .mode-tabs { position: absolute; top: 12px; left: 12px; z-index: 2; }
+  .sv-live:fullscreen .mode-tabs span { color: #c5ccd8; }
+  .sv-live:fullscreen .sv-frame { border-radius: 0; box-shadow: none; }
+  .sv-frame { position: relative; margin: 0 auto; width: 100%; aspect-ratio: 16 / 9; overflow: hidden; border-radius: 12px; background: #0b0d12; box-shadow: 0 4px 16px rgba(0,0,0,.12); }
   .sv-frame iframe { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; border: 0; transform-origin: 0 0; }
   .sv-shot { width: calc(100vw - 48px); max-width: 1920px; margin: 0 0 16px 50%; transform: translateX(-50%); }
   .sv-shot figcaption { margin: 0 0 8px; font-size: 18px; font-weight: 800; }
@@ -82,6 +89,10 @@
   .sv-clear { justify-self: end; border: 0; background: none; color: var(--ink-2); font-size: 14px; padding: 6px 8px; }
   .sv-note p { margin: 0; font-size: 16px; line-height: 1.7; }
   .sv-note ul { margin: 12px 0 0; padding-left: 22px; font-size: 16px; line-height: 1.8; }
+  .lk-group { margin-bottom: 4px; }
+  .lk-sum { display: none; width: 100%; margin: 0 0 8px; padding: 12px 18px; border: 1px solid var(--line); border-radius: 10px; background: #fff; text-align: left; font-size: 16px; font-weight: 700; color: var(--ink-2); }
+  .lk-group.is-folded .lk-sum { display: block; }
+  .lk-group.is-folded .lk-body { display: none; }
   .lk-scale { display: grid; grid-template-columns: 112px repeat(7, 1fr) 96px; align-items: center; text-align: center; font-size: 15px; row-gap: 10px; }
   .lk-scale .lk-end { font-size: 14px; color: var(--ink-2); }
   .lk-scale label { justify-content: center; padding: 0; }
@@ -293,7 +304,10 @@
 <section class="page" id="post" hidden>
   <form class="sv" id="post-form" novalidate>
     <h1 class="sv-title">공통질문 <span id="post-p"></span></h1>
+    <p class="sv-step" id="post-step"></p>
 
+    <!-- 1쪽 선호도 조사 · 2쪽 공통질문 응답(7점) · 3쪽 주관식 — [다음] 으로 넘긴다 -->
+    <section data-pg="1">
     <div class="sv-band">화이트 모드와 블랙 모드 선호도 조사</div>
     <p class="sv-intro-t">에이프리즘 관제 플랫폼</p>
     <!-- 캡처 대신 실제 관제 화면을 화면 너비로. 단추로 같은 화면의 모드만 바꾼다(3D 화면을 둘 띄우면 무거워서 하나로) -->
@@ -301,6 +315,7 @@
       <div class="mode-tabs" role="group" aria-label="화면 모드">
         <button type="button" data-mode="light" aria-pressed="true">화이트 모드</button>
         <button type="button" data-mode="dark" aria-pressed="false">블랙 모드</button>
+        <button type="button" class="mode-full" id="mode-full">전체 화면으로 보기</button>
         <span>버튼으로 두 모드를 바꿔 보고, 화면도 직접 눌러 보세요.</span>
       </div>
       <div class="sv-frame" id="mode-box"><iframe id="mode-frame" title="에이프리즘 관제 화면"></iframe></div>
@@ -312,19 +327,26 @@
       <label><input type="radio" name="mode" value="상관없다"> 상관없다</label>
       <button type="button" class="sv-clear" data-clear="mode">선택해제</button>
     </fieldset>
+    </section>
 
+    <section data-pg="2" hidden>
     <div class="sv-band">TASK 평가가 끝났습니다. 공통질문 응답 부탁드립니다.</div>
     <div id="likert"></div>
+    </section>
 
+    <section data-pg="3" hidden>
     <div class="sv-card sv-note">
       <p>객관식 답변에 답해주셔서 감사합니다. 이제부터 주관식 문항입니다.<br>각 문항에 답을 적어 주세요.</p>
     </div>
 
     <div class="sv-band">주관식 질문 및 심층인터뷰</div>
     <div id="openq"></div>
+    </section>
 
     <div class="row" style="margin-top:24px">
-      <button type="submit" class="btn btn-primary">제출</button>
+      <button type="button" class="btn btn-line" id="pg-prev">이전</button>
+      <button type="button" class="btn btn-primary" id="pg-next">다음</button>
+      <button type="submit" class="btn btn-primary" id="pg-submit">제출</button>
     </div>
   </form>
   <div class="sv" id="post-done" hidden>
@@ -333,7 +355,7 @@
       <p style="margin:0;color:var(--ink-2)">참여해 주셔서 감사합니다.</p>
     </div>
     <div class="sv-card sv-note">
-      <p>또한 사례비 지급을 위해 본인 명의의 계좌번호가 필요합니다.<br>사용성 테스트를 마치신 후, <b>신분증과 통장사본을 inx@i-nx.com</b>으로 보내주시기 바랍니다.</p>
+      <p>사례비 지급을 위해 본인 명의의 계좌번호가 필요합니다.<br>사용성 테스트를 마치신 후, <b>신분증과 통장사본을 inx@i-nx.com</b>으로 보내주시기 바랍니다.</p>
       <ul>
         <li>제출 필요 항목 : 신분증 사본, 통장 사본</li>
         <li>제출 처 : inx@i-nx.com</li>
@@ -1247,12 +1269,49 @@
     "재사용 의도 ①: 향후 로봇 관제 업무를 맡는다면 에이프리즘을 사용할 의향이 있다.",
     "재사용 의도 ②: 주변 동료에게 소개할 것이다."
   ];
-  $("likert").innerHTML = LIKERT.map(function (q, i) {
-    var nums = "", dots = "";
-    for (var v = 1; v <= 7; v++) { nums += "<span>" + v + "</span>"; dots += '<label><input type="radio" name="lk' + i + '" value="' + v + '" aria-label="' + v + '점"></label>'; }
-    return '<fieldset class="sv-card" data-q="lk' + i + '"><legend>' + q + ' <i>*</i></legend><div class="lk-scale"><span></span>' + nums + '<span></span>' +
-      '<span class="lk-end">전혀 그렇지 않다</span>' + dots + '<span class="lk-end">매우 그렇다</span></div><p class="sv-err">필수 질문입니다.</p></fieldset>';
+  // 7점 척도 — 두 문항씩 묶어(직관성 ①②, 편의성 ①② …) 하나씩 보여 준다. 묶음을 다 고르면 다음 묶음이 열리고,
+  // 다 답한 묶음은 "직관성 ① 5점 ② 4점" 한 줄로 접혀 지금 묶음이 늘 위쪽에 온다(스크롤 없이). 접힌 줄을 누르면 다시 편다
+  var LK_GROUPS = [];
+  LIKERT.forEach(function (q, i) { var name = q.split(":")[0].replace(/[①②]/g, "").trim(); var g = LK_GROUPS[LK_GROUPS.length - 1]; if (g && g.name === name) { g.items.push(i); } else { LK_GROUPS.push({ name: name, items: [i] }); } });
+  $("likert").innerHTML = LK_GROUPS.map(function (g, gi) {
+    return '<div class="lk-group" data-g="' + gi + '"><button type="button" class="lk-sum" data-lk-open="' + gi + '"></button><div class="lk-body">' + g.items.map(function (i) {
+      var q = LIKERT[i], nums = "", dots = "";
+      for (var v = 1; v <= 7; v++) { nums += "<span>" + v + "</span>"; dots += '<label><input type="radio" name="lk' + i + '" value="' + v + '" aria-label="' + v + '점"></label>'; }
+      return '<fieldset class="sv-card" data-q="lk' + i + '"><legend>' + q + ' <i>*</i></legend><div class="lk-scale"><span></span>' + nums + '<span></span>' +
+        '<span class="lk-end">전혀 그렇지 않다</span>' + dots + '<span class="lk-end">매우 그렇다</span></div><p class="sv-err">필수 질문입니다.</p></fieldset>';
+    }).join("") + "</div></div>";
   }).join("");
+  var lkOpen = 0;
+  function lkVal(i) { var r = document.querySelector('#post-form input[name="lk' + i + '"]:checked'); return r ? r.value : ""; }
+  function lkDone(gi) { return LK_GROUPS[gi].items.every(function (i) { return lkVal(i); }); }
+  function paintLikert() {
+    var firstOpen = LK_GROUPS.findIndex(function (g, gi) { return !lkDone(gi); });   // 아직 답하지 않은 첫 묶음 — 늘 보인다
+    Array.prototype.forEach.call(document.querySelectorAll(".lk-group"), function (el) {
+      var gi = Number(el.getAttribute("data-g")), g = LK_GROUPS[gi], done = lkDone(gi);
+      el.hidden = !(gi === lkOpen || done || gi === firstOpen);
+      el.classList.toggle("is-folded", gi !== lkOpen && done);
+      el.querySelector(".lk-sum").textContent = g.name + " " + g.items.map(function (i, k) { return (k ? "② " : "① ") + (lkVal(i) || "-") + "점"; }).join("  ") + "  고치기";
+    });
+  }
+  function lkReset() { lkOpen = 0; paintLikert(); }
+  $("likert").addEventListener("change", function (e) {
+    var gEl = e.target.closest(".lk-group"); if (!gEl) { return; }
+    var gi = Number(gEl.getAttribute("data-g"));
+    if (gi === lkOpen && lkDone(gi)) {
+      setTimeout(function () {
+        var next = LK_GROUPS.findIndex(function (g, k) { return !lkDone(k); });
+        lkOpen = next < 0 ? -1 : next;
+        paintLikert();
+        var cur = document.querySelector('.lk-group[data-g="' + lkOpen + '"]');
+        (cur || $("pg-next")).scrollIntoView({ behavior: "smooth", block: "center" });
+      }, 250);
+    }
+    paintLikert();
+  });
+  $("likert").addEventListener("click", function (e) {
+    var b = e.target.closest("[data-lk-open]"); if (!b) { return; }
+    lkOpen = Number(b.getAttribute("data-lk-open")); paintLikert();
+  });
   // 주관식 — 1~8 필수, 9(자유 의견)는 선택. 슬라이드 "주관식 질문 및 심층인터뷰" 그대로
   // 주관식 — 시나리오 인터뷰와 겹치는 "조치가 제대로 반영되었다고 느꼈나요?"는 뺐다. [문항, 선택 여부]
   var OPEN_Q = [
@@ -1272,6 +1331,31 @@
       '<textarea class="sv-ta" name="op' + i + '" rows="3" placeholder="' + (openOpt(i) ? "답변 적기(선택)" : "답변 적기") + '"></textarea><p class="sv-err">필수 질문입니다.</p></fieldset>';
   }).join("");
   var postStart = 0;
+  // 공통질문 쪽 — 1 선호도 조사, 2 7점 척도, 3 주관식. 선호도 쪽을 떠나면 3D 화면을 내리고, 돌아오면 다시 연다
+  var PG_NAME = ["", "선호도 조사", "공통질문 응답", "주관식 질문"], postPg = 1;
+  function goPg(n) {
+    postPg = n;
+    Array.prototype.forEach.call(document.querySelectorAll("#post-form [data-pg]"), function (x) { x.hidden = Number(x.getAttribute("data-pg")) !== n; });
+    $("post-step").textContent = n + "/3 " + PG_NAME[n];
+    $("pg-prev").hidden = n === 1; $("pg-next").hidden = n === 3; $("pg-submit").hidden = n !== 3;
+    if (n === 1) { openModeFrame(); } else { $("mode-frame").src = "about:blank"; }
+    if (n === 2) { var nx = LK_GROUPS.findIndex(function (g, k) { return !lkDone(k); }); lkOpen = nx < 0 ? -1 : nx; paintLikert(); }
+    window.scrollTo(0, 0);
+    if (rec) { log("post-page", { label: n + " " + PG_NAME[n] }); }
+  }
+  function checkLikert() {
+    function val(n) { var r = document.querySelector('#post-form input[name="' + n + '"]:checked'); return r ? r.value : ""; }
+    var bad = -1;
+    LIKERT.forEach(function (q, i) { var c = document.querySelector('.sv-card[data-q="lk' + i + '"]'); var miss = !val("lk" + i); c.classList.toggle("is-err", miss); if (miss && bad < 0) { bad = i; } });
+    if (bad >= 0) { lkOpen = LK_GROUPS.findIndex(function (g) { return g.items.indexOf(bad) >= 0; }); paintLikert(); document.querySelector('.sv-card[data-q="lk' + bad + '"]').scrollIntoView({ behavior: "smooth", block: "center" }); return false; }
+    return true;
+  }
+  $("pg-next").addEventListener("click", function () {
+    if (postPg === 2 && !checkLikert()) { return; }
+    goPg(postPg + 1);
+  });
+  $("pg-prev").addEventListener("click", function () { goPg(postPg - 1); });
+
   function openPost() {
     $("post-form").reset();
     $("post-form").hidden = false; $("post-done").hidden = true;
@@ -1280,15 +1364,32 @@
     postStart = now();
     frame.src = "about:blank";   // 시나리오 화면은 이제 쓰지 않는다 — 3D 화면 하나만 남게
     show("post"); window.scrollTo(0, 0);
-    openModeFrame();
+    goPg(1);
   }
 
   // 선호도 조사 — 실제 관제 화면(주의 판). 1920×1080 을 상자 너비에 맞춰 줄인다. 모드는 html[data-theme] 만 바꾼다(다시 불러오지 않는다)
   var modeNow = "light";
+  // 시나리오 화면과 같은 규칙 — 창 너비와 높이 중 작은 쪽에 맞춰 줄인다(14인치 노트북 150% 배율이면 창이 1280×650 쯤이라 높이에 걸린다).
+  // 스크롤 없이 한 화면에 다 보이게, 단추 줄 높이만큼 뺀다. 전체 화면이면 모니터 전체에 맞춘다
   function fitModeFrame() {
-    var box = $("mode-box"), fr = $("mode-frame"); if (!box || box.offsetParent === null) { return; }
-    fr.style.transform = "scale(" + (box.clientWidth / 1920) + ")";
+    var live = $("mode-live"), box = $("mode-box"), fr = $("mode-frame"); if (!box || box.offsetParent === null) { return; }
+    var full = document.fullscreenElement === live;
+    var tabs = full ? 0 : live.querySelector(".mode-tabs").offsetHeight + 10;
+    var w = full ? window.innerWidth : Math.min(window.innerWidth - 48, 1920), h = window.innerHeight - tabs - (full ? 0 : 24);
+    var sc = Math.min(w / 1920, h / 1080);
+    box.style.width = Math.round(1920 * sc) + "px";
+    fr.style.transform = "scale(" + sc + ")";
   }
+  $("mode-full").addEventListener("click", function () {
+    var live = $("mode-live");
+    if (document.fullscreenElement) { document.exitFullscreen(); return; }
+    if (live.requestFullscreen) { live.requestFullscreen().catch(function () { }); }
+    if (rec) { log("mode-full", { label: "전체 화면으로 보기" }); }
+  });
+  document.addEventListener("fullscreenchange", function () {
+    $("mode-full").textContent = document.fullscreenElement ? "전체 화면 닫기" : "전체 화면으로 보기";
+    setTimeout(fitModeFrame, 50);
+  });
   function setMode(m) {
     modeNow = m;
     Array.prototype.forEach.call(document.querySelectorAll("[data-mode]"), function (b) { b.setAttribute("aria-pressed", String(b.getAttribute("data-mode") === m)); });
@@ -1326,7 +1427,7 @@
     function val(n) { var r = document.querySelector('#post-form input[name="' + n + '"]:checked'); return r ? r.value : ""; }
     var lk = LIKERT.map(function (q, i) { return Number(val("lk" + i)) || 0; }), bad = -1;
     lk.forEach(function (v, i) { var c = document.querySelector('.sv-card[data-q="lk' + i + '"]'); c.classList.toggle("is-err", !v); if (!v && bad < 0) { bad = i; } });
-    if (bad >= 0) { document.querySelector('.sv-card[data-q="lk' + bad + '"]').scrollIntoView({ behavior: "smooth", block: "center" }); return; }
+    if (bad >= 0) { goPg(2); checkLikert(); return; }
     var open = OPEN.map(function (q, i) { return (document.querySelector('#post-form textarea[name="op' + i + '"]') || {}).value || ""; });
     open.forEach(function (v, i) { var c = document.querySelector('.sv-card[data-q="op' + i + '"]'); var miss = !openOpt(i) && !v.trim(); c.classList.toggle("is-err", miss); if (miss && bad < 0) { bad = i; } });
     if (bad >= 0) { document.querySelector('.sv-card[data-q="op' + bad + '"]').scrollIntoView({ behavior: "smooth", block: "center" }); return; }
@@ -1468,7 +1569,7 @@
   var TYPE_KO = { page: "화면 열림", open: "새 창 대신 이동", click: "클릭", check: "문항 체크", "alert-in": "알림 발생",
     "hello": "인사 카드", "tutorial-start": "튜토리얼 시작", "tutorial-step": "튜토리얼 단계", "tutorial-end": "튜토리얼 끝",
     "scenario-start": "시나리오 시작", "scenario-end": "시나리오 끝", "task-done": "TASK 완료", "task-skip": "TASK 건너뜀",
-    "run-done": "수행 완료", "done-shown": "수행 완료 버튼 나옴", "pick-start": "화면 고르기 시작", pick: "화면에서 고름", "pick-end": "화면 고르기 끝", "alert-measure": "위험 지점 측정 시작", "post-start": "공통질문 시작", answer: "답변", "card-fold": "카드 접기", "card-open": "카드 펼치기", "card-move": "카드 옮기기", "test-end": "테스트 끝", "test-stop": "테스트 중단" };
+    "run-done": "수행 완료", "done-shown": "수행 완료 버튼 나옴", "pick-start": "화면 고르기 시작", "post-page": "공통질문 쪽 이동", "mode-view": "모드 보기", "mode-full": "전체 화면 보기", pick: "화면에서 고름", "pick-end": "화면 고르기 끝", "alert-measure": "위험 지점 측정 시작", "post-start": "공통질문 시작", answer: "답변", "card-fold": "카드 접기", "card-open": "카드 펼치기", "card-move": "카드 옮기기", "test-end": "테스트 끝", "test-stop": "테스트 중단" };
   var STAGE_KO = { intro: "설명", run: "수행", task: "인터뷰" };
   function ko(map, k) { return map[k] || k || ""; }
   function renderDetail(p) {
