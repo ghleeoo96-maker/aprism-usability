@@ -61,6 +61,8 @@
   .sv-err { display: none; margin: 8px 0 0; color: var(--red); font-size: 14px; }
   .sv-card.is-err { border-color: var(--red); }
   .sv-card.is-err .sv-err { display: block; }
+  .sv-ta { width: 100%; resize: vertical; border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; font: inherit; font-size: 16px; line-height: 1.6; background: #f8fafc; }
+  .sv-ta:focus { outline: 2px solid var(--blue); outline-offset: -1px; background: #fff; }
   .sv-band { margin: 24px 0 12px; padding: 14px 24px; border-radius: 10px; background: #2b8fd8; color: #fff; font-size: 16px; font-weight: 700; }
   .sv-intro-t { margin: 8px 0 12px; font-size: 18px; font-weight: 700; }
   /* 소개 화면 — 설문 폭(680)을 벗어나 화면 너비를 꽉 채운다 */
@@ -298,8 +300,11 @@
     <div id="likert"></div>
 
     <div class="sv-card sv-note">
-      <p>객관식 답변에 답해주셔서 감사합니다. 이제부터 주관식 문항입니다.<br>감독관이 8개 항목을 질문하면 편하게 대답해주세요.</p>
+      <p>객관식 답변에 답해주셔서 감사합니다. 이제부터 주관식 문항입니다.<br>각 문항에 답을 적어 주세요.</p>
     </div>
+
+    <div class="sv-band">주관식 질문 및 심층인터뷰</div>
+    <div id="openq"></div>
 
     <div class="row" style="margin-top:24px">
       <button type="submit" class="btn btn-primary">제출</button>
@@ -1185,6 +1190,23 @@
     return '<fieldset class="sv-card" data-q="lk' + i + '"><legend>' + q + ' <i>*</i></legend><div class="lk-scale"><span></span>' + nums + '<span></span>' +
       '<span class="lk-end">전혀 그렇지 않다</span>' + dots + '<span class="lk-end">매우 그렇다</span></div><p class="sv-err">필수 질문입니다.</p></fieldset>';
   }).join("");
+  // 주관식 — 1~8 필수, 9(자유 의견)는 선택. 슬라이드 "주관식 질문 및 심층인터뷰" 그대로
+  var OPEN = [
+    "처음 화면을 보았을때, 로봇이 어떤 업무를 하고 있는지 파악하기 어려웠던 부분이 있었나요?",
+    "위험 알람에서 가장 먼저 눈에 들어온 정보는 무엇이었나요?",
+    "위험 알람이 어떤 느낌이드는지, 상황이 얼마나 긴급하다고 느껴졌으며 그렇게 생각한 이유는 무엇인가요?",
+    "주의 알람과 위험 알람은 어떤 점에서 다르게 느껴졌나요? 차이가 느껴지지 않았다면 그 이유도 말씀해 주세요.",
+    "필요한 조치를 찾거나 실행하면서 망설였던 순간이 있었나요? 이유는 무엇인가요?",
+    "조치가 제대로 반영되었다고 느꼈나요? 그렇게 판단한 이유는 무엇인가요?",
+    "실제 관제 업무에서 사용한다면 추가로 필요한 정보나 기능은 무엇일까요?",
+    "가장 유용했던 부분과 가장 먼저 개선해야 할 부분을 각각 말씀해 주세요.",
+    "자유롭게 의견을 남겨주세요."
+  ];
+  var OPEN_OPTIONAL = 8;   // 9번(자유 의견)만 선택
+  $("openq").innerHTML = OPEN.map(function (q, i) {
+    return '<fieldset class="sv-card" data-q="op' + i + '"><legend>' + (i + 1) + ". " + q + (i === OPEN_OPTIONAL ? "" : " <i>*</i>") + '</legend>' +
+      '<textarea class="sv-ta" name="op' + i + '" rows="3" placeholder="' + (i === OPEN_OPTIONAL ? "자유롭게 적어 주세요(선택)" : "답변 적기") + '"></textarea><p class="sv-err">필수 질문입니다.</p></fieldset>';
+  }).join("");
   var postStart = 0;
   function openPost() {
     $("post-form").reset();
@@ -1199,13 +1221,17 @@
     Array.prototype.forEach.call(document.querySelectorAll('#post-form input[name="' + c.getAttribute("data-clear") + '"]'), function (r) { r.checked = false; });
   });
   $("post-form").addEventListener("change", function (e) { var c = e.target.closest(".sv-card"); if (c) { c.classList.remove("is-err"); } });
+  $("post-form").addEventListener("input", function (e) { var c = e.target.closest(".sv-card"); if (c && e.target.value.trim()) { c.classList.remove("is-err"); } });
   $("post-form").addEventListener("submit", function (e) {
     e.preventDefault();
     function val(n) { var r = document.querySelector('#post-form input[name="' + n + '"]:checked'); return r ? r.value : ""; }
     var lk = LIKERT.map(function (q, i) { return Number(val("lk" + i)) || 0; }), bad = -1;
     lk.forEach(function (v, i) { var c = document.querySelector('.sv-card[data-q="lk' + i + '"]'); c.classList.toggle("is-err", !v); if (!v && bad < 0) { bad = i; } });
     if (bad >= 0) { document.querySelector('.sv-card[data-q="lk' + bad + '"]').scrollIntoView({ behavior: "smooth", block: "center" }); return; }
-    rec.post = { mode: val("mode"), likert: lk, start: postStart, answeredAt: now() };
+    var open = OPEN.map(function (q, i) { return (document.querySelector('#post-form textarea[name="op' + i + '"]') || {}).value || ""; });
+    open.forEach(function (v, i) { var c = document.querySelector('.sv-card[data-q="op' + i + '"]'); var miss = i !== OPEN_OPTIONAL && !v.trim(); c.classList.toggle("is-err", miss); if (miss && bad < 0) { bad = i; } });
+    if (bad >= 0) { document.querySelector('.sv-card[data-q="op' + bad + '"]').scrollIntoView({ behavior: "smooth", block: "center" }); return; }
+    rec.post = { mode: val("mode"), likert: lk, open: open, start: postStart, answeredAt: now() };
     phase = "done";
     rec.endedAt = now();
     log("test-end");
@@ -1385,6 +1411,7 @@
       "S1 수행(초)", "S1 클릭", "S1 인터뷰(초)", "S2 수행(초)", "S2 클릭", "S2 인터뷰(초)", "S3 수행(초)", "S3 클릭", "S3 인터뷰(초)",
       "S2 알림 발생부터 수행 완료(초)", "S3 조치 버튼 첫 클릭(초, S3 시작부터)"]
       .concat(["선호 화면 모드"]).concat(LIKERT.map(function (q) { return q.replace(/<[^>]+>/g, "").split(":")[0] + "(1~7)"; }))
+      .concat(OPEN.map(function (q, i) { return "주관식" + (i + 1) + " " + q; }))
       .concat(QLIST.map(function (q) { return "TASK " + q[0] + " 문항" + (q[1] + 1) + " " + q[2]; }))];
     function sec(ms) { return ms != null ? (ms / 1000).toFixed(1) : ""; }
     DB.attempts.forEach(function (a) {
@@ -1398,6 +1425,7 @@
         .concat([].concat.apply([], ss.map(function (s) { return [sec(s.ms), s.clicks, sec(s.iv)]; })))
         .concat([alertIn2 && s2 && s2.done ? sec(s2.done - alertIn2.t) : "", conf && s3 ? sec(conf.t - s3.start) : ""])
         .concat([a.post ? a.post.mode : ""]).concat(LIKERT.map(function (q, i) { return a.post ? a.post.likert[i] : ""; }))
+        .concat(OPEN.map(function (q, i) { return a.post && a.post.open ? a.post.open[i] || "" : ""; }))
         .concat(QLIST.map(function (q) { return answerOf(a, q[0], q[1]); })));
     });
     download("aprism-ut-요약-" + stamp() + ".csv", csv(rows), "text/csv;charset=utf-8");
@@ -1465,7 +1493,7 @@
 
   // 리포트(report.js)가 쓰는 것
   window.UT = { db: function () { return DB; }, SCEN: SCEN, QLIST: QLIST, PEOPLE: PEOPLE, scenStat: scenStat, answerOf: answerOf, latest: latest,
-    doneAll: doneAll, LIKERT: LIKERT, SHEET_LINK: SHEET_LINK, mmss: mmss, clock: clock, esc: esc, show: show, pid: pid };
+    doneAll: doneAll, LIKERT: LIKERT, OPEN: OPEN, SHEET_LINK: SHEET_LINK, mmss: mmss, clock: clock, esc: esc, show: show, pid: pid };
 
   renderHome();
   paintCloud();

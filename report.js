@@ -203,7 +203,16 @@
         });
         s.end = t;
       });
-      a.post = { mode: pick(["블랙 모드", "블랙 모드", "화이트 모드", "상관없다", ""]), likert: [5, 4, 4, 5, 5, 3, 5, 6, 5, 5].map(function (m) { return Math.max(1, Math.min(7, m + Math.round((rnd() + rnd() - 1) * 2))); }), start: t, answeredAt: t + 120000 };
+      var OPA = [["지점 번호가 작아 처음엔 못 찾았다", "특별히 없었다", "미션 탭이 많아 어느 게 지금 것인지 헷갈렸다"],
+        ["빨간 색과 Delta 문구", "압력 수치 0.86", "지도 위 빨간 핀"],
+        ["빨간색이라 급하다고 느꼈다", "Delta가 먼저 알려 줘서 긴급하다고 느꼈다", "별로 긴급해 보이지 않았다"],
+        ["색으로 바로 구분됐다", "둘 다 삼각형이라 차이가 잘 안 보였다", "위험은 Delta가 빨개져서 달랐다"],
+        ["조치 항목이 무엇을 뜻하는지 망설였다", "없었다", "[조치 요청]과 [진단 상세] 중 무엇을 눌러야 할지 고민했다"],
+        ["오늘 확인 완료로 옮겨져서 반영됐다고 느꼈다", "확신이 없었다", "안내 문구가 떠서 알았다"],
+        ["현장 작업자 위치", "조치 이력", "알림 소리"],
+        ["Delta 요약이 유용, 지도 번호는 개선 필요", "알림 상세가 유용, 글씨 크기 개선", "한눈에 보이는 진행률이 유용"],
+        ["", "전체적으로 깔끔하다", ""]];
+      a.post = { open: OPA.map(function (o) { return pick(o); }), mode: pick(["블랙 모드", "블랙 모드", "화이트 모드", "상관없다", ""]), likert: [5, 4, 4, 5, 5, 3, 5, 6, 5, 5].map(function (m) { return Math.max(1, Math.min(7, m + Math.round((rnd() + rnd() - 1) * 2))); }), start: t, answeredAt: t + 120000 };
       a.endedAt = t;
       out.push(a);
     }
@@ -343,6 +352,15 @@
     });
     return h + '</div>';
   }
+  // 주관식 — 문항마다 참가자 답변 목록(빈 답은 뺀다)
+  function openAnswers(R) {
+    var Q = U.OPEN || [];
+    return '<div class="rp-qa">' + Q.map(function (q, i) {
+      var list = R.people.map(function (a) { return [a.participant, a.post && a.post.open ? a.post.open[i] : ""]; }).filter(function (x) { return x[1] && String(x[1]).trim(); });
+      return "<details><summary><em>" + (i + 1) + "</em>" + esc(q) + ' <span style="color:#8a919e;font-weight:600">답변 ' + list.length + "</span></summary><ul>" +
+        list.map(function (x) { return "<li><b>" + x[0] + "</b><span>" + esc(x[1]) + "</span></li>"; }).join("") + "</ul></details>";
+    }).join("") + "</div>";
+  }
   function modeBars(R) {
     var m = { "화이트 모드": 0, "블랙 모드": 0, "상관없다": 0, "답 안 함": 0 }, n = 0;
     R.people.forEach(function (a) { if (!a.post) { return; } n++; m[a.post.mode || "답 안 함"]++; });
@@ -398,6 +416,8 @@
 
       '<div class="rp-sec"><h2>공통질문</h2><p class="rp-sub">7점 척도(1 전혀 그렇지 않다, 7 매우 그렇다). 칸의 숫자는 그 점수를 고른 참가자 수, 색이 진할수록 많다.</p><div class="rp-card">' + likert(R) + '</div>' +
       '<div class="rp-grid2" style="margin-top:12px"><div class="rp-card"><h3>선호 화면 모드</h3>' + modeBars(R) + '</div><div></div></div></div>' +
+
+      '<div class="rp-sec"><h2>주관식 답변</h2><p class="rp-sub">문항을 누르면 참가자별 답변이 펼쳐진다.</p>' + openAnswers(R) + '</div>' +
 
       "</div>";
     CUR = R;
