@@ -1,0 +1,1193 @@
+<!DOCTYPE html>
+<!--
+  에이프리즘 사용성 평가 사이트(2026-11-05)
+  참가자 선택 → 튜토리얼(핵심 화면 6곳) → 시나리오 1~3. 테스트 화면은 같은 출처의 app/screens/main-v6.html 을 iframe 으로 띄운다.
+  흐름: 시나리오 설명 → [시작] → 수행(카드 숨김, 아래 진행 표시줄만) → [수행 완료] → TASK 인터뷰(문항마다 답 적기).
+  기록: 테스트 화면 안 클릭 전부(영역, 대상, 좌표, 화면), 시나리오 시작부터 수행 완료까지 시간, 인터뷰 답변과 시간.
+  저장: 이 브라우저 localStorage(참가자 P01~P16 별로). 기록 화면에서 CSV, JSON 내보내기와 JSON 가져오기(여러 PC 기록 합치기).
+-->
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>에이프리즘 사용성 평가</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/sunn-us/SUIT/fonts/static/woff2/SUIT.css" />
+<style>
+  :root {
+    --bg: #eef2f6; --card: #fff; --ink: #16191f; --ink-2: #4a5160; --ink-3: #8a919e; --line: #dfe4ea;
+    --blue: #2a64c5; --blue-weak: #e7eefa; --red: #d93a3a;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--ink);
+    font-family: "SUIT", "Pretendard", "Malgun Gothic", sans-serif; font-variant-numeric: tabular-nums; font-size: 16px; }
+  button { font: inherit; color: inherit; cursor: pointer; }
+  [hidden] { display: none !important; }
+
+  /* ---------- 처음 화면 · 기록 화면 ---------- */
+  .page { min-height: 100%; padding: 64px 80px; }
+  .page h1 { margin: 0; font-size: 40px; font-weight: 800; letter-spacing: -0.02em; }
+  .page h1 em { font-style: normal; color: var(--blue); }
+  .page .lead { margin: 12px 0 0; color: var(--ink-2); font-size: 18px; line-height: 1.6; }
+  .page h2 { margin: 48px 0 16px; font-size: 22px; font-weight: 800; }
+  .grid16 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; max-width: 760px; }
+  .pick { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; padding: 16px; border: 2px solid transparent;
+    border-radius: 12px; background: var(--card); text-align: left; }
+  .pick b { font-size: 20px; }
+  .pick span { font-size: 14px; color: var(--ink-3); }
+  .pick.is-done span { color: var(--blue); font-weight: 700; }
+  .pick.is-part span { color: #b26b00; font-weight: 700; }
+  .pick[aria-pressed="true"] { border-color: var(--blue); background: var(--blue-weak); }
+  .row { display: flex; align-items: center; gap: 12px; margin-top: 32px; flex-wrap: wrap; }
+  .btn { border: 0; border-radius: 10px; padding: 12px 20px; font-weight: 700; font-size: 16px; }
+  .btn-primary { background: var(--blue); color: #fff; }
+  .btn-primary:disabled { background: #b9c4d6; cursor: default; }
+  .btn-line { background: var(--card); border: 1px solid var(--line); }
+  .btn-text { background: none; border: 0; color: var(--ink-2); text-decoration: underline; padding: 8px; font-size: 14px; }
+  .note { font-size: 14px; color: var(--ink-2); }
+  .note.is-warn { color: #b26b00; }
+
+  /* 사전 질문 — 설문 양식 꼴 */
+  .sv { max-width: 680px; margin: 0 auto; }
+  .sv-title { font-size: 32px !important; }
+  .sv-title span { color: var(--blue); }
+  .sv-req { margin: 8px 0 16px; color: var(--red); font-size: 14px; }
+  .sv-card { margin: 0 0 12px; padding: 22px 24px; border: 1px solid var(--line); border-radius: 10px; background: var(--card); display: grid; gap: 4px; }
+  .sv-card legend { float: left; width: 100%; padding: 0; margin-bottom: 14px; font-size: 16px; line-height: 1.6; }
+  .sv-card legend i { font-style: normal; color: var(--red); }
+  .sv-card label { display: flex; align-items: center; gap: 12px; padding: 8px 0; font-size: 16px; cursor: pointer; }
+  .sv-card input[type=radio] { width: 20px; height: 20px; margin: 0; accent-color: var(--blue); }
+  .sv-etc input[type=text] { flex: 1; border: 0; border-bottom: 1px solid var(--line); font: inherit; padding: 4px 2px; background: none; }
+  .sv-etc input[type=text]:focus { outline: none; border-bottom: 2px solid var(--blue); }
+  .sv-err { display: none; margin: 8px 0 0; color: var(--red); font-size: 14px; }
+  .sv-card.is-err { border-color: var(--red); }
+  .sv-card.is-err .sv-err { display: block; }
+  .sv-band { margin: 24px 0 12px; padding: 14px 24px; border-radius: 10px; background: #2b8fd8; color: #fff; font-size: 16px; font-weight: 700; }
+  .sv-intro p { margin: 0 0 16px; font-size: 18px; }
+  .sv-intro img { width: 100%; border-radius: 12px; display: block; }
+  .sv-clear { justify-self: end; border: 0; background: none; color: var(--ink-2); font-size: 14px; padding: 6px 8px; }
+  .sv-note p { margin: 0; font-size: 16px; line-height: 1.7; }
+  .sv-note ul { margin: 12px 0 0; padding-left: 22px; font-size: 16px; line-height: 1.8; }
+  .lk-scale { display: grid; grid-template-columns: 112px repeat(7, 1fr) 96px; align-items: center; text-align: center; font-size: 15px; row-gap: 10px; }
+  .lk-scale .lk-end { font-size: 14px; color: var(--ink-2); }
+  .lk-scale label { justify-content: center; padding: 0; }
+  .lk-scale input[type=radio] { width: 22px; height: 22px; }
+  .sv-stop { margin: 16px 0 0; padding: 14px 16px; border-radius: 10px; background: #fdecec; color: var(--red); font-weight: 700; }
+  .order { display: flex; gap: 12px; margin: 16px 0 0; padding: 0; flex-wrap: wrap; }
+  .order li { list-style: none; background: var(--card); border-radius: 10px; padding: 12px 16px; font-size: 15px; color: var(--ink-2); }
+  .order li b { color: var(--ink); margin-right: 6px; }
+
+  table.rec { border-collapse: collapse; width: 100%; background: var(--card); border-radius: 12px; overflow: hidden; font-size: 15px; }
+  table.rec th, table.rec td { padding: 10px 12px; border-bottom: 1px solid var(--line); text-align: left; white-space: nowrap; }
+  table.rec th { background: #f6f8fb; font-size: 14px; color: var(--ink-2); font-weight: 700; }
+  table.rec td.num { text-align: right; }
+  table.rec tr.is-empty td { color: var(--ink-3); }
+  .detail { margin-top: 24px; background: var(--card); border-radius: 12px; padding: 20px; }
+  .detail h3 { margin: 0 0 12px; font-size: 18px; }
+  .detail .scroll { max-height: 520px; overflow: auto; }
+  .detail table { font-size: 14px; }
+  .confirm-del { color: var(--red); font-weight: 700; }
+
+  /* ---------- 테스트 무대(1920×1080 을 창에 맞춰 줄임) ---------- */
+  #test { position: fixed; inset: 0; background: #05070b; overflow: hidden; }
+  #stage { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; transform-origin: 0 0; }
+  #app { position: absolute; inset: 0; width: 1920px; height: 1080px; border: 0; background: #0b0d12; }
+  .loading { position: absolute; inset: 0; display: grid; place-items: center; color: #c5ccd8; font-size: 18px; background: #0b0d12; }
+
+  /* 과제 카드 — 끌어서 옮기고 접는다 */
+  .task { position: absolute; left: 700px; top: 640px; width: 560px; background: var(--card); color: var(--ink); border-radius: 16px;
+    box-shadow: 0 12px 40px rgba(0,0,0,.45); z-index: 20; }
+  .task-head { display: flex; align-items: center; gap: 12px; padding: 14px 16px 14px 20px; cursor: move; user-select: none; }
+  .task-head h2 { margin: 0; font-size: 18px; font-weight: 800; flex: 1; }
+  .task-head .tabs { display: flex; gap: 4px; }
+  .task-head .tabs span { min-width: 28px; padding: 2px 8px; border-radius: 6px; background: #edf0f4; color: var(--ink-3); font-size: 14px; text-align: center; }
+  .task-head .tabs span.is-on { background: var(--blue); color: #fff; font-weight: 700; }
+  .task-head .tabs span.is-done { background: var(--blue-weak); color: var(--blue); }
+  .icon-btn { width: 32px; height: 32px; border: 0; border-radius: 8px; background: #edf0f4; display: grid; place-items: center; }
+  .task-body { padding: 0 20px 20px; max-height: 620px; overflow: auto; }
+  .task.is-folded .task-body { display: none; }
+  .task.is-folded { width: auto; }
+  .desc { margin: 0 0 16px; padding: 14px 16px; border-radius: 12px; background: #f3f6fa; font-size: 17px; line-height: 1.6; }
+  .desc u { text-underline-offset: 3px; }
+  .task-no { margin: 0 0 10px; font-size: 18px; font-weight: 800; }
+  .qs { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+  .q { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; font-size: 17px; line-height: 1.5; cursor: pointer; text-align: left; background: #fff; width: 100%; }
+  .q .n { flex: none; width: 26px; height: 26px; border-radius: 50%; background: #edf0f4; display: grid; place-items: center; font-size: 14px; font-weight: 700; }
+  .q .t { flex: 1; }
+  .q .box { flex: none; width: 28px; height: 28px; border: 2px solid #c7ced8; border-radius: 8px; display: grid; place-items: center; }
+  .q[aria-checked="true"] { border-color: var(--blue); background: var(--blue-weak); }
+  .q[aria-checked="true"] .box { background: var(--blue); border-color: var(--blue); }
+  .q[aria-checked="true"] .box::after { content: ""; width: 12px; height: 7px; border: 3px solid #fff; border-top: 0; border-right: 0; transform: translateY(-2px) rotate(-45deg); }
+  .task-foot { display: flex; align-items: center; gap: 8px; margin-top: 16px; }
+  .task-foot .grow { flex: 1; font-size: 14px; color: var(--ink-3); }
+  .task-foot .btn { padding: 10px 18px; }
+  .stop { font-size: 14px; padding: 6px 10px; border-radius: 8px; border: 0; background: none; color: var(--ink-3); }
+  .stop.is-arm { color: var(--red); font-weight: 700; }
+
+  /* TASK 인터뷰 — 문항마다 답 적는 칸 */
+  .qa { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+  .qa li { padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; }
+  .qa .qt { display: flex; gap: 10px; font-size: 17px; line-height: 1.5; margin-bottom: 8px; }
+  .qa .n { flex: none; width: 26px; height: 26px; border-radius: 50%; background: #edf0f4; display: grid; place-items: center; font-size: 14px; font-weight: 700; }
+  .qa textarea { width: 100%; min-height: 64px; resize: vertical; border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px;
+    font: inherit; font-size: 16px; line-height: 1.5; color: var(--ink); background: #f8fafc; }
+  .qa textarea:focus { outline: 2px solid var(--blue); outline-offset: -1px; background: #fff; }
+
+  /* 수행 중 진행 표시줄 — 화면 아래 가운데 */
+  .runbar { position: absolute; left: 50%; bottom: 20px; transform: translateX(-50%); z-index: 20; display: flex; align-items: center; gap: 14px;
+    padding: 8px 8px 8px 20px; border-radius: 14px; background: rgba(14,18,26,.94); border: 1px solid #2f3a4c; color: #e4e8ef;
+    box-shadow: 0 8px 24px rgba(0,0,0,.4); font-size: 16px; white-space: nowrap; }
+  .runbar .rb-step { font-weight: 800; color: #8fb6ff; }
+  .runbar .rb-title { font-weight: 700; }
+  .runbar .btn { padding: 8px 16px; font-size: 15px; }
+  .runbar .stop { color: #9aa3b2; font-size: 15px; }
+  .runbar .stop.is-arm { color: #ff7a7a; }
+
+  /* 튜토리얼 — 비추는 구멍 + 말풍선 */
+  .tour { position: absolute; inset: 0; z-index: 30; }
+  .tour-hole { position: absolute; border-radius: 12px; box-shadow: 0 0 0 4000px rgba(5,8,14,.62); outline: 3px solid #fff; outline-offset: 2px;
+    transition: left .25s, top .25s, width .25s, height .25s; pointer-events: none; }
+  .tour-pop { position: absolute; width: 400px; background: #fff; color: var(--ink); border-radius: 14px; padding: 20px 22px 18px;
+    box-shadow: 0 0 0 3px var(--blue), 0 12px 40px rgba(0,0,0,.4); transition: left .25s, top .25s; }
+  .tour-pop h3 { margin: 0 32px 10px 0; font-size: 20px; font-weight: 800; }
+  .tour-pop p { margin: 0; font-size: 16px; line-height: 1.65; color: var(--ink-2); }
+  .tour-pop .x { position: absolute; right: 14px; top: 14px; width: 28px; height: 28px; border: 0; background: none; color: var(--ink-3); font-size: 20px; }
+  .tour-pop .foot { display: flex; align-items: center; gap: 8px; margin-top: 18px; }
+  .tour-pop .foot .cnt { flex: 1; font-size: 14px; color: var(--ink-3); }
+  .tour-pop .foot .btn { padding: 8px 16px; font-size: 15px; }
+  .btn-dark { background: #16191f; color: #fff; }
+
+  .end { position: absolute; inset: 0; z-index: 40; display: grid; place-items: center; background: rgba(5,8,14,.72); }
+  .end-card { background: #fff; border-radius: 16px; padding: 40px 48px; text-align: center; }
+  .end-card h2 { margin: 0 0 8px; font-size: 28px; }
+  .end-card p { margin: 0 0 24px; color: var(--ink-2); }
+</style>
+</head>
+<body>
+
+<!-- 처음 화면 -->
+<section class="page" id="home">
+  <h1><em>에이프리즘</em> 사용성 평가</h1>
+  <p class="lead">로봇 안전진단 관제 플랫폼. 튜토리얼 뒤 시나리오 3개를 순서대로 진행합니다.</p>
+  <ol class="order">
+    <li><b>튜토리얼</b>핵심 화면 10단계</li>
+    <li><b>시나리오 1</b>로봇의 업무 파악</li>
+    <li><b>시나리오 2</b>위험 알람 확인</li>
+    <li><b>시나리오 3</b>위험 대응 수행</li>
+  </ol>
+  <h2>참가자 선택</h2>
+  <div class="grid16" id="picks"></div>
+  <p class="note" id="pick-note" style="margin-top:16px"></p>
+  <p class="note" data-cloud style="margin-top:8px"></p>
+  <div class="row">
+    <button type="button" class="btn btn-primary" id="go" disabled>평가 시작</button>
+    <button type="button" class="btn btn-line" id="to-results">기록 보기</button>
+    <a class="btn btn-line" href="#report" style="text-decoration:none;color:inherit">리포트</a>
+    <a class="btn-text" href="#report-sample">샘플 리포트</a>
+  </div>
+</section>
+
+<!-- 사전 질문 — 참가자 선택 뒤, 튜토리얼 앞 -->
+<section class="page" id="survey" hidden>
+  <form class="sv" id="sv-form" novalidate>
+    <h1 class="sv-title">사전 질문 <span id="sv-p"></span></h1>
+    <p class="sv-req">* 표시는 필수 질문임</p>
+
+    <fieldset class="sv-card" data-q="consent">
+      <legend>본 테스트는 약 30분간 진행되며, 정확한 기록 및 연구 과정상 필요에따라 사진촬영 및 녹취 등의 기록을 하게될 예정입니다. 사진 및 개인정보 등에 해당하는 부분은 연구 목적 이외에 절대 유출하지 않을 것을 약속드립니다. <i>*</i></legend>
+      <label><input type="radio" name="consent" value="동의"> 개인정보 활용 동의합니다.</label>
+      <label><input type="radio" name="consent" value="비동의"> 개인정보 활용 동의하지 않습니다.</label>
+      <p class="sv-err">필수 질문입니다.</p>
+    </fieldset>
+
+    <fieldset class="sv-card" data-q="gender">
+      <legend>귀하의 성별을 선택해주세요. <i>*</i></legend>
+      <label><input type="radio" name="gender" value="남"> 남</label>
+      <label><input type="radio" name="gender" value="여"> 여</label>
+      <p class="sv-err">필수 질문입니다.</p>
+    </fieldset>
+
+    <fieldset class="sv-card" data-q="age">
+      <legend>귀하의 연령대는 어떻게 되나요? (만 나이기준) <i>*</i></legend>
+      <label><input type="radio" name="age" value="25세 이하"> 25세 이하</label>
+      <label><input type="radio" name="age" value="26-35세"> 26-35세</label>
+      <label><input type="radio" name="age" value="36-45세"> 36-45세</label>
+      <label><input type="radio" name="age" value="46-55세"> 46-55세</label>
+      <label><input type="radio" name="age" value="56-65세"> 56-65세</label>
+      <label><input type="radio" name="age" value="66세 이상"> 66세 이상</label>
+      <p class="sv-err">필수 질문입니다.</p>
+    </fieldset>
+
+    <fieldset class="sv-card" data-q="job">
+      <legend>귀하가 현재 담당하고 있는 업무는 무엇인가요? <i>*</i></legend>
+      <label><input type="radio" name="job" value="관제, 운영"> 관제, 운영</label>
+      <label><input type="radio" name="job" value="안전관리"> 안전관리</label>
+      <label><input type="radio" name="job" value="시설, 설비관리"> 시설, 설비관리</label>
+      <label><input type="radio" name="job" value="로봇, 시스템 개발"> 로봇, 시스템 개발</label>
+      <label class="sv-etc"><input type="radio" name="job" value="기타"> 기타: <input type="text" id="sv-job-etc" aria-label="기타 업무"></label>
+      <p class="sv-err">필수 질문입니다.</p>
+    </fieldset>
+
+    <p class="sv-stop" id="sv-stop" hidden>개인정보 활용에 동의하지 않으면 테스트를 진행할 수 없습니다.</p>
+    <div class="row" style="margin-top:24px">
+      <button type="button" class="btn btn-line" id="sv-back">처음으로</button>
+      <button type="submit" class="btn btn-primary">다음</button>
+    </div>
+  </form>
+</section>
+
+<!-- 사후 설문 — 시나리오 3 인터뷰 뒤 -->
+<section class="page" id="post" hidden>
+  <form class="sv" id="post-form" novalidate>
+    <h1 class="sv-title">공통질문 <span id="post-p"></span></h1>
+
+    <div class="sv-band">플랫폼 소개 및 화이트 모드와 블랙 모드 선택</div>
+    <div class="sv-card sv-intro">
+      <p>에이프리즘 관제 플랫폼</p>
+      <img src="img/mode.jpg" alt="에이프리즘 관제 화면. 왼쪽 반은 화이트 모드, 오른쪽 반은 블랙 모드">
+    </div>
+    <fieldset class="sv-card" data-q="mode">
+      <legend>플랫폼 화이트모드와 블랙모드 중 선호하는 화면은 어떤건가요?</legend>
+      <label><input type="radio" name="mode" value="화이트 모드"> 화이트 모드</label>
+      <label><input type="radio" name="mode" value="블랙 모드"> 블랙 모드</label>
+      <label><input type="radio" name="mode" value="상관없다"> 상관없다</label>
+      <button type="button" class="sv-clear" data-clear="mode">선택해제</button>
+    </fieldset>
+
+    <div class="sv-band">TASK 평가가 끝났습니다. 공통질문 응답 부탁드립니다.</div>
+    <div id="likert"></div>
+
+    <div class="sv-card sv-note">
+      <p>객관식 답변에 답해주셔서 감사합니다. 이제부터 주관식 문항입니다.<br>감독관이 8개 항목을 질문하면 편하게 대답해주세요.</p>
+    </div>
+    <div class="sv-card sv-note">
+      <p>또한 사례비 지급을 위해 본인 명의의 계좌번호가 필요합니다.<br>사용성 테스트를 마치신 후, <b>신분증과 통장사본을 inx@i-nx.com</b>으로 보내주시기 바랍니다.</p>
+      <ul>
+        <li>제출 필요 항목 : 신분증 사본, 통장 사본</li>
+        <li>제출 처 : inx@i-nx.com</li>
+      </ul>
+    </div>
+
+    <div class="row" style="margin-top:24px">
+      <button type="submit" class="btn btn-primary">제출</button>
+    </div>
+  </form>
+  <div class="sv" id="post-done" hidden>
+    <div class="sv-card sv-note" style="text-align:center;padding:40px">
+      <h2 style="margin:0 0 8px;font-size:26px">테스트가 끝났습니다</h2>
+      <p style="margin:0 0 24px;color:var(--ink-2)">참여해 주셔서 감사합니다.</p>
+      <button type="button" class="btn btn-primary" id="post-home">처음으로</button>
+    </div>
+  </div>
+</section>
+
+<!-- 기록 화면 -->
+<section class="page" id="results" hidden>
+  <h1>기록</h1>
+  <p class="lead">참가자별 최근 기록. 수행 시간은 시나리오 시작부터 수행 완료까지, 클릭은 수행 중 테스트 화면 안 클릭 수, 인터뷰는 수행 완료부터 마지막 TASK 답변까지.</p>
+  <div class="row" style="margin-top:24px">
+    <button type="button" class="btn btn-line" id="back-home">처음으로</button>
+    <a class="btn btn-line" href="#report" style="text-decoration:none;color:inherit">리포트</a>
+    <button type="button" class="btn btn-line" id="csv-sum">요약 CSV</button>
+    <button type="button" class="btn btn-line" id="csv-ev">클릭 기록 CSV</button>
+    <button type="button" class="btn btn-line" id="json-out">전체 JSON</button>
+    <label class="btn btn-line" style="cursor:pointer">JSON 가져오기<input type="file" id="json-in" accept="application/json" multiple hidden /></label>
+    <span class="note" id="io-note"></span>
+  </div>
+  <div class="row" style="margin-top:12px">
+    <span class="note" data-cloud></span>
+    <button type="button" class="btn btn-line" id="cloud-now">지금 백업</button>
+    <button type="button" class="btn btn-line" id="cloud-pull">구글 시트에서 불러오기</button>
+    <button type="button" class="btn-text" id="cloud-set">백업 주소 넣기</button>
+  </div>
+  <div style="margin-top:24px; overflow:auto"><table class="rec" id="rec-table"></table></div>
+  <div class="detail" id="detail" hidden></div>
+</section>
+
+<!-- 테스트 -->
+<section id="test" hidden>
+  <div id="stage">
+    <iframe id="app" title="테스트 화면"></iframe>
+    <div class="loading" id="loading">테스트 화면을 불러오는 중</div>
+
+    <div class="tour" id="tour" hidden>
+      <div class="tour-hole" id="tour-hole"></div>
+      <div class="tour-pop" id="tour-pop" role="dialog" aria-labelledby="tour-title">
+        <button type="button" class="x" id="tour-x" aria-label="튜토리얼 닫기">×</button>
+        <h3 id="tour-title"></h3>
+        <p id="tour-text"></p>
+        <div class="foot">
+          <span class="cnt" id="tour-cnt"></span>
+          <button type="button" class="btn btn-line" id="tour-prev">이전</button>
+          <button type="button" class="btn btn-dark" id="tour-next">다음</button>
+        </div>
+      </div>
+    </div>
+
+    <section class="task" id="task" hidden aria-label="과제">
+      <div class="task-head" id="task-head">
+        <h2 id="task-title"></h2>
+        <div class="tabs" id="task-tabs"></div>
+        <button type="button" class="stop" id="stop">중단하기</button>
+        <button type="button" class="icon-btn" id="fold" aria-label="접기">
+          <svg width="14" height="14" viewBox="0 0 12 12" aria-hidden="true"><path d="M3 4.5 6 7.5 9 4.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+      </div>
+      <div class="task-body" id="task-body"></div>
+    </section>
+
+    <div class="runbar" id="runbar" hidden role="status">
+      <span class="rb-step" id="rb-step"></span>
+      <span class="rb-title" id="rb-title"></span>
+      <button type="button" class="btn btn-primary" id="rb-done">수행 완료</button>
+      <button type="button" class="stop" id="rb-stop">중단하기</button>
+    </div>
+
+    <div class="end" id="end" hidden>
+      <div class="end-card">
+        <h2>테스트가 끝났습니다</h2>
+        <p>참여해 주셔서 감사합니다.</p>
+        <button type="button" class="btn btn-primary" id="end-home">처음으로</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+(function () {
+  "use strict";
+
+  // ================================================================
+  // 설정
+  // ================================================================
+  var APP = "app/screens/main-v6.html";
+  var MISSION = "정기 순회 점검";
+  var PEOPLE = 16;
+  var ALERT_AFTER = 3000;   // 시나리오 2 시작 뒤 새 위험 알림이 들어오기까지
+
+  /*
+   * 튜토리얼 단계. act 가 있는 단계는 테스트 화면에서 그 동작을 실제로 해 보이고(대화창 열기, 알림 열기, 화면 이동) 기다린 뒤 비춘다.
+   * act 는 기다릴 밀리초를 돌려준다. rect 는 고정 자리(선택자로 재기 어려운 것). act 가 있는 단계와 그 다음 단계에는 [이전] 이 없다.
+   */
+  function appDoc() { try { return frame.contentDocument; } catch (e) { return null; } }
+  // 실제 마우스처럼 누르기 — 그 자리 맨 위 요소에 pointerdown, mousedown, pointerup, mouseup, click 을 차례로
+  function realClick(d, el) {
+    if (!el) { return; }
+    var w = d.defaultView, b = el.getBoundingClientRect(), x = b.left + b.width / 2, y = b.top + Math.min(b.height / 2, 24);
+    var t = d.elementFromPoint(x, y) || el, o = { bubbles: true, cancelable: true, composed: true, clientX: x, clientY: y, button: 0, view: w };
+    t.dispatchEvent(new w.PointerEvent("pointerdown", Object.assign({ pointerId: 1, pointerType: "mouse", isPrimary: true, buttons: 1 }, o)));
+    t.dispatchEvent(new w.MouseEvent("mousedown", Object.assign({ buttons: 1 }, o)));
+    t.dispatchEvent(new w.PointerEvent("pointerup", Object.assign({ pointerId: 1, pointerType: "mouse", isPrimary: true }, o)));
+    t.dispatchEvent(new w.MouseEvent("mouseup", o));
+    t.dispatchEvent(new w.MouseEvent("click", o));
+  }
+  function firstWarnRow(d) {
+    return Array.prototype.filter.call(d.querySelectorAll(".context-panel .ah-sec:not(.done-sec) .ah-list > *"), function (r) { return /누출감지/.test(r.textContent); })[0] ||
+      d.querySelector(".context-panel .ah-sec:not(.done-sec) .ah-list > *");
+  }
+  var TOUR = [
+    { sel: ".sb-tabs", title: "미션 탭", text: "로봇이 수행 중인 미션이 탭으로 나열됩니다. 미션 이름 옆 삼각형은 그 미션에 위험이나 주의 알림이 있다는 표시입니다." },
+    { sel: ".delta3", title: "Delta", text: "알림 전체를 종합해 지금 먼저 확인할 것을 알려 주는 AI 요약입니다. 색으로 현재 위험 단계를 나타냅니다." },
+    { sel: ".delta3", rect: [436, 80, 296, 972], title: "Delta와 대화", text: "Delta를 마우스로 누르면 대화창이 열립니다. 무엇을 먼저 봐야 하는지, 원인과 조치를 물어보거나 아래 추천 질문을 눌러 Delta와 대화할 수 있습니다.",
+      act: function (d) { var t = d.querySelector(".delta3 [data-ai-toggle]"); if (t && !d.querySelector(".delta3.is-open")) { t.click(); } return 1200; },
+      after: function (d) { var t = d.querySelector(".delta3 [data-ai-toggle]"); if (t && d.querySelector(".delta3.is-open")) { t.click(); } } },
+    { sel: ".map-panel", title: "설비 배치도", text: "로봇의 위치와 순회 경로, 점검 지점 번호가 표시됩니다. 빨간 핀과 노란 핀은 알림이 발생한 지점입니다." },
+    { sel: ".right-panel .panel-card:not(.is-fill)", title: "로봇 정보", text: "선택한 로봇의 미션 상태, 배터리, 통신 상태를 보여 줍니다. 자동복귀와 긴급정지(E-STOP) 버튼도 이곳에 있습니다." },
+    { sel: ".right-panel .panel-card.is-fill", title: "미션 진행", text: "미션 진행률과 남은 시간, 지점별 순서를 보여 줍니다. 강조된 칸이 지금 로봇이 있는 지점입니다." },
+    { sel: ".context-panel .ah-sec:not(.done-sec)", title: "최신 알림", text: "로봇이 감지한 위험과 주의 알림이 쌓이는 곳입니다. 빨간 삼각형은 위험, 노란 삼각형은 주의입니다." },
+    { sel: ".map-alert", title: "알림 상세", text: "주의 알림을 누르면 지도 위에 상세 팝오버가 열립니다. 사진과 측정값, Delta 조치 제안을 보고 필요한 조치를 골라 [조치 요청]을 누릅니다.",
+      act: function (d) { realClick(d, firstWarnRow(d)); return 6500; } },
+    { sel: ".map-alert a[href*='safety-v6']", title: "진단 상세", text: "[진단 상세]를 누르면 안전진단 화면에서 같은 알림을 더 자세히 볼 수 있습니다." },
+    { sel: ".sf-main", title: "안전진단 화면", text: "알림의 측정값과 영상, 측정 이력을 자세히 보고, 오른쪽에서 조치를 골라 요청할 수 있습니다. 위쪽 탭으로 다른 감지 알림을 볼 수 있고, 왼쪽 메뉴의 안전진단으로도 들어올 수 있습니다.",
+      act: function (d, w) { var a = d.querySelector(".map-alert a[href*='safety-v6']"); w.location.href = a ? a.href : "safety-v6.html?mission=" + encodeURIComponent(MISSION); return "load"; } }
+  ];
+
+  var SCEN = [
+    { no: 1, title: "로봇의 업무 파악",
+      desc: "관제 업무를 인계받았습니다. 현재 로봇은 현장에서 정기 순회 점검을 수행하고 있습니다. 화면을 살펴보고 로봇이 어떤 업무를 하고 있는지 확인해 주세요.",
+      tasks: [
+        { id: "1-1", qs: ["현재 수행중인 임무는 무엇인가요?", "로봇은 현재 어디에 있나요?<br>(로봇의 현재 위치 번호는 몇번인가요?)"] },
+        { id: "1-2", qs: ["임무는 현재 몇% 진행되었나요?", "로봇은 현재 무엇을 하고 있나요?", "그렇게 판단한 화면의 정보는 무엇인가요?"] }
+      ] },
+    { no: 2, title: "위험 알람 확인",
+      desc: "정기 순회 점검 중 위험 알람이 발생했습니다. 관제 담당자로서 어떤 상황이 발생했는지 확인해 주세요.",
+      tasks: [
+        { id: "2-1", qs: ["새로 발생한 위험 알림의 상세 내용을 확인해주세요.", "어떤 이상이 감지되었나요?"] },
+        { id: "2-2", qs: ["발생 위치는 어디인가요?", "위험 등급은 무엇인가요?"] }
+      ] },
+    { no: 3, title: "위험 대응 수행",
+      desc: "앞서 확인한 위험 상황에 대해 대응이 필요합니다. 화면에서 제공하는 정보를 바탕으로 필요한 조치를 진행해 주세요.<br><u>(시나리오 3에서는 감독자가 시간을 측정합니다.)</u>",
+      tasks: [
+        { id: "3-1", qs: ["해당 상황에 적절한 조치를 선택하고 실행해주세요."] },
+        { id: "3-2", qs: ["방금 어떤 조치를 실행했나요?", "조치가 반영되었다는 것을 어디에서 확인할 수 있나요?"] }
+      ] }
+  ];
+
+  // 클릭한 곳의 영역 이름 — 앞에서부터 처음 맞는 것
+  var AREAS = [
+    [".tour, .task", "과제 카드"],
+    [".sb-tabs", "미션 탭"], [".status-bar", "상단 바"], [".gnb-rail", "GNB"],
+    [".ma-delta", "알림 상세 Delta"], [".map-alert", "알림 상세"], [".ma-zoom", "라이브 뷰 크게보기"],
+    [".delta3", "Delta"],
+    [".done-sec", "오늘 확인 완료"], [".context-panel", "최신 알림"],
+    [".map-tools", "지도 도구"], [".map-panel", "설비 배치도"],
+    [".timeline", "미션 진행 지점 목록"], [".mission-header", "미션 진행률"], [".robot-strip, .rc-actions", "로봇 정보"], [".right-panel", "로봇 패널"],
+    ["[role=dialog], .modal", "창"], ["[role=menu]", "메뉴"]
+  ];
+
+  // ================================================================
+  // 저장 — 이 브라우저 localStorage. 아티팩트로 옮길 때는 이 두 함수만 db 로 바꾼다
+  // ================================================================
+  var KEY = "aprism-ut-records-v1";
+  var Store = {
+    load: function () { try { return JSON.parse(localStorage.getItem(KEY)) || { attempts: [] }; } catch (e) { return { attempts: [] }; } },
+    save: function (data) { try { localStorage.setItem(KEY, JSON.stringify(data)); return true; } catch (e) { return false; } }
+  };
+  var DB = Store.load();
+  var saveTimer = null;
+  function save(now) {
+    clearTimeout(saveTimer);
+    if (now) { Store.save(DB); return; }
+    saveTimer = setTimeout(function () { Store.save(DB); }, 400);
+  }
+
+  // ================================================================
+  // 온라인 백업(세 번째 겹) — 구글 시트에 붙인 Apps Script 웹 앱(ut-backup.gs)으로 기록을 통째로 보낸다.
+  //   보내기: POST(no-cors) — 답을 읽을 수 없으니, 곧바로 action=has 로(JSONP) 저장된 판(rev)을 물어 확인한다
+  //   확인 전까지는 "대기" — 1분마다, 인터넷이 다시 붙을 때마다, 시나리오가 끝날 때마다 다시 보낸다
+  //   rev: 기록이 바뀔 때마다(log) 1씩 는다. synced: 시트에 저장이 확인된 rev
+  // 주소는 CLOUD_URL, 또는 기록 화면에서 이 브라우저에만 따로 넣은 주소(aprism-ut-cloud)
+  // ================================================================
+  var CLOUD_URL = "";
+  var Cloud = (function () {
+    var busy = false, n = 0;
+    function url() { try { return localStorage.getItem("aprism-ut-cloud") || CLOUD_URL; } catch (e) { return CLOUD_URL; } }
+    function pending() { return DB.attempts.filter(function (a) { return !a.preview && !a.sample && (a.synced || 0) < (a.rev || 0); }); }
+    function jsonp(params, timeout) {
+      return new Promise(function (ok, fail) {
+        var cb = "utcb" + Date.now() + (n++), s = document.createElement("script"), t = setTimeout(function () { done(); fail(new Error("timeout")); }, timeout || 15000);
+        function done() { clearTimeout(t); try { delete window[cb]; } catch (e) { window[cb] = undefined; } s.remove(); }
+        window[cb] = function (data) { done(); ok(data); };
+        s.onerror = function () { done(); fail(new Error("load")); };
+        s.src = url() + "?" + Object.keys(params).map(function (k) { return k + "=" + encodeURIComponent(params[k]); }).join("&") + "&callback=" + cb;
+        document.head.appendChild(s);
+      });
+    }
+    function sendOne(a) {
+      var rev = a.rev || 0;
+      return fetch(url(), { method: "POST", mode: "no-cors", body: JSON.stringify({ attempt: a, rev: rev }) })
+        .then(function () { return new Promise(function (r) { setTimeout(r, 2500); }); })
+        .then(function () { return jsonp({ action: "has", id: a.id }); })
+        .then(function (d) { if (d && d.rev >= rev) { a.synced = Math.max(a.synced || 0, d.rev); save(true); } });
+    }
+    function flush() {
+      if (busy || !url() || !navigator.onLine) { paintCloud(); return Promise.resolve(); }
+      var list = pending();
+      if (!list.length) { paintCloud(); return Promise.resolve(); }
+      busy = true; paintCloud();
+      return list.reduce(function (p, a) { return p.then(function () { return sendOne(a).catch(function () { }); }); }, Promise.resolve())
+        .then(function () { busy = false; paintCloud(); });
+    }
+    setInterval(flush, 60000);
+    window.addEventListener("online", flush);
+    return { flush: flush, pending: pending, url: url, jsonp: jsonp, busy: function () { return busy; } };
+  })();
+  function paintCloud() {
+    var t = !Cloud.url() ? "온라인 백업: 주소가 없어 꺼져 있음" :
+      Cloud.busy() ? "온라인 백업: 보내는 중" :
+      Cloud.pending().length ? "온라인 백업: 대기 " + Cloud.pending().length + "건" + (navigator.onLine ? "" : "(인터넷 끊김)") : "온라인 백업: 모두 저장됨";
+    Array.prototype.forEach.call(document.querySelectorAll("[data-cloud]"), function (el) { el.textContent = t; el.classList.toggle("is-warn", !!Cloud.url() && Cloud.pending().length > 0); });
+  }
+
+  function pid(i) { return "P" + String(i).padStart(2, "0"); }
+  function latest(p) {
+    var a = DB.attempts.filter(function (x) { return x.participant === p; });
+    return a[a.length - 1] || null;
+  }
+  function doneAll(a) { return !!(a && a.scenarios[3] && a.scenarios[3].end && a.post); }
+  function mmss(ms) {
+    if (ms == null || isNaN(ms)) { return ""; }
+    var s = Math.round(ms / 1000);
+    return Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0");
+  }
+  function clock(t) {
+    var d = new Date(t);
+    return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0") + " " +
+      [d.getHours(), d.getMinutes(), d.getSeconds()].map(function (n) { return String(n).padStart(2, "0"); }).join(":");
+  }
+  function esc(s) { return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
+  function $(id) { return document.getElementById(id); }
+
+  // ================================================================
+  // 처음 화면
+  // ================================================================
+  var chosen = null;
+  function renderHome() {
+    var box = $("picks");
+    box.innerHTML = "";
+    for (var i = 1; i <= PEOPLE; i++) {
+      var p = pid(i), a = latest(p);
+      var st = !a ? "기록 없음" : doneAll(a) ? "완료" : "진행 중 기록";
+      var b = document.createElement("button");
+      b.type = "button";
+      b.className = "pick" + (doneAll(a) ? " is-done" : a ? " is-part" : "");
+      b.setAttribute("aria-pressed", String(p === chosen));
+      b.setAttribute("data-p", p);
+      b.innerHTML = "<b>" + p + "</b><span>" + st + "</span>";
+      box.appendChild(b);
+    }
+    var a2 = chosen && latest(chosen);
+    $("pick-note").className = "note" + (a2 ? " is-warn" : "");
+    $("pick-note").textContent = !chosen ? "참가자 번호를 고른 뒤 시작합니다." :
+      a2 ? chosen + "는 이미 기록이 있습니다. 시작하면 새 기록으로 따로 저장되고, 기록 화면에는 최근 기록이 보입니다." : chosen + " 선택됨";
+    $("go").disabled = !chosen;
+  }
+  $("picks").addEventListener("click", function (e) {
+    var b = e.target.closest("[data-p]"); if (!b) { return; }
+    chosen = b.getAttribute("data-p");
+    renderHome();
+  });
+  $("go").addEventListener("click", function () { if (chosen) { openSurvey(chosen); } });
+  $("to-results").addEventListener("click", function () { show("results"); renderResults(); });
+  $("back-home").addEventListener("click", function () { show("home"); renderHome(); });
+
+  function show(which) {
+    ["home", "survey", "post", "results", "test", "report"].forEach(function (k) { if ($(k)) { $(k).hidden = k !== which; } });
+    if (typeof paintCloud === "function") { paintCloud(); }
+  }
+
+  // ================================================================
+  // 테스트 진행
+  //   phase  tutorial → s1 → s2 → s3 → done
+  //   step   intro(시나리오 설명과 시작 버튼) | run(수행 중 — 카드는 숨기고 진행 표시줄만) | task(TASK 인터뷰 — 문항마다 답 적기)
+  //   시나리오 시간 = [시작] 부터 [수행 완료] 까지. 인터뷰 시간은 따로
+  // ================================================================
+  var rec = null, phase = null, step = null, taskIdx = 0;
+  var alertPending = false, alertIn = false;
+  var frame = $("app");
+
+  function now() { return Date.now(); }
+  function log(type, data) {
+    if (!rec) { return; }
+    var e = { t: now(), at: now() - rec.startedAt, phase: phase, stage: step || "", task: step === "task" ? curScen().tasks[taskIdx].id : "", type: type };
+    if (data) { for (var k in data) { e[k] = data[k]; } }
+    rec.events.push(e);
+    rec.rev = (rec.rev || 0) + 1;
+    save();
+    if (/^(tutorial-end|run-done|scenario-end|test-end|test-stop)$/.test(type)) { setTimeout(Cloud.flush, 500); }
+  }
+  function curScen() { return SCEN[Number(String(phase).slice(1)) - 1]; }
+
+  // ---------- 사전 질문 ----------
+  var svStart = 0;
+  function openSurvey(p) {
+    $("sv-form").reset();
+    Array.prototype.forEach.call(document.querySelectorAll(".sv-card"), function (c) { c.classList.remove("is-err"); });
+    $("sv-stop").hidden = true;
+    $("sv-p").textContent = p;
+    svStart = now();
+    show("survey"); window.scrollTo(0, 0);
+  }
+  function svVal(name) { var r = document.querySelector('#sv-form input[name="' + name + '"]:checked'); return r ? r.value : ""; }
+  $("sv-job-etc").addEventListener("input", function () { document.querySelector('#sv-form input[name="job"][value="기타"]').checked = true; });
+  $("sv-form").addEventListener("change", function (e) {
+    var c = e.target.closest(".sv-card"); if (c) { c.classList.remove("is-err"); }
+    if (e.target.name === "consent") { $("sv-stop").hidden = true; }
+  });
+  $("sv-back").addEventListener("click", function () { show("home"); renderHome(); });
+  $("sv-form").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var prof = { consent: svVal("consent"), gender: svVal("gender"), age: svVal("age"), job: svVal("job") };
+    if (prof.job === "기타") { prof.job = "기타: " + $("sv-job-etc").value.trim(); }
+    var bad = null;
+    ["consent", "gender", "age", "job"].forEach(function (k) {
+      var miss = !prof[k] || (k === "job" && prof.job === "기타: ");
+      document.querySelector('.sv-card[data-q="' + k + '"]').classList.toggle("is-err", miss);
+      if (miss && !bad) { bad = k; }
+    });
+    if (bad) { document.querySelector('.sv-card[data-q="' + bad + '"]').scrollIntoView({ behavior: "smooth", block: "center" }); return; }
+    if (prof.consent !== "동의") { $("sv-stop").hidden = false; $("sv-stop").scrollIntoView({ behavior: "smooth", block: "center" }); return; }
+    prof.answeredAt = now(); prof.ms = prof.answeredAt - svStart;
+    startTest(chosen, prof);
+  });
+
+  function startTest(p, profile, preview) {
+    rec = { id: p + "-" + now(), participant: p, startedAt: now(), endedAt: null, profile: profile || null, tutorial: {}, scenarios: {}, events: [] };
+    if (!preview) { DB.attempts.push(rec); save(true); }
+    rec.preview = !!preview;
+    phase = "tutorial"; step = null; taskIdx = 0; alertPending = false; alertIn = false;
+    show("test"); fit();
+    $("task").hidden = true; $("end").hidden = true; $("tour").hidden = true;
+    loadApp(function () { setTimeout(startTour, 800); });
+  }
+
+  function appUrl() { return APP + "?mission=" + encodeURIComponent(MISSION) + "#warning"; }
+  var onReady = null;
+  // 테스트 화면은 늘 다크 모드로 연다 — 관제 화면(theme.js)이 기억해 둔 값을 열기 직전에 다크로(같은 출처라 같은 저장소)
+  function loadApp(cb) {
+    try { localStorage.setItem("aprism-theme", "dark"); } catch (e) { }
+    onReady = cb || null;
+    $("loading").hidden = false;
+    frame.src = "about:blank";
+    setTimeout(function () { frame.src = appUrl(); }, 30);
+  }
+
+  // 테스트 화면이 바뀔 때마다(처음 열기, 참가자가 다른 화면으로 이동) — 개발 장치 숨김, 클릭 기록, 상태 맞추기
+  frame.addEventListener("load", function () {
+    var w = frame.contentWindow, d;
+    try { d = frame.contentDocument; } catch (e) { return; }
+    if (!d || w.location.href === "about:blank") { return; }
+    var path = w.location.pathname.split("/").pop();
+    $("loading").hidden = true;
+    if (rec) { log("page", { page: path }); }
+
+    var css = d.createElement("style");
+    css.textContent = ".rsim, .grid-overlay { display: none !important; }";
+    (d.head || d.documentElement).appendChild(css);
+
+    d.addEventListener("click", function (e) { onAppClick(e, w); }, true);
+    d.addEventListener("keydown", function (e) {   // 격자(g) 막기
+      if (!e.ctrlKey && !e.altKey && !e.metaKey && (e.key === "g" || e.key === "G")) { e.stopImmediatePropagation(); }
+    }, true);
+    w.open = function (url) { log("open", { page: String(url) }); w.location.href = url; return null; };   // 새 창 대신 같은 화면에서
+
+    if (/main-v6\.html$/.test(path)) {
+      // 단계는 늘 "주의 쌓인 판" 에서 시작 — 다른 화면에 갔다 오면 주소의 #warning 이 빠진다
+      if (!w.location.hash) {
+        w.history.replaceState(w.history.state, "", w.location.pathname + w.location.search + "#warning");
+        w.dispatchEvent(new w.HashChangeEvent("hashchange"));
+      }
+      if (alertPending) { alertPending = false; alertIn = true; injectAlert(ALERT_AFTER); }
+      else if (alertIn) { injectAlert(0); }
+    }
+    var cb = onReady; onReady = null;
+    if (cb) { cb(); }
+  });
+
+  // 새 위험 알림 1건(N₂ 배관 압력계) — 테스트 화면의 델타 시뮬레이션 길을 쓴다. 그 길이 없는 판이면 위험 판으로 바꾼다
+  function injectAlert(after) {
+    var w = frame.contentWindow;
+    try {
+      w.document.dispatchEvent(new w.CustomEvent("aprism:delta-sim", { detail: { from: "warning", after: after } }));
+      setTimeout(function () {
+        try { if (w.document.body.getAttribute("data-level") !== "critical") { w.location.hash = "critical"; } } catch (e) { }
+      }, after + 800);
+    } catch (e) { }
+    if (after) { setTimeout(function () { log("alert-in", { label: "새 위험 알림 발생" }); }, after); }
+  }
+
+  function areaOf(el) {
+    for (var i = 0; i < AREAS.length; i++) { if (el.closest(AREAS[i][0])) { return AREAS[i][1]; } }
+    return "";
+  }
+  function labelOf(el) {
+    var t = el.closest("button, a, [role=button], [role=tab], [role=menuitem], [role=checkbox], [data-act], li, input, label, select") || el;
+    var s = t.getAttribute("aria-label") || (t.tagName === "INPUT" ? (t.placeholder || t.type) : "") || t.textContent || "";
+    s = s.replace(/\s+/g, " ").trim();
+    if (!s) { s = (t.className && typeof t.className === "string" ? "." + t.className.split(" ")[0] : t.tagName.toLowerCase()); }
+    return s.slice(0, 60);
+  }
+  var autoClick = false;   // 튜토리얼이 대신 누르는 동안은 참가자 클릭으로 적지 않는다
+  function onAppClick(e, w) {
+    if (autoClick) { return; }
+    var el = e.target.nodeType === 1 ? e.target : e.target.parentElement;
+    if (!el) { return; }
+    var a = el.closest('a[href="#"]');
+    if (a) { e.preventDefault(); }   // 빈 링크 — 누르면 알림 판이 처음으로 돌아간다
+    log("click", {
+      area: areaOf(el), label: labelOf(el), page: w.location.pathname.split("/").pop(),
+      x: Math.round(e.clientX), y: Math.round(e.clientY), dead: a ? 1 : 0,
+      confirm: el.closest("[data-ma-confirm]") ? 1 : 0
+    });
+  }
+
+  // ---------- 튜토리얼 ----------
+  var tourAt = 0;
+  function startTour() {
+    rec.tutorial.start = now();
+    log("tutorial-start");
+    tourAt = 0;
+    $("tour").hidden = false;
+    goTour(0);
+  }
+  // 단계로 갈 때 — 앞 단계의 뒷정리(after), 이번 단계의 동작(act)을 하고 기다린 뒤 그린다
+  var tourBusy = false;
+  function goTour(i) {
+    var prev = TOUR[tourAt], d = appDoc();
+    autoClick = true;
+    if (prev && prev.after && d && i !== tourAt) { try { prev.after(d); } catch (e) { } }
+    autoClick = false;
+    tourAt = i;
+    var s = TOUR[i];
+    if (!s.act || !d) { paintTour(); return; }
+    tourBusy = true;
+    $("tour-pop").style.visibility = "hidden";
+    var wait;
+    autoClick = true;
+    try { wait = s.act(d, frame.contentWindow); } catch (e) { wait = 0; }
+    autoClick = false;
+    function done() { tourBusy = false; $("tour-pop").style.visibility = ""; paintTour(); }
+    if (wait === "load") { onReady = function () { setTimeout(done, 2500); }; }
+    else { setTimeout(done, wait || 0); }
+  }
+  function paintTour() {
+    var s = TOUR[tourAt], d = appDoc(), el = d && d.querySelector(s.sel);
+    var r = s.rect ? { left: s.rect[0], top: s.rect[1], width: s.rect[2], height: s.rect[3] } :
+      el ? el.getBoundingClientRect() : { left: 760, top: 440, width: 400, height: 200 };
+    r = { left: r.left, top: r.top, width: r.width, height: r.height, right: r.left + r.width, bottom: r.top + r.height };
+    var pad = 6, hole = $("tour-hole"), pop = $("tour-pop");
+    hole.style.left = (r.left - pad) + "px"; hole.style.top = (r.top - pad) + "px";
+    hole.style.width = (r.width + pad * 2) + "px"; hole.style.height = (r.height + pad * 2) + "px";
+    $("tour-title").textContent = s.title;
+    $("tour-text").textContent = s.text;
+    $("tour-cnt").textContent = (tourAt + 1) + "/" + TOUR.length;
+    $("tour-prev").hidden = tourAt === 0 || !!s.act || !!TOUR[tourAt - 1].act;
+    $("tour-next").textContent = tourAt === TOUR.length - 1 ? "시나리오 시작하기" : "다음";
+    // 말풍선 자리 — 오른쪽, 왼쪽, 아래, 위 순으로 들어가는 곳
+    var W = 400, H = pop.offsetHeight || 200, gap = 20, x, y;
+    if (r.right + gap + W < 1900) { x = r.right + gap; y = r.top; }
+    else if (r.left - gap - W > 20) { x = r.left - gap - W; y = r.top; }
+    else if (r.bottom + gap + H < 1060) { x = r.left; y = r.bottom + gap; }
+    else { x = r.left; y = r.top - gap - H; }
+    if (r.height > 600 && x !== r.left) { y = r.top + 40; }
+    pop.style.left = Math.max(20, Math.min(1500, x)) + "px";
+    pop.style.top = Math.max(20, Math.min(1060 - H, y)) + "px";
+    log("tutorial-step", { label: (tourAt + 1) + " " + s.title });
+  }
+  $("tour-next").addEventListener("click", function () {
+    if (tourBusy) { return; }
+    if (tourAt < TOUR.length - 1) { goTour(tourAt + 1); } else { endTour(false); }
+  });
+  $("tour-prev").addEventListener("click", function () { if (!tourBusy && tourAt > 0) { goTour(tourAt - 1); } });
+  $("tour-x").addEventListener("click", function () { endTour(true); });
+  function endTour(skipped) {
+    rec.tutorial.end = now();
+    rec.tutorial.skipped = skipped ? (tourAt + 1) + "/" + TOUR.length : "";
+    log("tutorial-end", { label: skipped ? "닫기로 건너뜀" : "" });
+    $("tour").hidden = true;
+    var cur = TOUR[tourAt], d = appDoc();
+    autoClick = true;
+    if (cur && cur.after && d) { try { cur.after(d); } catch (e) { } }
+    autoClick = false;
+    // 튜토리얼이 안전진단 화면이나 열린 팝오버로 끝나면 관제 화면을 처음 상태로 다시 연다
+    loadApp();
+    goScenario(1);
+  }
+
+  // ---------- 시나리오 ----------
+  function goScenario(n) {
+    phase = "s" + n; step = "intro"; taskIdx = 0;
+    showCard(true);
+    paintTask();
+  }
+  // 카드와 진행 표시줄은 하나만 보인다 — 수행 중에는 진행 표시줄만
+  function showCard(on) {
+    $("task").hidden = !on;
+    $("task").classList.remove("is-folded");
+    $("fold").style.transform = "";
+    $("runbar").hidden = on;
+    if (!on) {
+      var sc = curScen();
+      $("rb-step").textContent = "시나리오 " + sc.no + "/" + SCEN.length;
+      $("rb-title").textContent = sc.title;
+    }
+  }
+  function paintTask() {
+    var sc = curScen();
+    $("task-title").textContent = "시나리오" + sc.no + " - " + sc.title;
+    $("task-tabs").innerHTML = SCEN.map(function (x) {
+      var cls = x.no === sc.no ? "is-on" : (rec.scenarios[x.no] && rec.scenarios[x.no].end ? "is-done" : "");
+      return '<span class="' + cls + '">' + x.no + "</span>";
+    }).join("");
+    var body = $("task-body");
+    if (step === "intro") {
+      body.innerHTML = '<p class="desc">' + sc.desc + "</p>" +
+        '<div class="task-foot"><span class="grow">설명을 읽은 뒤 시작합니다.</span>' +
+        '<button type="button" class="btn btn-primary" data-act="start">시나리오 ' + sc.no + " 시작</button></div>";
+      return;
+    }
+    var t = sc.tasks[taskIdx], st = rec.scenarios[sc.no].tasks[t.id];
+    var last = taskIdx === sc.tasks.length - 1;
+    body.innerHTML = '<p class="task-no">TASK ' + t.id + " 인터뷰</p>" +
+      '<ul class="qa">' + t.qs.map(function (q, i) {
+        return '<li><div class="qt"><span class="n">' + (i + 1) + '</span><span>' + q + "</span></div>" +
+          '<textarea data-a="' + i + '" placeholder="답변 적기" aria-label="문항 ' + (i + 1) + ' 답변">' + esc(st.answers[i] || "") + "</textarea></li>";
+      }).join("") + "</ul>" +
+      '<div class="task-foot"><span class="grow">' + (taskIdx + 1) + "/" + sc.tasks.length + "</span>" +
+      '<button type="button" class="btn btn-primary" data-act="next">' +
+      (!last ? "다음 TASK" : sc.no < 3 ? "시나리오 " + (sc.no + 1) + "로" : "테스트 마치기") + "</button></div>";
+    clampCard();
+    var first = body.querySelector("textarea");
+    if (first) { setTimeout(function () { first.focus(); }, 50); }
+  }
+
+  // 카드가 화면 아래로 넘치면 위로 올린다
+  function clampCard() {
+    var c = $("task");
+    var over = c.offsetTop + c.offsetHeight - (1080 - 20);
+    if (over > 0) { c.style.top = Math.max(20, c.offsetTop - over) + "px"; }
+  }
+
+  // 답변 — 적는 대로 저장, 칸을 떠날 때 기록에 한 줄
+  $("task-body").addEventListener("input", function (e) {
+    var ta = e.target.closest("[data-a]"); if (!ta) { return; }
+    var sc = curScen(), st = rec.scenarios[sc.no].tasks[sc.tasks[taskIdx].id];
+    st.answers[Number(ta.getAttribute("data-a"))] = ta.value;
+    save();
+  });
+  $("task-body").addEventListener("focusout", function (e) {
+    var ta = e.target.closest("[data-a]"); if (!ta) { return; }
+    var t = curScen().tasks[taskIdx];
+    log("answer", { label: "TASK " + t.id + " 문항 " + (Number(ta.getAttribute("data-a")) + 1), text: ta.value });
+  });
+  $("task-body").addEventListener("click", function (e) {
+    var sc = curScen();
+    var b = e.target.closest("[data-act]"); if (!b) { return; }
+    var act = b.getAttribute("data-act");
+    if (act === "start") { startScenario(sc); }
+    else if (act === "next") { finishTask(sc); }
+  });
+
+  function startScenario(sc) {
+    var s = rec.scenarios[sc.no] = { start: now(), done: null, end: null, tasks: {} };
+    sc.tasks.forEach(function (t) { s.tasks[t.id] = { start: null, end: null, answers: t.qs.map(function () { return ""; }) }; });
+    log("scenario-start", { label: "시나리오 " + sc.no });
+    step = "run"; taskIdx = 0;
+    showCard(false);
+    // 1: 새로 연다(주의 쌓인 판). 2: 새로 열고 3초 뒤 위험 1건. 3: 2의 상태 그대로 이어서
+    if (sc.no === 1) { alertIn = false; loadApp(); }
+    if (sc.no === 2) { alertIn = false; alertPending = true; loadApp(); }
+  }
+
+  // [수행 완료] — 시나리오 시간이 여기서 끝나고 TASK 인터뷰가 열린다
+  $("rb-done").addEventListener("click", function () {
+    if (step !== "run") { return; }
+    var sc = curScen(), s = rec.scenarios[sc.no];
+    s.done = now();
+    log("run-done", { label: "시나리오 " + sc.no + " 수행 완료", ms: s.done - s.start });
+    step = "task"; taskIdx = 0;
+    s.tasks[sc.tasks[0].id].start = now();
+    showCard(true);
+    paintTask();
+  });
+
+  function finishTask(sc) {
+    var s = rec.scenarios[sc.no], t = sc.tasks[taskIdx], st = s.tasks[t.id];
+    var ta = document.activeElement && document.activeElement.closest && document.activeElement.closest("[data-a]");
+    if (ta) { ta.blur(); }
+    st.end = now();
+    log("task-done", { label: "TASK " + t.id });
+    if (taskIdx < sc.tasks.length - 1) {
+      taskIdx++;
+      s.tasks[sc.tasks[taskIdx].id].start = now();
+      paintTask();
+      return;
+    }
+    s.end = now();
+    log("scenario-end", { label: "시나리오 " + sc.no, ms: s.done - s.start });
+    if (sc.no < 3) { goScenario(sc.no + 1); return; }
+    phase = "post"; step = null;
+    log("post-start");
+    save(true);
+    $("task").hidden = true;
+    openPost();
+  }
+
+  // ---------- 사후 설문(공통질문) — 시나리오 3 뒤 ----------
+  var LIKERT = [
+    "직관성 ①: 로봇이 수행중인 <b>업무</b>와 <b>현재 상태</b>를 쉽게 <b>파악</b>할 수 있었다.",
+    "직관성 ②: <b>위험 알람</b>이 발생했을 때 어떤 <b>상황</b>인지 <b>이해</b>할 수 있었다.",
+    "편의성 ①: 필요한 <b>정보</b>와 <b>기능</b>을 쉽게 찾을 수 있었다.",
+    "편의성 ②: <b>위험</b> 알림을 확인한 후 필요한 <b>조치</b>를 수행하는 과정이 <b>편리</b>했다.",
+    "신뢰도 ①: 화면에서 제공하는 <b>정보</b>는 <b>상황</b>을 <b>판단</b>하는데 <b>도움</b>이 되었다.",
+    "신뢰도 ②: 내가 <b>실행한 조치</b>가 반영되었는지 <b>확신</b>할 수 있었다.",
+    "만족감 ①: 전반적으로 에이프리즘의 사용 경험에 만족한다.",
+    "만족감 ②: 에이프리즘은 관제 업무를 수행하는 데 도움이 될 것 같다.",
+    "재사용 의도 ①: 향후 로봇 관제 업무를 맡는다면 에이프리즘을 사용할 의향이 있다.",
+    "재사용 의도 ②: 주변 동료에게 소개할 것이다."
+  ];
+  $("likert").innerHTML = LIKERT.map(function (q, i) {
+    var nums = "", dots = "";
+    for (var v = 1; v <= 7; v++) { nums += "<span>" + v + "</span>"; dots += '<label><input type="radio" name="lk' + i + '" value="' + v + '" aria-label="' + v + '점"></label>'; }
+    return '<fieldset class="sv-card" data-q="lk' + i + '"><legend>' + q + ' <i>*</i></legend><div class="lk-scale"><span></span>' + nums + '<span></span>' +
+      '<span class="lk-end">전혀 그렇지 않다</span>' + dots + '<span class="lk-end">매우 그렇다</span></div><p class="sv-err">필수 질문입니다.</p></fieldset>';
+  }).join("");
+  var postStart = 0;
+  function openPost() {
+    $("post-form").reset();
+    $("post-form").hidden = false; $("post-done").hidden = true;
+    Array.prototype.forEach.call(document.querySelectorAll("#post .sv-card"), function (c) { c.classList.remove("is-err"); });
+    $("post-p").textContent = rec.participant;
+    postStart = now();
+    show("post"); window.scrollTo(0, 0);
+  }
+  $("post-form").addEventListener("click", function (e) {
+    var c = e.target.closest("[data-clear]"); if (!c) { return; }
+    Array.prototype.forEach.call(document.querySelectorAll('#post-form input[name="' + c.getAttribute("data-clear") + '"]'), function (r) { r.checked = false; });
+  });
+  $("post-form").addEventListener("change", function (e) { var c = e.target.closest(".sv-card"); if (c) { c.classList.remove("is-err"); } });
+  $("post-form").addEventListener("submit", function (e) {
+    e.preventDefault();
+    function val(n) { var r = document.querySelector('#post-form input[name="' + n + '"]:checked'); return r ? r.value : ""; }
+    var lk = LIKERT.map(function (q, i) { return Number(val("lk" + i)) || 0; }), bad = -1;
+    lk.forEach(function (v, i) { var c = document.querySelector('.sv-card[data-q="lk' + i + '"]'); c.classList.toggle("is-err", !v); if (!v && bad < 0) { bad = i; } });
+    if (bad >= 0) { document.querySelector('.sv-card[data-q="lk' + bad + '"]').scrollIntoView({ behavior: "smooth", block: "center" }); return; }
+    rec.post = { mode: val("mode"), likert: lk, start: postStart, answeredAt: now() };
+    phase = "done";
+    rec.endedAt = now();
+    log("test-end");
+    save(true);
+    backup(rec);
+    $("post-form").hidden = true; $("post-done").hidden = false; window.scrollTo(0, 0);
+  });
+  $("post-home").addEventListener("click", function () { leave(); });
+
+  $("end-home").addEventListener("click", function () { leave(); });
+
+  // 중단하기 — 두 번 눌러야 한다(3초 안). 카드 머리와 진행 표시줄에 하나씩
+  var stopArm = null;
+  ["stop", "rb-stop"].forEach(function (id) {
+    $(id).addEventListener("click", function (e) {
+      e.stopPropagation();
+      var b = $(id);
+      if (!stopArm) {
+        b.classList.add("is-arm"); b.textContent = "한 번 더 누르면 중단";
+        stopArm = setTimeout(function () { stopArm = null; b.classList.remove("is-arm"); b.textContent = "중단하기"; }, 3000);
+        return;
+      }
+      clearTimeout(stopArm); stopArm = null; b.classList.remove("is-arm"); b.textContent = "중단하기";
+      log("test-stop");
+      rec.endedAt = now(); rec.stopped = true;
+      backup(rec);
+      leave();
+    });
+  });
+  function leave() {
+    save(true);
+    $("runbar").hidden = true;
+    rec = null; phase = null;
+    frame.src = "about:blank";
+    show("home"); chosen = null; renderHome();
+  }
+
+  // 접기 · 끌기
+  $("fold").addEventListener("click", function (e) {
+    e.stopPropagation();
+    var on = !$("task").classList.contains("is-folded");
+    $("task").classList.toggle("is-folded", on);
+    $("fold").setAttribute("aria-label", on ? "펼치기" : "접기");
+    $("fold").style.transform = on ? "rotate(180deg)" : "";
+    log(on ? "card-fold" : "card-open");
+  });
+  (function () {
+    var head = $("task-head"), card = $("task"), drag = null;
+    head.addEventListener("pointerdown", function (e) {
+      if (e.target.closest("button")) { return; }
+      drag = { x: e.clientX, y: e.clientY, l: card.offsetLeft, t: card.offsetTop };
+      head.setPointerCapture(e.pointerId);
+    });
+    head.addEventListener("pointermove", function (e) {
+      if (!drag) { return; }
+      card.style.left = Math.max(0, Math.min(1920 - 120, drag.l + (e.clientX - drag.x) / scale)) + "px";
+      card.style.top = Math.max(0, Math.min(1080 - 56, drag.t + (e.clientY - drag.y) / scale)) + "px";
+    });
+    head.addEventListener("pointerup", function () { if (drag) { drag = null; log("card-move"); } });
+  })();
+
+  // 1920×1080 무대를 창에 맞춘다
+  var scale = 1;
+  function fit() {
+    scale = Math.min(window.innerWidth / 1920, window.innerHeight / 1080);
+    var st = $("stage");
+    st.style.transform = "scale(" + scale + ")";
+    st.style.left = Math.round((window.innerWidth - 1920 * scale) / 2) + "px";
+    st.style.top = Math.round((window.innerHeight - 1080 * scale) / 2) + "px";
+  }
+  window.addEventListener("resize", fit);
+
+  // ================================================================
+  // 기록 화면
+  // ================================================================
+  function scenStat(a, n) {
+    var s = a && a.scenarios[n];
+    if (!s || !s.start) { return { ms: null, iv: null, clicks: "" }; }
+    var ph = "s" + n;
+    // 수행 중 클릭만 센다(인터뷰 중 클릭은 뺀다)
+    var clicks = a.events.filter(function (e) { return e.phase === ph && e.type === "click" && e.stage === "run"; }).length;
+    return { ms: s.done ? s.done - s.start : null, iv: s.end && s.done ? s.end - s.done : null, clicks: clicks };
+  }
+  function renderResults() {
+    var h = "<tr><th>참가자</th><th>성별</th><th>연령대</th><th>담당 업무</th><th>시작</th><th>튜토리얼</th>" +
+      [1, 2, 3].map(function (n) { return "<th>S" + n + " 수행</th><th>S" + n + " 클릭</th><th>S" + n + " 인터뷰</th>"; }).join("") +
+      "<th>상태</th><th>기록 수</th><th></th></tr>";
+    for (var i = 1; i <= PEOPLE; i++) {
+      var p = pid(i), a = latest(p), n = DB.attempts.filter(function (x) { return x.participant === p; }).length;
+      if (!a) { h += '<tr class="is-empty"><td>' + p + '</td><td colspan="17">기록 없음</td></tr>'; continue; }
+      var ss = [1, 2, 3].map(function (k) { return scenStat(a, k); });
+      var tut = a.tutorial && a.tutorial.end ? mmss(a.tutorial.end - a.tutorial.start) + (a.tutorial.skipped ? " (" + a.tutorial.skipped + "에서 닫음)" : "") : "";
+      var pf = a.profile || {};
+      h += "<tr><td><b>" + p + "</b></td><td>" + esc(pf.gender || "") + "</td><td>" + esc(pf.age || "") + "</td><td>" + esc(pf.job || "") + "</td><td>" + clock(a.startedAt) + "</td><td>" + esc(tut) + "</td>" +
+        ss.map(function (s) { return '<td class="num">' + mmss(s.ms) + '</td><td class="num">' + s.clicks + '</td><td class="num">' + mmss(s.iv) + "</td>"; }).join("") +
+        "<td>" + (doneAll(a) ? "완료" : a.stopped ? "중단" : "진행 중") + '</td><td class="num">' + n + "</td>" +
+        '<td><button type="button" class="btn-text" data-detail="' + p + '">자세히</button>' +
+        '<button type="button" class="btn-text" data-del="' + a.id + '">지우기</button></td></tr>';
+    }
+    $("rec-table").innerHTML = h;
+  }
+  var delArm = null;
+  $("rec-table").addEventListener("click", function (e) {
+    var d = e.target.closest("[data-detail]");
+    if (d) { renderDetail(d.getAttribute("data-detail")); return; }
+    var x = e.target.closest("[data-del]");
+    if (x) {
+      var id = x.getAttribute("data-del");
+      if (delArm !== id) { delArm = id; x.textContent = "한 번 더 누르면 지움"; x.classList.add("confirm-del"); return; }
+      DB.attempts = DB.attempts.filter(function (a) { return a.id !== id; });
+      delArm = null; save(true); renderResults(); $("detail").hidden = true;
+    }
+  });
+  // 기록 화면과 CSV 에 쓰는 문항 목록 — [TASK id, 문항 번호(0부터), 문항 글]
+  var QLIST = [];
+  SCEN.forEach(function (sc) { sc.tasks.forEach(function (t) { t.qs.forEach(function (q, i) { QLIST.push([t.id, i, q.replace(/<br>/g, " ")]); }); }); });
+  function answerOf(a, id, i) {
+    var s = a.scenarios[id[0]], t = s && s.tasks[id];
+    return t && t.answers ? t.answers[i] || "" : "";
+  }
+  var PHASE_KO = { tutorial: "튜토리얼", s1: "시나리오 1", s2: "시나리오 2", s3: "시나리오 3", post: "공통질문", done: "끝" };
+  var TYPE_KO = { page: "화면 열림", open: "새 창 대신 이동", click: "클릭", check: "문항 체크", "alert-in": "알림 발생",
+    "tutorial-start": "튜토리얼 시작", "tutorial-step": "튜토리얼 단계", "tutorial-end": "튜토리얼 끝",
+    "scenario-start": "시나리오 시작", "scenario-end": "시나리오 끝", "task-done": "TASK 완료", "task-skip": "TASK 건너뜀",
+    "run-done": "수행 완료", "post-start": "공통질문 시작", answer: "답변", "card-fold": "카드 접기", "card-open": "카드 펼치기", "card-move": "카드 옮기기", "test-end": "테스트 끝", "test-stop": "테스트 중단" };
+  var STAGE_KO = { intro: "설명", run: "수행", task: "인터뷰" };
+  function ko(map, k) { return map[k] || k || ""; }
+  function renderDetail(p) {
+    var a = latest(p); if (!a) { return; }
+    var rows = a.events.map(function (e) {
+      return "<tr><td class='num'>" + mmss(e.at) + "</td><td>" + esc(ko(PHASE_KO, e.phase)) + "</td><td>" + esc(ko(STAGE_KO, e.stage)) + "</td><td>" + esc(e.task) + "</td><td>" + esc(ko(TYPE_KO, e.type)) + "</td><td>" +
+        esc(e.area || "") + "</td><td>" + esc(e.label || "") + (e.text ? ": " + esc(e.text) : "") + (e.dead ? " (빈 링크)" : "") + (e.confirm ? " (조치 버튼)" : "") +
+        "</td><td>" + esc(e.page || "") + "</td><td class='num'>" + (e.x != null ? e.x + ", " + e.y : "") + "</td></tr>";
+    }).join("");
+    var answers = QLIST.map(function (q) {
+      return "<tr><td>TASK " + q[0] + "</td><td>" + (q[1] + 1) + ". " + esc(q[2]) + "</td><td style='white-space:normal'>" + esc(answerOf(a, q[0], q[1])) + "</td></tr>";
+    }).join("");
+    $("detail").hidden = false;
+    $("detail").innerHTML = "<h3>" + p + " 기록 (" + clock(a.startedAt) + ")</h3>" +
+      "<h3 style='margin-top:20px'>인터뷰 답변</h3><table class='rec'><tr><th>TASK</th><th>문항</th><th>답변</th></tr>" + answers + "</table>" +
+      "<h3 style='margin-top:24px'>전체 기록</h3>" +
+      "<div class='scroll'><table class='rec'><tr><th>경과</th><th>단계</th><th>구간</th><th>TASK</th><th>종류</th><th>영역</th><th>대상</th><th>화면</th><th>좌표</th></tr>" + rows + "</table></div>";
+    $("detail").scrollIntoView({ behavior: "smooth" });
+  }
+
+  // 내보내기 · 가져오기
+  // 참가자 한 명 기록을 파일로 — 브라우저 기록이 지워져도 남게. 기록 화면의 JSON 가져오기로 합친다
+  function backup(a) {
+    if (a.preview) { return; }
+    try { download("UT_" + a.participant + "_" + stamp() + (a.stopped ? "_중단" : "") + ".json", JSON.stringify({ attempts: [a] }, null, 1), "application/json"); } catch (e) { }
+  }
+  function download(name, text, type) {
+    var blob = new Blob(["﻿" + text], { type: type });
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(blob); a.download = name;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function () { URL.revokeObjectURL(a.href); }, 1000);
+  }
+  function csv(rows) {
+    return rows.map(function (r) { return r.map(function (v) { v = v == null ? "" : String(v); return /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; }).join(","); }).join("\r\n");
+  }
+  function stamp() { var d = new Date(); return d.getFullYear() + String(d.getMonth() + 1).padStart(2, "0") + String(d.getDate()).padStart(2, "0") + "-" + String(d.getHours()).padStart(2, "0") + String(d.getMinutes()).padStart(2, "0"); }
+  $("csv-sum").addEventListener("click", function () {
+    var rows = [["참가자", "기록ID", "개인정보 동의", "성별", "연령대", "담당 업무", "시작", "상태", "튜토리얼(초)", "튜토리얼 닫은 단계",
+      "S1 수행(초)", "S1 클릭", "S1 인터뷰(초)", "S2 수행(초)", "S2 클릭", "S2 인터뷰(초)", "S3 수행(초)", "S3 클릭", "S3 인터뷰(초)",
+      "S2 알림 발생부터 수행 완료(초)", "S3 조치 버튼 첫 클릭(초, S3 시작부터)"]
+      .concat(["선호 화면 모드"]).concat(LIKERT.map(function (q) { return q.replace(/<[^>]+>/g, "").split(":")[0] + "(1~7)"; }))
+      .concat(QLIST.map(function (q) { return "TASK " + q[0] + " 문항" + (q[1] + 1) + " " + q[2]; }))];
+    function sec(ms) { return ms != null ? (ms / 1000).toFixed(1) : ""; }
+    DB.attempts.forEach(function (a) {
+      var ss = [1, 2, 3].map(function (n) { return scenStat(a, n); });
+      var s2 = a.scenarios[2], s3 = a.scenarios[3];
+      var alertIn2 = a.events.filter(function (e) { return e.phase === "s2" && e.type === "alert-in"; })[0];
+      var conf = s3 ? a.events.filter(function (e) { return e.phase === "s3" && e.confirm; })[0] : null;
+      var pf = a.profile || {};
+      rows.push([a.participant, a.id, pf.consent || "", pf.gender || "", pf.age || "", pf.job || "", clock(a.startedAt), doneAll(a) ? "완료" : a.stopped ? "중단" : "진행 중",
+        a.tutorial && a.tutorial.end ? sec(a.tutorial.end - a.tutorial.start) : "", a.tutorial ? a.tutorial.skipped || "" : ""]
+        .concat([].concat.apply([], ss.map(function (s) { return [sec(s.ms), s.clicks, sec(s.iv)]; })))
+        .concat([alertIn2 && s2 && s2.done ? sec(s2.done - alertIn2.t) : "", conf && s3 ? sec(conf.t - s3.start) : ""])
+        .concat([a.post ? a.post.mode : ""]).concat(LIKERT.map(function (q, i) { return a.post ? a.post.likert[i] : ""; }))
+        .concat(QLIST.map(function (q) { return answerOf(a, q[0], q[1]); })));
+    });
+    download("aprism-ut-요약-" + stamp() + ".csv", csv(rows), "text/csv;charset=utf-8");
+  });
+  $("csv-ev").addEventListener("click", function () {
+    var rows = [["참가자", "기록ID", "시각", "경과(초)", "단계", "구간", "TASK", "종류", "영역", "대상", "답변", "화면", "x", "y", "빈 링크", "조치 버튼"]];
+    DB.attempts.forEach(function (a) {
+      a.events.forEach(function (e) {
+        rows.push([a.participant, a.id, clock(e.t), (e.at / 1000).toFixed(1), ko(PHASE_KO, e.phase), ko(STAGE_KO, e.stage), e.task, ko(TYPE_KO, e.type),
+          e.area || "", e.label || "", e.text || "", e.page || "", e.x, e.y, e.dead || "", e.confirm || ""]);
+      });
+    });
+    download("aprism-ut-클릭기록-" + stamp() + ".csv", csv(rows), "text/csv;charset=utf-8");
+  });
+  $("json-out").addEventListener("click", function () {
+    download("aprism-ut-전체-" + stamp() + ".json", JSON.stringify(DB, null, 1), "application/json");
+  });
+  $("json-in").addEventListener("change", function (e) {
+    // 여러 파일을 한 번에 — 노트북마다 내보낸 전체 JSON, 참가자마다 자동 백업된 JSON 모두 받는다. 같은 기록(id)은 한 번만
+    var files = Array.prototype.slice.call(e.target.files); if (!files.length) { return; }
+    Promise.all(files.map(function (f) { return f.text().then(function (t) { try { return JSON.parse(t.replace(/^﻿/, "")); } catch (x) { return null; } }); })).then(function (list) {
+      var ids = {}, added = 0, bad = 0;
+      DB.attempts.forEach(function (a) { ids[a.id] = 1; });
+      list.forEach(function (got) {
+        if (!got || !got.attempts) { bad++; return; }
+        got.attempts.forEach(function (a) { if (!ids[a.id]) { ids[a.id] = 1; DB.attempts.push(a); added++; } });
+      });
+      DB.attempts.sort(function (a, b) { return a.startedAt - b.startedAt; });
+      save(true); renderResults();
+      $("io-note").textContent = "파일 " + files.length + "개에서 새 기록 " + added + "건" + (bad ? ", 읽지 못한 파일 " + bad + "개" : "");
+    });
+    e.target.value = "";
+  });
+
+  // 온라인 백업 버튼 — 지금 보내기, 시트의 기록 전부 가져와 합치기, 이 브라우저에만 쓸 주소 넣기
+  $("cloud-now").addEventListener("click", function () { Cloud.flush(); });
+  $("cloud-pull").addEventListener("click", function () {
+    if (!Cloud.url()) { $("io-note").textContent = "백업 주소가 없습니다"; return; }
+    $("io-note").textContent = "구글 시트에서 불러오는 중";
+    Cloud.jsonp({ action: "list" }, 60000).then(function (got) {
+      var ids = {}, added = 0;
+      DB.attempts.forEach(function (a) { ids[a.id] = a; });
+      (got.attempts || []).forEach(function (a) {
+        var mine = ids[a.id];
+        if (!mine) { DB.attempts.push(a); added++; }
+        else if ((a.rev || 0) > (mine.rev || 0)) { DB.attempts[DB.attempts.indexOf(mine)] = a; added++; }
+      });
+      DB.attempts.sort(function (a, b) { return a.startedAt - b.startedAt; });
+      save(true); renderResults(); paintCloud();
+      $("io-note").textContent = "구글 시트 기록 " + (got.attempts || []).length + "건 중 새로 받은 것 " + added + "건";
+    }).catch(function () { $("io-note").textContent = "구글 시트에서 불러오지 못했습니다"; });
+  });
+  $("cloud-set").addEventListener("click", function () {
+    var box = $("cloud-box");
+    if (box) { box.hidden = !box.hidden; return; }
+    box = document.createElement("div"); box.id = "cloud-box"; box.className = "row";
+    box.innerHTML = '<input id="cloud-input" type="url" placeholder="https://script.google.com/macros/s/.../exec" style="flex:1;min-width:420px;font:inherit;padding:10px 12px;border:1px solid var(--line);border-radius:8px"><button type="button" class="btn btn-line" id="cloud-save">저장</button>';
+    this.parentNode.insertAdjacentElement("afterend", box);
+    $("cloud-input").value = Cloud.url();
+    $("cloud-save").addEventListener("click", function () {
+      try { localStorage.setItem("aprism-ut-cloud", $("cloud-input").value.trim()); } catch (e) { }
+      paintCloud(); Cloud.flush();
+    });
+  });
+
+  // 리포트(report.js)가 쓰는 것
+  window.UT = { db: function () { return DB; }, SCEN: SCEN, QLIST: QLIST, PEOPLE: PEOPLE, scenStat: scenStat, answerOf: answerOf, latest: latest,
+    doneAll: doneAll, LIKERT: LIKERT, mmss: mmss, clock: clock, esc: esc, show: show, pid: pid };
+
+  renderHome();
+  paintCloud();
+  Cloud.flush();
+  // 미리보기 — 주소 끝 #tour 로 열면 바로 튜토리얼부터. 기록에 남기지 않는다
+  if (location.hash === "#tour") { history.replaceState(null, "", location.pathname); startTest("미리보기", null, true); }
+})();
+</script>
+<script src="report.js"></script>
+</body>
+</html>

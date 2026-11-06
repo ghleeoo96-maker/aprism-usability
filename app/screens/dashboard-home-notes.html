@@ -1,0 +1,2852 @@
+<!DOCTYPE html>
+<html lang="ko" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>04.1 통합 관제 메인 · 퍼블리싱 노트 — APRISM</title>
+  <meta name="description" content="Figma 기준 반영 내역과 확인이 필요한 지점" />
+  <link rel="stylesheet" href="../assets/css/tokens.css?v=b64812bd" />
+  <link rel="stylesheet" href="../assets/css/base.css?v=5ccd4bb3" />
+  <style>
+    .notes {
+      max-width: 880px;
+      margin: 0 auto;
+      padding: var(--space-48) var(--space-20) 96px;
+      font-size: var(--font-size-14);
+      line-height: var(--font-line-height-22);
+      color: var(--text-secondary);
+    }
+
+    .notes h2 {
+      margin-bottom: var(--space-8);
+      font-size: var(--font-size-32);
+      line-height: var(--font-line-height-40);
+      letter-spacing: -0.02em;
+      color: var(--text-primary);
+    }
+
+    .notes h3 {
+      margin: var(--space-48) 0 var(--space-12);
+      font-size: var(--font-size-16);
+      line-height: var(--font-line-height-24);
+      color: var(--text-primary);
+    }
+
+    .notes p + p { margin-top: var(--space-12); }
+    .notes .lead { margin-bottom: var(--space-8); }
+
+    .notes table {
+      width: 100%;
+      margin-top: var(--space-12);
+      border-collapse: collapse;
+      font-size: var(--font-size-13);
+      line-height: var(--font-line-height-20);
+    }
+
+    .notes th,
+    .notes td {
+      padding: var(--space-8) var(--space-12);
+      border-bottom: var(--border-width-thin) solid var(--border-divider);
+      text-align: left;
+      vertical-align: top;
+    }
+
+    .notes th { color: var(--text-tertiary); font-weight: 500; white-space: nowrap; }
+
+    .notes code {
+      font-family: var(--font-family-mono);
+      font-size: 0.92em;
+      color: var(--text-primary);
+    }
+
+    .notes ul { margin: var(--space-8) 0 0; padding-left: 1.1em; }
+    .notes li { margin-bottom: var(--space-4); }
+    .notes strong { color: var(--text-primary); font-weight: 600; }
+
+    .notes .eyebrow {
+      font-family: var(--font-family-mono);
+      font-size: var(--font-size-12);
+      font-weight: 500;
+      letter-spacing: 0.09em;
+      text-transform: uppercase;
+      color: var(--comp-gnb-text-brand);
+      margin-bottom: var(--space-8);
+    }
+
+    .notes .open { display: flex; gap: var(--space-12); margin-top: var(--space-24); }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true"></span>
+      <span class="brand-name">APRISM</span>
+    </div>
+    <button type="button" class="theme-toggle" data-theme-toggle aria-label="테마 전환">
+      <span data-theme-label>Dark</span>
+    </button>
+  </header>
+
+  <main class="site-main" style="max-width:none;padding:0">
+<section class="notes">
+  <p class="eyebrow">Publishing Notes</p>
+  <h2>Figma 기준으로 다시 맞췄습니다</h2>
+  <p class="lead">
+    화면이 <strong>UI_99_작업화면에서 UI_00_Design System 안(node 399:6225)</strong>으로 옮겨졌고,
+    구조가 크게 바뀌었습니다. 디자인 시스템도 컬렉션 구성이 달라져서 <code>tokens.css</code>를 다시 만들었습니다.
+  </p>
+
+  <h3>1. AI 패널 — Delta 그래픽 자리에 맞춰 구조를 다시 짰습니다</h3>
+  <p><b>두 state 의 배치가 달라졌습니다.</b></p>
+  <table>
+    <tr><th></th><th>이전</th><th>현재 (Figma 121:665)</th></tr>
+    <tr><td>닫힘</td><td>헤더(DELTA+태그) 위 · 메시지 아래</td>
+        <td><b>가로 배치</b> — 왼쪽에 Delta 기둥(원 60 + 이름), 오른쪽에 태그 줄 + 메시지</td></tr>
+    <tr><td>펼침</td><td>같은 헤더 + 상자</td>
+        <td>Delta(원 24 + 이름)가 <b>헤더 줄 안으로</b> 들어가고 상자가 아래 전체</td></tr>
+  </table>
+  <p>
+    여닫을 때 DOM 을 옮기지 않으려고 <b>이름 붙인 격자 칸</b>으로 담았습니다 —
+    닫힘은 <code>"delta header" / "delta box"</code>, 펼침은 <code>"delta header" / "box box"</code> 입니다.
+    Delta 기둥 폭은 Figma 와 같은 <b>92</b>(원 60 + 좌우 16), 펼침에서는 <b>79</b>(원 24 + 4 + 이름)입니다.
+  </p>
+  <p>
+    <b>그래픽이 들어왔습니다 — Prism Orb 입니다.</b> Claude Design 핸드오프
+    (<code>assets/prism-orb/</code>)로 주신 프로토타입을 얹었습니다. 크기는 Figma 자리표시자와 같은
+    <b>닫힘 48 · 펼침 19</b> 로 잡힙니다. <b>Figma 에는 아직 원 외곽선(<code>#D9D9D9</code> 2px)만
+    있으니 그쪽도 채워 주시면 좋겠습니다.</b>
+  </p>
+  <p>
+    <b>색은 패널의 심각도를 따라갑니다.</b> 원본의 팔레트 네 개
+    (<code>critical</code> · <code>warning</code> · <code>safe</code> · <code>info</code>)가 그대로 있어서,
+    지금은 주의 상태면 호박색, <code>확인</code>을 누르면 패널과 같이 파란색으로 넘어갑니다.
+  </p>
+  <p>
+    <b><code>확인</code> 을 누른 뒤(파란 상태) 나오는 멘트를 받았습니다.</b>
+    두 줄이 이렇게 바뀝니다 — 닫힘·펼침 두 판에 같이 들어갑니다.
+  </p>
+  <table>
+    <tr><th>줄</th><th>파란(일반) 상태</th></tr>
+    <tr><td>태그</td><td>인계 알림 3건 · 예정 미션 1건</td></tr>
+    <tr><td>인사</td><td>안녕하세요, 홍길동 님.</td></tr>
+    <tr><td>본문</td><td>인계된 알림 3건과 진행 예정인 미션 1건이 있어요. 먼저 살펴볼까요?</td></tr>
+  </table>
+  <p>
+    문구는 <code>assets/js/screen.js</code> 의 <code>NORMAL_LINE_1</code> ·
+    <code>NORMAL_LINE_2</code> 입니다. 전에는 한 줄짜리
+    <code>"무엇을 도와드릴까요?"</code> 였는데, <b>찾는 선택자가
+    <code>.ai-message-text</code> 로 남아 있어 실제로는 바뀌지 않고 있었습니다</b> —
+    메시지가 두 줄(<code>.ai-line-1</code> · <code>.ai-line-2</code>)로 바뀔 때 같이 안 고쳐진
+    자리였습니다. 이번에 두 판 네 줄을 다 바꾸도록 고쳤습니다.
+  </p>
+  <p>
+    본문이 길어져서 <b>1920 에서만 한 줄</b>입니다. 닫힘은 1600 부터,
+    펼침은 1600 부터 두 줄이 되고 패널이 그만큼 높아집니다(닫힘 120 → 144).
+  </p>
+  <p>
+    <b>태그도 같이 바꿉니다.</b> 주의 상태 문구(<code>원인 분석 완료 · 후보 1건 확인</code>)가
+    그대로 남으면 새 멘트와 안 맞습니다. <b>태그 문구는 정해진 것이 없어서 임시로 지었습니다</b> —
+    확정되면 <code>NORMAL_TAG</code> 한 줄만 고치면 됩니다.
+    이름은 상단 바와 같은 <b>홍길동</b> 으로 맞췄습니다.
+  </p>
+  <p>
+    <b>원본과 다르게 둔 것이 셋 있습니다.</b> 셋 다 60px 자리에 담느라 생긴 일이고,
+    까닭은 <code>assets/js/prism-orb.js</code> 머리말에 적어 뒀습니다.
+  </p>
+  <ul>
+    <li><b>화각을 32°에서 30.4°로</b> 조금 좁혔습니다. 원본 무대에서 오브는 캔버스의 74%를 쓰는데
+      그대로 두면 60 상자에서 44가 됩니다. Figma 자리표시자와 같은 48이 되도록 맞췄습니다.
+      카메라는 원본 자리 그대로라 <b>원근은 하나도 안 변합니다</b> — 확대만 한 셈입니다.</li>
+    <li><b>코어 블러 폭을 해상도에서 떼어냈습니다.</b> 원본은 블러를 렌더타깃 픽셀로 계산해서
+      캔버스가 작아지면 상대적으로 훨씬 커집니다 — 이 크기에서는 안쪽 빛이 오브 전체로 번져
+      형체가 사라졌습니다. 원본이 다듬어진 크기에서 나오는 값으로 고정했습니다.</li>
+    <li><b>등배가 아니라 2배로 그려</b> 브라우저가 줄이게 뒀습니다. 면이 720개라
+      48px 에 등배로 그리면 삼각형이 1px 밑으로 내려가 자글거립니다.</li>
+  </ul>
+  <p>
+    <b>three.js 는 저장소에 안 들어왔습니다.</b> 원본은 <code>esm.sh</code> 에서 three 를 불러 쓰는데,
+    빌드 단계가 없는 저장소라 Strands 때와 같이 <b>셰이더는 그대로 두고 three 가 하던 일만
+    순수 WebGL2 로 옮겼습니다.</b> 화면이 외부에서 더 받아 오는 것은 없습니다.
+  </p>
+  <p>
+    <b>움직임을 줄이도록 설정한 환경</b>에서는 돌지 않고 한 장에서 멈춥니다.
+    <b>WebGL2 를 못 쓰는 브라우저</b>에서는 예전 자리표시자 원이 그대로 남습니다.
+  </p>
+
+  <p><b>메시지가 두 줄이 되었습니다.</b> 컴포넌트 속성도 인사 · 브리핑 · AI Name 셋으로 갈라졌습니다.</p>
+  <table>
+    <tr><th>줄</th><th>닫힘</th><th>펼침</th><th>강약</th></tr>
+    <tr><td>인사</td><td rowspan="2" style="vertical-align:middle"><b><code>Body/2</code> (16/24) Regular</b></td>
+        <td rowspan="2" style="vertical-align:middle"><b><code>Body/1</code> (20/32) SemiBold</b></td>
+        <td><b>투명도 80%</b></td></tr>
+    <tr><td>브리핑</td><td><b>볼드(700)</b></td></tr>
+  </table>
+  <p>
+    <b>state 안에서는 두 줄이 같은 스타일입니다</b> — 닫힘이 답답해 보인다고 해서
+    한 번 더 손보신 결과입니다(<code>568:25104</code>). 닫힘은 14/22 에서 <b>16/24</b> 로 커졌고,
+    <b>상자 여백도 8 → 12</b> 로 늘었습니다. 펼침은 인사 줄까지 <code>Body/1</code> 이 되었습니다.
+  </p>
+  <p>
+    <code>Body/1</code> 은 이름이 Regular 인데 <b>스타일 자체가 SemiBold</b> 입니다 —
+    이전 구현은 Regular 로 그리고 있었습니다.
+  </p>
+  <p>
+    닫힘 메시지 상자가 <b>65 → 77</b> 로, 화면에서는 <b>76</b> 입니다(1px stroke 반올림 차이).
+  </p>
+  <p>
+    <b>두 줄의 강약은 Figma 에 없습니다.</b> Figma 는 두 줄을 같은 굵기 · 같은 농도로 두는데,
+    읽을 때 정보가 들어 있는 쪽은 둘째 줄이라 <b>인사를 80% 로 물리고 브리핑을 볼드로 세웠습니다.</b>
+    <code>.ai-line-1</code> · <code>.ai-line-2</code> 가 두 state 를 한꺼번에 맡습니다 —
+    크기는 state 가 정하고, 강약은 줄이 정합니다.
+  </p>
+  <p>
+    옅어진 인사 줄도 <b>대비 9.16 : 1</b>(닫힘) · <b>9.86 : 1</b>(펼침)로 AAA(7:1)를 넘습니다.
+    상자가 그라데이션이라 글자 밴드를 훑어 잰 값입니다.
+  </p>
+
+  <p>
+    <b>흐르던 상단선이 사면 테두리로 옮겨갔습니다.</b> Figma stroke 가 네 변으로 바뀌면서
+    한 번 걷어냈다가, 같은 짜임을 링 전체에 다시 얹었습니다.
+  </p>
+  <ul>
+    <li><b>상자</b> — 1px 흰 광택 그라데이션(<code>90deg</code>, 투명도 20/50/20/80/50).
+      <b>네 변 모두</b>이고 <b>흐릅니다</b>(아래 7-1 참고).</li>
+    <li><b>입력창</b> — 1px 파란 5-stop 그라데이션. <b>예전 상단선이 쓰던 색이 여기로 왔습니다.</b>
+      주의 상태에서는 경고 계열로 갈아탑니다. 이쪽은 안 흐릅니다.</li>
+  </ul>
+  <p>
+    CSS <code>border</code> 는 그라데이션을 못 받아서, 둘 다 <code>padding 1</code> 짜리 판에
+    <code>content-box XOR border-box</code> 마스크로 테두리 띠만 남겼습니다.
+  </p>
+
+  <p>
+    <b>AI 패널 아래 여백을 8 에서 20 으로 올렸습니다.</b>
+    <code>.map-panel</code> 의 <code>padding 8</code> 은 못 건드립니다 —
+    우측 패널(<code>.floating</code>)과 같아야 하고 subgrid 의 2~8번 칸 경계가 그 8 에 맞춰져 있습니다.
+    그래서 <code>.ai-panel</code> 에 <code>margin-bottom 12</code> 를 더해
+    <b>8 + 12 = 20</b> 으로 맞췄습니다. 화면에서 잰 값도 <code>20.0px</code> 입니다.
+  </p>
+
+  <p><b>같이 바로잡은 것 둘</b></p>
+  <ul>
+    <li><b>[확인]·보내기 버튼이 secondary 였습니다.</b> Figma 는 <code>button/primary</code>(흰 면 + 어두운 글자)입니다.
+      디자인 시스템 동기화로 secondary 의 Dark 값이 회색 면이 되면서 눈에 띄었습니다.</li>
+    <li><b>글자색을 <code>fg/primary</code> 로 바꿨습니다.</b> 이전에는 <code>gray/50</code>(흰색)으로 박혀 있었는데,
+      상자가 반투명이라 <b>Light 모드에서 밝은 면 위 흰 글자</b>가 됐습니다. Figma 도 전부 <code>fg/primary</code> 입니다.</li>
+  </ul>
+
+  <p><b>Figma 와 다르게 둔 것</b></p>
+  <ul>
+    <li><b>닫힘 태그 줄 높이</b> — Figma 34, 여기 <b>44</b> 입니다. Figma 의 토글은 36×20 인데
+      누르는 자리로 쓰기엔 낮아서 36×36 을 그대로 뒀습니다.</li>
+    <li><b>Spectrum</b> — Figma 에 없는 층입니다. 이전대로 닫힘 상태에만 깔아 뒀습니다.
+      막대 색은 <b>Delta 오브와 같은 팔레트</b>입니다(아래 참고).</li>
+    <li><b>두 줄의 강약</b> — 인사 80% · 브리핑 볼드. Figma 는 둘을 같게 둡니다(위 참고).</li>
+  </ul>
+
+  <h3>2. 디자인 시스템 동기화 · Waypoint 카드</h3>
+
+  <p><b>Semantic 130개를 전부 대조해 53건을 맞췄습니다.</b> 지금은 어긋나는 값이 없습니다.</p>
+  <table>
+    <tr><th>묶음</th><th>건수</th><th>내용</th></tr>
+    <tr><td>button/*</td><td><b>14</b></td><td>Dark 값이 생겼습니다 — 그동안 Light 와 같은 값이라
+      <b>어두운 화면에서 버튼이 흰 면에 검은 글자</b>였습니다. 오래 열어 뒀던 항목이 닫혔습니다.</td></tr>
+    <tr><td>alert/*</td><td><b>20</b></td><td><code>fg</code> · <code>bg</code> · <code>on-edge</code> 가
+      <b>모드와 무관한 고정값</b>이 되었습니다(색 있는 면 위 글자라 뒤집힐 이유가 없습니다).</td></tr>
+    <tr><td>나머지</td><td><b>19</b></td><td><code>bg/canvas</code> Light 가 <code>gray/50 → gray/200</code>,
+      <code>border/focus</code> 가 두 모드 다 한 단계씩,
+      <code>status/normal</code> · <code>status/info</code> · <code>chart/track</code> ·
+      <code>bg/surface/raised</code> · <code>bg/accent</code> 등입니다.</td></tr>
+  </table>
+
+  <p><b>Waypoint(Step) 카드는 이렇게 바뀌었습니다.</b></p>
+  <table>
+    <tr><th>부분</th><th>이전</th><th>현재</th></tr>
+    <tr><td>수행중 카드 면</td><td>반투명 그라데이션 + <code>border/focus</code> 테두리</td>
+        <td><b>꽉 찬 파랑</b> <code>main/700 → main/600</code> · <b>테두리 없음</b></td></tr>
+    <tr><td>기본 카드 면</td><td><code>chart/track</code></td><td><b><code>bg/surface/subtle</code></b></td></tr>
+    <tr><td>덩이 간격</td><td>머리 안 0 · 머리와 설명 8</td><td><b>셋 다 4</b></td></tr>
+    <tr><td>완료 카드 높이</td><td>68</td><td><b>72</b> (Figma 72)</td></tr>
+    <tr><td>수행중 번호 칩</td><td><code>bg/accent</code></td><td><b><code>bg/overlay</code></b> (렌더에서 재보니 #070A10 60%)</td></tr>
+    <tr><td>수행중 시각·소요</td><td>회색 유지</td><td><b>밝은 글자</b></td></tr>
+  </table>
+
+  <p><b>수행중 카드의 이상한 곳 둘을 Figma 와 코드 양쪽에서 고쳤습니다.</b></p>
+  <p>
+    <b>1) 글자색이 테마 따라 뒤집혔습니다.</b> 카드 면은 두 모드 모두 파랑인데
+    글자에 <code>fg/primary</code> 가 걸려 있어서, Light 에서 검정(<code>#070A10</code>)이 됐습니다.
+    다섯 글자(번호 · 시각 · 소요 · 지점명 · 설명) 모두 <code>color/gray/0</code> 으로 묶었습니다 —
+    모드와 무관한 흰색입니다.
+  </p>
+  <p>
+    <b>2) 대비가 모자랐습니다.</b> 면을 <b>한 단계씩 낮췄습니다</b> —
+    <code>main/700 → main/600</code> 에서 <code><b>main/900 → main/800</b></code> 입니다.
+  </p>
+  <table>
+    <tr><th>카드 면</th><th>흰 글자</th><th>검은 글자</th></tr>
+    <tr><td><code>main/700 → main/600</code> (이전)</td><td>3.22~3.82</td><td>4.88~5.80</td></tr>
+    <tr><td><code>main/800 → main/700</code></td><td>4.15~4.95</td><td>3.77~4.49</td></tr>
+    <tr><td><b><code>main/900 → main/800</code> (현재)</b></td><td><b>5.38~6.50</b></td><td>2.87~3.47</td></tr>
+  </table>
+  <p>
+    글자가 놓이는 세로 구간 전체에서 잰 값입니다. 12px 시각·설명 글자에 필요한 AA 4.5 를
+    <b>카드 어디서나 넘깁니다.</b>
+  </p>
+  <p>
+    <b>검은 글자로 두는 안도 있었습니다</b> — 원래 면에서도 4.88~5.80 으로 통과합니다.
+    다만 짙은 파랑 위 검은 글자는 <b>숫자와 달리 눈으로는 뭉개져 보여서</b>,
+    세 안을 실제로 그려 보고 흰 글자 + 어두운 면 쪽을 골랐습니다.
+  </p>
+  <p>
+    <b>Figma 쪽도 같은 값으로 바꿨습니다</b>(Step Card / Property 1=ing).
+    면은 원래처럼 세로 1단계 램프 그대로이고 색만 내렸습니다.
+    <b>퍼블리시가 있어야 다른 파일에 갑니다.</b> 되돌리시려면 Figma 는 실행취소,
+    코드는 <code>.is-running .step-card</code> 의 두 줄입니다.
+  </p>
+  <p>
+    카드 폭은 Figma 336, 여기 304 입니다 — 미션 패널이 3컬럼이라 그렇습니다(아래 3번 참고).
+    그래서 수행중 카드 높이도 설명 줄 수에 따라 달라집니다(Figma 129 · 여기 112).
+  </p>
+
+  <h3>3. 로봇개 비율을 고친 파일로 걷기 리그를 다시 짰습니다</h3>
+  <p>
+    주신 <code>dog.svg</code> 를 <code>assets/img/robot-dog.svg</code> 로 옮기고,
+    그 파일의 도형 그대로 걷기 리그를 다시 만들었습니다. <b>모션은 손대지 않았습니다</b> —
+    같은 키프레임(<code>rd-hip</code> · <code>rd-knee</code> · <code>rd-bob</code> · <code>rd-glow</code>),
+    같은 주기 1.6s, 같은 네 다리 위상차입니다.
+  </p>
+  <table>
+    <tr><th>바뀐 곳</th><th>이전</th><th>현재</th></tr>
+    <tr><td>몸통 오른쪽 끝</td><td>85</td><td><b>75</b></td></tr>
+    <tr><td>오른쪽 다리</td><td>—</td><td><b>10 왼쪽으로</b> (발 72.76 → 62.76)</td></tr>
+    <tr><td>목 판</td><td>35</td><td><b>31</b></td></tr>
+    <tr><td>viewBox</td><td><code>0 -3 95 85</code></td><td><code><b>0 -3 85 85</b></code></td></tr>
+    <tr><td>화면에서 그려지는 폭</td><td>80.5</td><td><b>72</b></td></tr>
+  </table>
+  <p>
+    관절 위치도 같이 옮겼습니다 — 오른쪽 엉덩이 <code>74 → 64</code>,
+    오른쪽 무릎 <code>89 → 79</code> 입니다. 왼쪽 다리는 원본에서 안 바뀌어서 그대로입니다.
+  </p>
+  <p>
+    <b>원본과 같은지 픽셀로 확인했습니다.</b> 리그를 정지 자세로 두고 원본 파일을 같은
+    viewBox·같은 크기로 겹쳐 보니 5184 픽셀 중 <b>33 개</b>만 다릅니다.
+    그 33 개도 전부 배 밑 발광 구간(y 43~46)입니다 — 리그는 원본의 가우시안 블러 하나 대신
+    <b>세 겹 그라데이션 크로스페이드</b>를 쓰고 색도 푸른빛(<code>#cfe0ff</code>)입니다.
+    예전 리그에서 다듬어 둔 것이라 그대로 뒀습니다. 몸통·머리·다리 넷은 원본과 한 픽셀도 다르지 않습니다.
+  </p>
+  <p>
+    <b>대기 로봇 둘도 같이 맞췄습니다.</b> 앉은 자세 파일(<code>robot-dog-sit.svg</code>)을 받아
+    <code>rig-robot-idle</code> 심볼을 그 도형으로 다시 만들었습니다. 걷기와 똑같은 보정입니다 —
+    몸통 오른쪽 끝 85 → 75, 오른쪽 다리 10 왼쪽으로, 목 판 35 → 31.
+    거기에 접은 다리가 3 위로 올라갔습니다(발 <code>54.5 → 51.5</code>).
+  </p>
+  <p>
+    <b>배율도 같이 맞췄습니다.</b> 예전에는 대기 로봇만 57 유닛을 56px 로 그려서
+    유닛당 0.98 이었습니다 — 걷기(0.847)보다 커서 <b>대기 로봇 몸통만 40% 길어 보였습니다</b>.
+    지금은 둘 다 유닛당 <code>72/85</code> 로 그리고, 발 높이도 맞춰 세 카드가 같은 바닥에 섭니다.
+    몸통 도형이 원래 같은 path 라 이제 화면에서도 같은 길이입니다.
+  </p>
+  <table>
+    <tr><th></th><th>이전</th><th>현재</th></tr>
+    <tr><td>대기 viewBox</td><td><code>0 0 105 57</code></td><td><code><b>0 0 95 58</b></code></td></tr>
+    <tr><td>대기 유닛당 픽셀</td><td>0.98</td><td><b>0.847</b> (걷기와 같음)</td></tr>
+    <tr><td>대기 그려지는 크기</td><td>103 × 56</td><td><b>80.5 × 49.1</b></td></tr>
+  </table>
+  <p>
+    원본에는 먼 쪽 다리 둘이 더 있는데 <b>가까운 쪽과 좌표가 같아 완전히 가려집니다.</b>
+    걷기 리그처럼 위상이 어긋나야 보이는 것이라, 앉은 자세에서는 빼고 그렸습니다 — 그림은 같습니다.
+  </p>
+
+  <h3>3-0. 지도 — 2차 임시 맵 · 휠로 확대·축소</h3>
+  <p>
+    <strong>지난 이야기입니다.</strong> 2026-09-10 에 지도가 <b>평면 SVG 에서 3D 모델로</b>
+    바뀌었습니다. 아래 내용(레이어 · <code>viewBox</code> · 배율마다 다시 굽던 방식)은
+    그때까지의 기록입니다 — 지금 도는 것은 <b>9-9</b> 를 보십시오.
+  </p>
+  <p>
+    <code>Map</code>(<code>538:12727</code>)을 통째로 내보내 넣었습니다.
+    레이어가 <b>여덟 겹</b>으로 나뉘어 있고 SVG 에도 <code>id</code> 로 그대로 남습니다 —
+    <code>Layer_Ground</code> · <code>Aisles</code> · <code>Structure</code> ·
+    <code>Equipment</code> · <code>Routes</code> · <code>Waypoints</code> ·
+    <code>Robots</code> · <code>Zone_Labels</code>.
+    <code>Layer_StatusMarkers</code> 는 <b>Figma 에서 숨김</b>이라 내보내기에 없습니다.
+  </p>
+  <p>
+    글자는 <b>패스로 굳어져</b> 나옵니다. <code>&lt;img&gt;</code> 안의 SVG 는 페이지 서체를
+    못 쓰기 때문에 <code>&lt;text&gt;</code> 로 남으면 한글이 기본 서체로 떨어집니다.
+    Figma 내보내기가 알아서 외곽선으로 바꿔 줍니다(<code>&lt;text&gt;</code> 0개 확인).
+  </p>
+  <p>
+    <b>내보내기가 화면 전체를 감싸서 나옵니다.</b> <code>Screen</code> ·
+    <code>Template</code> · <code>Container</code> 껍데기와 배경 사각형이 붙습니다.
+    <code>&lt;g id="Map"&gt;</code> 부분만 떼어내고 <code>viewBox</code> 를 지도 내용의 실제
+    범위로 다시 잡았습니다 — <code>-319 13 1716 967</code> 입니다.
+    Map 프레임은 <code>clipsContent = false</code> 라 내용이 프레임 밖으로 나가는데,
+    그 범위가 마침 <b>정확히 1716 × 967</b> 이라 잘리는 것 없이 다 들어옵니다.
+  </p>
+  <p><b>움직임</b> — <code>assets/js/map.js</code> 입니다.</p>
+  <table>
+    <tr><th>동작</th><th>결과</th></tr>
+    <tr><td>휠</td><td>커서 밑의 지점을 붙잡고 확대·축소</td></tr>
+    <tr><td>끌기</td><td>이동. 도구 레일 위에서 시작한 것은 무시</td></tr>
+    <tr><td><b>확대</b> 버튼</td><td>보이는 지도 한가운데를 잡고 1.5배</td></tr>
+    <tr><td><b>로봇 추적</b> 버튼</td><td>수행 중인 R-01 을 한가운데로(1.8배) · 다시 누르면 전체 보기</td></tr>
+  </table>
+  <p>
+    <b>배율의 바닥은 "칸을 채우는 배율"</b>입니다. 그보다 작아지면 지도 밖 빈자리가 보이므로
+    거기서 멈춥니다. 위로는 <b>4배</b>까지고, 이동도 지도가 늘 창을 덮도록 가둡니다.
+  </p>
+  <p>
+    <b>확대하면 뭉개지던 것을 고쳤습니다.</b> 벡터니까 키워도 또렷할 줄 알았는데 아니었습니다 —
+    <code>transform: scale()</code> 로 키우면 브라우저는 그림을 <b>제 크기(1716)로 한 번 굽고
+    그 비트맵을 GPU 가 늘립니다.</b> 벡터로 다시 그리지 않습니다.
+  </p>
+  <p>
+    그래서 <b>두 단계</b>로 나눴습니다. 휠을 굴리는 동안에는 <code>transform</code> 이 맡고
+    (빠릅니다), 손을 떼고 <b>140ms</b> 가 지나면 <code>&lt;img&gt;</code> 의 실제 크기를
+    그 배율로 바꿔 다시 굽습니다. 그때 <code>transform</code> 의 배율은 <b>1 로 돌아옵니다</b> —
+    멎어 있을 때는 늘 1:1 이라 또렷합니다.
+  </p>
+  <p>
+    굽는 크기는 긴 변 <b>8192</b> 로 묶었습니다(GPU 텍스처 한계). 4배에서
+    <b>6336 × 3570</b> 이라 상한 안쪽이고, 그 자리에서 <code>transform</code> 이
+    <code>matrix(1, 0, 0, 1, …)</code> 인 것을 확인했습니다.
+    최대 배율을 6 에서 4 로 낮춘 것도 이 상한 때문입니다.
+  </p>
+  <p>
+    <b>지도가 보이는 창과 손이 닿는 자리가 다릅니다.</b>
+    창(<code>.map-view</code>)은 <code>.two-col</code> 전체를 덮습니다 —
+    우측 미션 패널 뒤까지 지도가 깔려야 반투명한 패널 면이 지도 위에 뜬 유리로 읽힙니다
+    (Figma 도 지도 프레임이 1716 로 두 칸보다 넓습니다).
+    손이 닿는 자리는 <code>.map-canvas</code> 뿐이라 <b>패널 위에서 휠을 굴려도 지도는 가만히</b> 있고,
+    확대·추적의 기준점도 그 칸의 한가운데입니다.
+  </p>
+  <p>
+    <b>지도 위 <code>Robot 02</code> 배지를 뺐습니다.</b> 2차 맵의
+    <code>Layer_Robots</code> 가 로봇마다 이름표(<code>주행 중 · R-01</code> 등)를
+    직접 그려서 겹쳤습니다.
+  </p>
+  <p>
+    나중에 <b>레이어를 켜고 끄거나 로봇을 실제로 움직이려면</b>
+    <code>&lt;img&gt;</code> 를 인라인 <code>&lt;svg&gt;</code> 로 바꾸기만 하면 됩니다 —
+    레이어 <code>id</code> 가 그대로 있어서 그때부터는 CSS·JS 로 집을 수 있습니다.
+    지금은 HTML 을 165KB 불리지 않으려고 <code>&lt;img&gt;</code> 로 뒀습니다.
+  </p>
+
+  <h3>3-1. 운영 모드 뱃지가 화면마다 다릅니다</h3>
+  <p>
+    세 화면이 모두 <code>미션 없음</code> 이었습니다. Figma
+    <code>Badge-미션</code>(<code>566:19149</code>)의 <code>state</code> 변형을 화면에 맞게 씁니다.
+  </p>
+  <table>
+    <tr><th>화면</th><th>state</th><th>문구</th><th>색</th></tr>
+    <tr><td>미션 설정</td><td><code>없음</code></td><td>미션 없음</td>
+        <td><code>bg/surface/subtle</code> + <code>border/default</code> + <code>fg/secondary</code></td></tr>
+    <tr><td>사전 점검</td><td><code>대기</code></td><td>미션 대기</td><td>위와 같음</td></tr>
+    <tr><td>모니터링</td><td><code>진행</code></td><td>미션 진행</td><td><b><code>status/info/*</code></b></td></tr>
+  </table>
+  <p>
+    변형은 <b>여섯</b>입니다 — <code>없음</code> · <code>대기</code> · <code>진행</code> ·
+    <code>완료</code> · <code>실패</code> · <code>중지</code>.
+    <code>없음</code> 과 <code>대기</code> 는 색이 같고 문구만 다릅니다.
+    나머지 셋(<code>완료</code> <code>status/normal</code> · <code>실패</code> · <code>중지</code>
+    <code>status/critical</code>)은 필요해지면 CSS 두 줄씩 더하면 됩니다.
+  </p>
+  <p>
+    면·테두리는 <code>.badge-mode.badge-info</code> 로 <b>Mode Badge 일 때만</b> 붙입니다 —
+    <code>.badge-info</code> 단독은 로봇 카드의 <code>수행중</code> 처럼 면 없는 배지에도 쓰입니다.
+  </p>
+
+  <h3>4. 12컬럼 그리드를 깔았습니다</h3>
+  <p>
+    Figma 에 레이아웃 그리드가 하나도 없어서 새로 정했습니다. 대시보드에서 가장 흔한
+    <b>12컬럼</b>, 거터 <b>16</b> 입니다. 컬럼 폭은 고정하지 않고 <b>거터만 고정하고 남는 폭을 12로 나눕니다</b> —
+    화면 폭이 바뀌어도 컬럼 경계는 늘 12등분 자리에 있습니다.
+  </p>
+  <p>
+    <b>GNB 레일(76)과 Site Context Panel(240)은 그리드 밖입니다.</b> 안에 든 것이 고정 크기라
+    컬럼에 맞출 이유가 없습니다. 그리드는 그 오른쪽 콘텐츠 영역에 깔립니다 — 1920 에서 폭 <b>1600</b> 입니다.
+  </p>
+  <p>
+    <b>지도 도구 레일은 우측 패널과 8 을 띄웁니다.</b> 레일이
+    <code>.map-canvas</code>(지도 패딩 안쪽) 기준이라 <code>right: 0</code> 이면
+    <b>지도 패딩 8 + 거터 16 + 패널 패딩 8 = 32</b> 가 벌어졌습니다.
+    패널이 위·오른쪽에 두는 여백은 <b>8</b> 인데 그 사이만 32 라 눈에 걸립니다.
+    앞의 둘(<code>8 + 16</code>)만큼 레일을 밖으로 내보내 <b>패널 패딩 8 만</b> 남겼습니다.
+  </p>
+  <table>
+    <tr><th>1920 기준 · 여백</th><th>이전</th><th>지금</th></tr>
+    <tr><td>패널 ↔ 위 변</td><td>8</td><td>8</td></tr>
+    <tr><td>패널 ↔ 오른쪽 변</td><td>8</td><td>8</td></tr>
+    <tr><td><b>도구 레일 ↔ 패널</b></td><td><b>32</b></td><td><b>8</b></td></tr>
+  </table>
+  <p>
+    거터를 식에 그대로 쓰기 때문에 <b>1600 breakpoint 에서도 같습니다</b> —
+    1440 에서도 레일 오른쪽 1112, 패널 왼쪽 1120 으로 8 입니다.
+  </p>
+  <p>
+    <b>레일 안쪽 여백은 4 입니다</b>(Figma <code>Map Tool Rail</code> <code>330:5822</code> —
+    44×132 · padding <code>space/4</code> · gap <code>space/8</code> · radius <code>radius/container</code>).
+    전에는 8 이라 레일이 54 였습니다.
+  </p>
+  <table>
+    <tr><th></th><th>Figma</th><th>화면</th></tr>
+    <tr><td>안쪽 여백</td><td>4</td><td>4</td></tr>
+    <tr><td>버튼 사이</td><td>8</td><td>8</td></tr>
+    <tr><td>폭 × 높이</td><td>44 × 132</td><td><b>46 × 134</b></td></tr>
+    <tr><td>테두리</td><td><b>없음</b></td><td><b>1px <code>gray/700</code></b></td></tr>
+  </table>
+  <p>
+    <b>2 씩 큰 것은 그 테두리입니다.</b> Figma 의 레일에는 stroke 도 effect 도 없고
+    면(<code>bg/surface/default</code>)만 있습니다. 화면 쪽 테두리는 언제 왜 들어갔는지
+    적힌 데가 없어 <b>이번에는 그대로 뒀습니다</b> — 빼면 44×132 로 정확히 맞습니다.
+    면 색도 <code>gray/800</code> 원시값을 직접 쓰고 있는데
+    <code>bg/surface/default</code> 와 같은 값이라 눈에는 차이가 없습니다.
+  </p>
+  <table>
+    <tr><th>1920 기준</th><th>값</th></tr>
+    <tr><td>콘텐츠 폭</td><td>1600</td></tr>
+    <tr><td>컬럼</td><td>(1600 − 11 × 16) ÷ 12 = <b>118.67</b></td></tr>
+    <tr><td>지도</td><td>9컬럼 = <b>1196</b></td></tr>
+    <tr><td>미션 패널</td><td>3컬럼 = <b>388</b></td></tr>
+  </table>
+
+  <p><b>그래서 이렇게 바뀌었습니다.</b> 세 화면 모두 같은 구조라 한 번에 적용됩니다.</p>
+  <table>
+    <tr><th>요소</th><th>이전</th><th>현재</th></tr>
+    <tr><td>미션 패널 블록</td><td>436 고정</td><td><b>388</b> (3컬럼)</td></tr>
+    <tr><td>미션 패널</td><td>420 고정</td><td><b>372</b></td></tr>
+    <tr><td>지도</td><td>1164</td><td><b>1196</b> (9컬럼)</td></tr>
+    <tr><td>로봇 카드</td><td>132</td><td><b>116</b></td></tr>
+  </table>
+  <p>
+    <code>--size-panel-right: 420px</code> 로 잡혀 있던 고정 폭이 없어지고
+    <b>그리드가 폭을 정합니다.</b> 넓은 화면에서는 같이 늘어납니다 —
+    2560 에서 로봇 카드가 <b>169</b> 가 되어 Figma 값(168)에 맞습니다.
+  </p>
+
+  <p><b>그리드가 버티는 하한은 1600 입니다.</b></p>
+  <p>
+    그 아래에서는 3컬럼이 미션 패널 내용보다 좁아집니다. 그래서 <b>1600 에서 갖는 폭(308)에 패널을 세우고</b>
+    지도가 남는 폭을 갖습니다. 경계에서 값이 같아 튀지 않습니다 —
+    1600 에서 308, 1601 에서 308.25 입니다. 이 구간에서는 화면 분할이 그리드 위에 있지 않습니다.
+  </p>
+
+  <p>
+    <b>그리드로 바꾸면서 AI 패널이 잘렸던 것을 고쳤습니다.</b>
+    격자의 줄을 안 적으면 <code>auto</code> 가 되어 <b>제일 긴 항목(타임라인)만큼</b> 늘어납니다.
+    그러면 지도 칸도 같이 늘어나서(956 → 1056) 아래에 붙은 AI 패널이 잘려 나갑니다.
+    줄을 <code>minmax(0, 1fr)</code> 로 못박아 컨테이너 높이를 그대로 쓰게 했습니다 —
+    내용보다 작아질 수 있어야 안쪽에서 스크롤이 받습니다.
+  </p>
+
+  <p><b>AI 패널을 5컬럼으로, 지도 한가운데에 두었습니다.</b></p>
+  <table>
+    <tr><th>1920 기준</th><th>이전</th><th>현재</th></tr>
+    <tr><td>AI 패널 폭</td><td>1180 (지도 폭 전부)</td><td><b>657.33</b> (5컬럼)</td></tr>
+    <tr><td>지도 폭에서 차지하는 비율</td><td>100%</td><td><b>55%</b></td></tr>
+    <tr><td>지도 세로</td><td>796</td><td><b>940</b></td></tr>
+  </table>
+  <p>
+    <b>지도 위에 겹쳐 뜹니다.</b> 예전에는 지도 아래에 쌓여 지도를 위로 밀었는데,
+    그러면 패널 오른쪽이 빈 자리로 남습니다. 겹치게 두니 지도가 오히려 넓어졌습니다
+    (796 → 940). <code>.ai-box</code> 가 backdrop blur 라 우측 미션 패널과 같은 유리로 읽힙니다.
+  </p>
+  <p>
+    <b>자리는 지도 9칸의 한가운데입니다.</b> 3번 컬럼에서 5칸을 쓰면 양옆에 2칸씩 남습니다 —
+    1920 에서 왼쪽 변 <code>585.33</code>, 폭 <code>657.33</code> 이라
+    패널 중심과 지도 중심이 <b>둘 다 914</b> 로 같습니다.
+    1440 · 2560 에서도 어긋남이 <b>0.01px</b> 안입니다.
+    지도 칸이 부모의 컬럼을 <code>subgrid</code> 로 물려받아 컬럼 경계에 정확히 붙습니다.
+  </p>
+  <p>
+    세로는 그대로 아래에 붙어 있습니다(<code>align-self: end</code>) — 지도 위에 겹친 입력 바라
+    바닥이 자연스럽습니다. 가운데로 띄우려면 그 한 줄만 고치면 됩니다.
+  </p>
+  <p>
+    <b>1600 아래에서는</b> 바깥 그리드가 두 칸뿐이라 subgrid 로는 컬럼이 하나가 됩니다.
+    그래서 그 구간에서는 지도 칸을 직접 9등분합니다 — <b>4/9 비율은 그대로</b>지만
+    컬럼 선과는 어긋납니다(1440 에서 17px). 이 구간은 원래 그리드가 화면 분할을 정하지 않는 구간입니다.
+  </p>
+  <p>
+    <b>닫힘 요약을 두 줄로 늘렸습니다.</b> 한 줄 그대로 두면 좁아진 폭에서
+    문장 앞부분(약 40자)밖에 안 남습니다. 두 줄이면 어느 설비에 무슨 일인지까지는 읽힙니다.
+    나머지는 오른쪽 토글로 펼쳐서 봅니다 — <b>펼친 상태도 넘치지 않습니다</b>
+    (헤드라인 3줄 + 추천 캡슐 3개 한 줄 + 입력창).
+  </p>
+
+  <p><b>같이 고친 것</b> — 로봇 카드가 좁아지자 <code>Mission</code> 라벨이 값 위로 넘어왔습니다.
+    라벨은 넘치면 잘리고 값(배지·배터리·신호)은 줄지 않도록 바꿨습니다.
+    폭에 상관없이 겹치지 않습니다.</p>
+
+  <p><b>눈으로 확인하려면</b> — 주소 뒤에 <code>?grid=1</code> 을 붙이거나 화면에서 <b>g</b> 를 누르면
+    컬럼 겹판이 켜집니다(<code>?theme=light</code> 와 같은 방식이라 링크로 공유됩니다).
+    겹판은 컬럼을 다시 계산하지 않고 <b>같은 CSS 정의를 그대로 씁니다</b> — 어긋날 수가 없습니다.</p>
+
+  <p><b>Figma 에도 만들었습니다.</b> 스타일 둘이 새로 생겼습니다.</p>
+  <ul>
+    <li><code>Grid / Content 12</code> — 12컬럼 · 거터 16 · Stretch. 1920 화면에서는
+      <b>Margin 프레임</b>(안쪽 폭 1600)에 걸면 코드와 같은 자리에 떨어집니다.</li>
+    <li><code>Grid / Base 4</code> — 4px 기본 눈금. spacing 토큰이 전부 4의 배수라 이미 그 위에 있습니다.</li>
+  </ul>
+  <p>
+    <b>프레임에 거는 것은 직접 해 주세요</b> — 스타일만 만들고 컴포넌트는 건드리지 않았습니다.
+    프레임 고르고 그리드 스타일 한 번 누르면 됩니다. <b>퍼블리시가 있어야 다른 파일에 갑니다.</b>
+  </p>
+  <p><b>로봇 카드 라벨이 잘리던 것은 행 여백을 줄여 풀었습니다.</b></p>
+  <p>
+    116 짜리 카드 안에서 행 여백 16 과 라벨·값 간격 8 이 폭을 먹어,
+    라벨에 남는 자리가 <b>35</b> 뿐이었습니다 — <code>Mission</code> 은 39,
+    <code>Battery</code> 는 38, <code>Signal</code> 은 33 이 필요합니다.
+  </p>
+  <table>
+    <tr><th>여백 / 간격</th><th>잘리는 라벨</th></tr>
+    <tr><td>8 / 8 (Figma 값)</td><td>Mission · Battery · Signal <b>셋 다</b></td></tr>
+    <tr><td>6 / 6</td><td>Battery · Signal</td></tr>
+    <tr><td><b>4 / 4</b> (현재)</td><td><b>없음</b></td></tr>
+  </table>
+  <p>
+    <b>Figma 와 다르게 둔 것입니다.</b> Figma 는 카드를 168 로 그려서 8 로도 들어가지만,
+    3컬럼 패널 안에서는 116 이라 안 들어갑니다.
+    <b>미션 패널을 4컬럼(카드 161)으로 넓히는 대신 여백을 4 로 줄이는 쪽을 택했습니다</b> —
+    지도 135px 을 내주는 것보다 낫다고 봤습니다. 수행중·대기 카드의 여섯 라벨이 모두 온전히 들어갑니다.
+  </p>
+
+  <h3>5. 엣지 글로우 — 도는 빛에서 안으로 두꺼워지는 선으로</h3>
+  <p>
+    주의 상태의 테두리는 <b>React Bits 의 BorderGlow</b> 에서 갈라져 나온 것입니다.
+    원본은 <b>커서가 테두리에 가까워지면 그 방향으로 켜지는</b> 컴포넌트이고,
+    처음에는 그 점을 <b>6초에 한 바퀴</b> 돌렸습니다. 지금은 돌지 않습니다 —
+    <b>네 변이 한꺼번에 안쪽으로 두꺼워졌다 사그라듭니다.</b>
+  </p>
+
+  <p><b>왜 도는 것을 그만뒀나</b></p>
+  <ul>
+    <li><b>도는 것은 "작업 중"의 문법입니다.</b> 스피너도 레이더도 다 돕니다.
+      경고는 방향이 없어야 경고로 읽힙니다.</li>
+    <li><b>±25° 원뿔이라 나머지 세 변은 늘 꺼져 있었습니다.</b> 한 변이 밝은 시간이
+      6초 중 1.5초입니다. 상시 <code>1px</code> 링이 그 구멍을 메우고 있었는데,
+      메울 구멍이 있었다는 게 이미 답이었습니다.</li>
+    <li><b>곁눈은 방향이 아니라 밝기 변화를 봅니다.</b> 운영자는 테두리가 아니라 지도를 봅니다.</li>
+  </ul>
+
+  <p><b>여기까지 오는 데 두 번 갈아엎었습니다.</b></p>
+  <table>
+    <tr><th></th><th>무엇이 문제였나</th></tr>
+    <tr><td>흐린 그림자 두 겹</td>
+        <td><b>번짐은 "빛"이지 "선"이 아닙니다.</b> 두 겹을 겹치고 사이를 <code>8px</code> 비워도
+            잦아드는 꼬리끼리 이어져 경계가 안 보였습니다.</td></tr>
+    <tr><td>선이 통째로 미끄러짐</td>
+        <td>테두리에서 <b>떨어져 나와 지도 위를 지나가는 별개의 선</b>이 됩니다.
+            눈이 테두리를 떠나 선을 따라갑니다.</td></tr>
+    <tr><td><b>지금 — 두께가 자람</b></td>
+        <td><b>바깥 모서리는 붙박이고 안쪽 모서리만 밀려 들어갑니다.</b>
+            테두리가 두꺼워졌다 사그라드는 것이라 눈이 테두리에서 안 떠납니다.</td></tr>
+  </table>
+
+  <p><b>선 하나가 <code>3px</code> 에서 안쪽으로 <code>8px</code> 까지 두꺼워지면서 사라집니다.</b></p>
+  <table>
+    <tr><th>테두리에서</th><th>무엇</th></tr>
+    <tr><td><code>0~1px</code></td><td><b>제자리</b> — 오브 팔레트가 도는 색 테두리(<code>.two-col::after</code>)</td></tr>
+    <tr><td><code>1~2px</code></td><td>띄운 자리 — 테두리와 이 선을 갈라 놓습니다</td></tr>
+    <tr><td><code>2~10px</code></td><td><b>자라는 선</b> — <code>3px</code> 로 태어나 <code>8px</code> 까지</td></tr>
+  </table>
+  <p>
+    <b>줄은 둘이고 같은 것을 시차만 두고 틉니다.</b>
+    <b>1번이 자란 구간의 40%(<code>5px</code>)까지 왔을 때 2번이 시작합니다.</b>
+  </p>
+  <p>
+    <b>고르게(<code>linear</code>) 늘립니다.</b> "얼마쯤 자랐을 때"를 시간으로 그대로 옮기려면
+    두께와 시간이 비례해야 합니다 — 자라는 데 <code>640ms</code> 를 쓰니 그 40% 가
+    <b><code>256ms</code></b> 입니다. <code>ease</code> 를 넣으면 이 셈이 깨집니다.
+  </p>
+  <p>왼쪽 변 100줄을 평균 내 배경과 뺀 값입니다. 두께가 그대로 나옵니다.</p>
+  <table>
+    <tr><th>시점</th><th>1번</th><th>2번</th><th>화면(깊이 2px 부터)</th></tr>
+    <tr><td><code>0ms</code></td><td>3px</td><td>—</td><td><code>2~4</code> (133)</td></tr>
+    <tr><td><b><code>256ms</code></b></td><td><b>5px</b></td><td><b>3px 시작</b></td>
+        <td><code>2~4</code> 가 <b>165</b> 로 튑니다 — 둘이 겹쳐 더해집니다</td></tr>
+    <tr><td><code>400ms</code></td><td>6.6px</td><td>4.2px</td><td><code>2~8</code> 층이 집니다</td></tr>
+    <tr><td><code>640ms</code></td><td>끝</td><td>6px</td><td><code>2~7</code> (53) 고르게</td></tr>
+    <tr><td><code>900ms</code></td><td>—</td><td>끝</td><td><b>1px 테두리만</b></td></tr>
+    <tr><td><code>1600ms</code></td><td>—</td><td>—</td><td>쉼</td></tr>
+  </table>
+  <p>
+    <b>전부 테두리에서 <code>10px</code> 안쪽에서 끝납니다.</b>
+    처음 흐린 스택은 <code>82px</code>, 미끄러지던 선은 <code>25px</code> 까지 갔습니다.
+    <b>테두리에 붙은 띠</b>로 읽혀야지 배치도를 가로지르면 지도를 읽는 데 걸립니다.
+  </p>
+  <p>
+    <b>2초 한 바퀴(약 30bpm)</b> 입니다. 사람 맥박(60~70)의 절반쯤인데,
+    박동으로 읽히게 하는 것은 빠르기가 아니라 <b>두 번 뛰고 쉰다는 모양</b>이라 이 정도면 충분합니다.
+    온종일 켜 두는 관제 화면이라 더 빠르면 여섯 시간째에 피로해집니다.
+    <b>급을 올릴 축이 생겼습니다</b> — 위험은 색을 새로 만들지 않고 이 2초만 줄이면 됩니다.
+  </p>
+  <p>
+    <b>색 테두리는 안 움직입니다.</b> 자라는 것은 선이고 테두리는 자리를 지킵니다 —
+    둘 다 움직이면 테두리가 흔들려 보입니다. 대신 원뿔 마스크를 빼서
+    <b>이제 네 변에 오브 색이 다 돕니다.</b>
+  </p>
+  <p>
+    <b>안쪽 경계는 흐립니다.</b> 처음에는 <code>blur 0</code> 이라 선이 딱 끊겨서,
+    숨이 아니라 <b>테를 하나 더 두른 것</b>처럼 읽혔습니다.
+    <code>box-shadow</code> 에 <code>blur 12</code> 를 주니 inner shadow 가 됩니다 —
+    <b>테두리 쪽은 그대로 붙어 있고 안쪽만 번집니다</b>.
+    바깥은 상자에 잘려서 늘 또렷하니 테두리가 흐려질 걱정은 없습니다.
+    <code>--pulse-blur</code> 한 자리이고 주의 · 위험이 같이 씁니다.
+  </p>
+
+  <p><b>고칠 자리는 셋입니다</b></p>
+  <table>
+    <tr><th>자리</th><th>지금</th><th>무엇이 달라지나</th></tr>
+    <tr><td><code>--pulse-from</code> · <code>--pulse-to</code></td><td><b>3px → 8px</b></td>
+        <td>선이 자라는 폭입니다. 두 끝을 나란히 올리면 자라는 폭(5px)이 유지돼
+            아래 40% 셈이 안 깨집니다</td></tr>
+    <tr><td>키프레임의 <code>32%</code></td><td><b>640ms</b></td>
+        <td>자라는 데 걸리는 시간. 바꾸면 아래 <code>256ms</code> 도 같이 맞춰야 합니다</td></tr>
+    <tr><td><code>animation-delay</code></td><td><b>256ms</b></td>
+        <td>2번이 시작하는 지점 — <code>640ms</code> 의 40%, 즉 1번이 <code>5px</code> 일 때입니다</td></tr>
+    <tr><td><code>--pulse-blur</code></td><td><b>12px</b></td>
+        <td>안쪽 경계가 흐려지는 거리입니다. <code>0</code> 이면 딱 끊긴 테가 됩니다</td></tr>
+  </table>
+
+  <p><b>원본과 다르게 둔 것</b></p>
+  <ul>
+    <li><b>팔레트</b> — 원본 기본값은 보라·분홍·하늘입니다.
+      <b>Delta 오브와 같은 팔레트</b>로 바꿨습니다(아래 참고).</li>
+    <li><b>커서 원뿔 마스크와 <code>--cursor-angle</code> · <code>--edge-proximity</code> 계산식을 뺐습니다.</b>
+      네 변이 다 켜지므로 쓸 데가 없어졌습니다.</li>
+    <li><b>흐린 그림자 스택을 뺐습니다</b>(위 참고).</li>
+    <li><b>안쪽 면을 물들이는 층은 뺐습니다</b> — 원본에는 테두리 근처 면을 색으로 적시는 층이
+      하나 더 있는데, 항상 켜 두면 <b>지도 위에 색 얼룩이 상시로 떠 있게</b> 됩니다.
+      관제 화면에서는 지도가 먼저라 뺐습니다.</li>
+    <li><b>JSX 는 안 가져왔습니다.</b> 원본에서 움직임은 전부 CSS 에 있고 JSX 는 커서 변수를
+      쓰는 일만 합니다. 커서를 안 쓰므로 <b>자바스크립트가 한 줄도 없습니다.</b></li>
+  </ul>
+
+  <p>
+    <b>색을 Delta 오브에서 가져왔습니다.</b> 전에는 warning 램프의 옅은 노랑 셋
+    (<code>200</code> · <code>300</code> · <code>500</code>)이었습니다. 지금은
+    <b>오브 · Spectrum · 엣지 글로우 셋이 같은 팔레트 한 바퀴에서 나옵니다.</b>
+  </p>
+  <table>
+    <tr><th>층</th><th>이전</th><th>지금 (<code>PALETTES.warning</code>)</th></tr>
+    <tr><td>테두리 얼룩 8층</td><td><code>#f8ebae</code> · <code>#eeda6b</code> · <code>#ffcc00</code> 반복</td>
+        <td>팔레트 여덟 stop 을 여덟 층에 하나씩 —
+            <code>#F2B020</code> · <code>#EEC242</code> · <code>#CBAD61</code> · <code>#D38210</code> ·
+            <code>#A5521A</code> · <code>#9C7D6B</code> · <code>#7D4F5A</code></td></tr>
+    <tr><td>선 색</td><td><code>hsl(40 80% 80%)</code></td>
+        <td><b><code>hsl(41 89% 80% / 60%)</code></b> — 팔레트의 가장 밝은 자리
+            <code>#F2B020</code>(<code>hsl(41 89% 54%)</code>)에서 명도만 올린 값</td></tr>
+    <tr><td>바깥 1px 링</td><td><code>rgb(248 235 174 / 60%)</code></td>
+        <td><b><code>rgb(238 194 66 / 60%)</code></b></td></tr>
+  </table>
+  <p>
+    밝은 금빛을 넓은 자리에, 탄 주황·자두를 구석에 둬서 선이 탁해지지 않게 했습니다.
+  </p>
+  <p>
+    <b><code>prefers-reduced-motion</code> 에서는 1번 줄을 <code>6px</code> 로 세워 둡니다.</b>
+    통째로 감추면 이 설정을 켠 사람에게만 <code>1px</code> 테두리 말고는 아무것도 안 남습니다 —
+    주의 상태가 안 보이는 것과 같습니다.
+  </p>
+  <p>
+    라이선스는 <b>MIT + Commons Clause</b> 입니다. 저작권 표시가
+    <code>app-shell.css</code> 의 엣지 글로우 블록 머리에 들어 있고,
+    정리는 저장소 루트 <code>THIRD-PARTY.md</code> 에 있습니다.
+  </p>
+
+  <h3>6. 우측 패널 · Status Bar 업데이트</h3>
+
+  <p><strong>Status Bar 가 64 → 60 으로 낮아졌습니다.</strong> Right 프레임의 패딩이 줄고 칩이 작아졌습니다.</p>
+  <table>
+    <tr><th>부분</th><th>이전</th><th>현재</th></tr>
+    <tr><td>Right 프레임</td><td>패딩 14/16</td><td><strong>패딩 8</strong></td></tr>
+    <tr><td>Account 칩</td><td>36 높이 · 패딩 6/12/6/8</td><td><strong>26 높이 · 패딩 4/12/4/8</strong></td></tr>
+    <tr><td>Account 안</td><td>24 아바타 원 + “김현수 · 관제운영”</td><td><strong>16 user 아이콘 + “홍길동 | 관제운영”</strong></td></tr>
+    <tr><td>Signal</td><td>막대만 놓임</td><td><strong>Account 와 같은 칩(34×26)</strong></td></tr>
+  </table>
+  <p>
+    이름과 직책 사이 구분선은 Figma 에서도 <strong>글자 <code>|</code></strong> 이고 <code>fg/tertiary</code> 입니다.
+    아바타 원은 Figma 에서 없어졌습니다 — 아이콘이 칩 안에 바로 놓입니다.
+  </p>
+
+  <p><strong>Waypoint 목록이 카드 형태로 바뀌었습니다.</strong> 가장 크게 달라진 곳입니다.</p>
+  <table>
+    <tr><th>부분</th><th>이전</th><th>현재</th></tr>
+    <tr><td>머리 순서</td><td>제목 줄 → 시각 줄</td><td><strong>번호·시각 줄 → 지점 이름 줄</strong></td></tr>
+    <tr><td>단계 번호</td><td>제목 줄 왼쪽</td><td><strong>첫 줄 왼쪽</strong>, 시각·소요는 오른쪽 끝</td></tr>
+    <tr><td>상태 배지</td><td>완료 · 수행중 · 대기</td><td><strong>없앴습니다</strong></td></tr>
+    <tr><td>지점 이름</td><td><code>Label/1</code> · <code>fg/secondary</code></td><td><strong><code>Title/2</code> · <code>fg/primary</code></strong></td></tr>
+    <tr><td>수행중 카드</td><td>다른 카드와 같은 면</td><td><strong>세로 그라데이션 + <code>border/focus</code></strong></td></tr>
+    <tr><td>레일 표식</td><td>모든 단계에 원</td><td><strong>대기 단계에는 없음</strong>, 완료는 <code>status/normal/icon</code></strong></td></tr>
+    <tr><td>목록 여백</td><td>16</td><td><strong>0 8</strong></td></tr>
+  </table>
+  <p>
+    상태 배지가 사라진 자리는 <strong>레일 표식과 카드 면</strong>이 대신합니다 —
+    완료는 초록 체크, 수행중은 파란 재생 표식에 카드가 빛나고, 대기는 표식 없이 선만 지납니다.
+    레일은 <strong>선 18 · 표식 24 · 남은 선</strong> 순서라 표식이 카드 첫 줄 한가운데와 높이가 맞습니다.
+    수행중 카드의 테두리는 <code>box-shadow: inset</code> 입니다 — CSS <code>border</code> 는 카드 높이를 2 늘립니다.
+  </p>
+  <p>
+    <strong>마지막 단계의 레일 선도 끝까지 이어집니다.</strong> 전에는 마지막만 선을 지웠는데
+    Figma 는 대기 단계 모두 선이 처음부터 끝까지 지납니다.
+  </p>
+  <p>
+    <strong>아직 지나지 않은 구간은 점선입니다</strong>(<code>539:15650</code> 실측).
+    <code>Mission Timeline Item</code> 의 <code>Status</code> 변형마다 레일이 다릅니다.
+  </p>
+  <table>
+    <tr><th>Status</th><th>레일</th></tr>
+    <tr><td><code>Done</code></td><td>머리 선 8×18 <b>실선</b> · 표식 24 · 남은 선 8 <b>실선</b>
+      (<code>chart/track</code>)</td></tr>
+    <tr><td><code>Running</code></td><td>머리 선 8×18 실선 · 표식 24 ·
+      <b>아래는 점선</b></td></tr>
+    <tr><td><code>Pending</code></td><td>표식도 머리 선도 없이 <b>처음부터 끝까지 점선</b></td></tr>
+  </table>
+  <p>
+    점선은 <b>2 폭 · <code>border/default</code> · 2 켜고 6 쉼</b> 입니다
+    (Figma <code>dashPattern [2, 6]</code> · <code>strokeWeight 2</code> 그대로).
+    지나온 실선은 <b>8 폭 · <code>chart/track</code></b> 이라 <b>굵기와 색이 함께 바뀝니다</b> —
+    지나온 길이 굵고 밝고, 남은 길은 가늘고 어둡습니다.
+    <code>strokeCap</code> 이 <code>NONE</code> 이라 점은 각지게 뒀습니다.
+  </p>
+  <p>
+    CSS 는 <code>repeating-linear-gradient</code> 한 줄입니다 —
+    <code>border/default 0 2px, transparent 2px 8px</code>. 화면에서 재보니
+    세로 무늬가 <b>2 · 6</b>, 폭이 <b>2</b> 로 Figma 와 같습니다.
+  </p>
+  <p>
+    <b>대기 단계에서는 머리 선(<code>rail-stub</code>)을 없앴습니다.</b> 머리 선은 표식을 18 만큼
+    내려 카드 첫 줄 한가운데에 맞추는 몫이라 <b>표식과 짝</b>입니다 — 표식이 없는 대기 단계에
+    남겨 두면 점선이 위에서 한 번 끊깁니다.
+  </p>
+
+  <h3>6-0. Status Bar 여백 — 다시 맞췄습니다 (402:9246)</h3>
+  <p>
+    <strong>바깥 여백이 좌우 대칭이 아니게 됐습니다.</strong>
+    Status Bar 프레임의 패딩이 <code>0/12/0/0</code> 입니다 — <b>왼쪽 0, 오른쪽만 12</b>.
+  </p>
+  <table>
+    <tr><th>부분</th><th>이전(web)</th><th>현재(Figma 402:9246)</th></tr>
+    <tr><td>Status Bar</td><td>패딩 <code>0 4</code></td><td><strong><code>0 12 0 0</code></strong></td></tr>
+    <tr><td>Right 프레임</td><td>패딩 <code>8</code> (사면)</td><td><strong><code>8 0</code></strong> — 좌우가 빠졌습니다</td></tr>
+    <tr><td>Account 칩</td><td>26 높이</td><td><strong>28 높이</strong></td></tr>
+    <tr><td>Signal 칩</td><td>26 높이</td><td>26 그대로</td></tr>
+  </table>
+  <p>
+    <strong>왼쪽이 0 이라야 로고 기둥이 아래 GNB 레일과 같은 선에서 시작합니다.</strong>
+    둘 다 76 인데 전에는 로고만 4 들어가 있어서 반 픽셀도 아닌 4 만큼 어긋나 있었습니다.
+    오른쪽 12 는 Right 프레임에서 빠진 좌우 8 을 대신합니다 —
+    <b>합이 16 에서 12 로 줄어</b> 오른쪽 덩이가 화면 끝에 조금 더 붙습니다.
+  </p>
+  <p>
+    <strong>Account 만 28 인 이유</strong>는 두 칩의 셈이 달라서가 아닙니다.
+    패딩과 내용을 더하면 <b>둘 다 26</b> 입니다(<code>4+18+4</code>, <code>6+14+6</code>).
+    Account 쪽만 <b>stroke 를 레이아웃에 넣는 설정</b>이라 위아래로 1px 씩 더 붙어 28 이 됩니다.
+    CSS 는 <code>border-box</code> 라 그 값을 그대로 쓰면 두 칩 다 Figma 와 같은 자리에 그려집니다 —
+    Account 는 글자 줄이 위에서 5, Signal 은 막대가 위에서 6 입니다.
+  </p>
+  <p>
+    실측으로 맞춘 값입니다 — 로고 <code>0,0 76×60</code>,
+    Right <code>8×44</code>, Account <code>28</code>, Signal <code>26</code>,
+    오른쪽 끝에서 <code>12</code>.
+  </p>
+  <p>
+    <strong>오른쪽 덩이가 Figma 보다 약 15 넓습니다.</strong> 이번 여백과는 무관한
+    이전부터의 차이입니다 — 시각 글자에 <code>tabular-nums</code>(<code>.num</code>)를 걸어
+    <b>숫자 폭을 고정</b>했기 때문입니다. 안 걸면 초가 넘어갈 때마다 글자가 들썩입니다.
+    Figma 의 Type 패널에는 이 항목이 없어 Figma 쪽은 좁게 나옵니다.
+    <b>SPACE_BETWEEN 배치라 오른쪽 끝은 그대로 맞습니다</b> — 덩이가 왼쪽으로 조금 더 벌어질 뿐입니다.
+  </p>
+
+  <h3>6-1. 점선이 중간중간 일정하지 않던 것 — 원인 둘, 고침 둘</h3>
+  <p>
+    <b>"도트 간격이 일정하지 않다"</b> 는 확인해 보니 서로 다른 원인 둘이 겹친 것이었습니다.
+    하나는 저희 마크업 탓이고, 하나는 브라우저가 긴 그라데이션을 타일링하는 방식의 버릇이었습니다.
+  </p>
+
+  <p><b>원인 1 — 카드 칸마다 무늬가 제자리에서 다시 시작합니다.</b></p>
+  <p>
+    점선은 <code>.rail-line</code> 마다 따로 그려지는데, <code>background</code> 무늬는
+    <b>그 요소의 맨 위에서 다시 0으로 시작합니다.</b> 카드 칸 높이가 8(무늬 주기)의 배수가
+    아니라서 — 화면에서 재 보니 <b>대기 칸이 84, 수행 칸이 82</b> 입니다 — 칸이 바뀔 때마다
+    리듬이 깨집니다.
+  </p>
+  <table>
+    <tr><th>칸 높이</th><th>8 로 나누면</th><th>다음 칸 시작에서 벌어지는 일</th></tr>
+    <tr><td><code>84</code></td><td><code>8×10 + 4</code></td>
+        <td>점이 <code>2px</code> 남고 다음 칸이 곧바로 점을 찍어 사이가 <b>6 이 아니라 2</b> 가 됩니다</td></tr>
+    <tr><td><code>82</code></td><td><code>8×10 + 2</code></td>
+        <td>점끼리 붙어 <b>4px 짜리 긴 점</b>이 됩니다</td></tr>
+  </table>
+  <p>
+    <b>CSS 만으로는 못 고칩니다.</b> 앞 칸이 얼마나 높았는지를 뒤 칸이 알 방법이 없습니다.
+    <code>screen.js</code> 에 <code>phaseRails()</code> 를 추가해 <b>첫 점선을 기준으로 삼고,
+    그 아래 선들은 내려온 거리만큼(<code>mask-position</code>) 무늬를 밀어 줍니다.</b>
+    첫 점선은 안 밉니다 — 표식 바로 밑이 잘린 점으로 시작하면 그게 더 눈에 띕니다.
+  </p>
+  <p>
+    화면에서 실측한 오프셋입니다. 원점(첫 점선의 <code>top</code>)에서 각 점선까지 내려온 거리를
+    8 로 나눈 나머지가 그대로 <code>mask-position</code> 의 밀림 값이 됩니다.
+  </p>
+  <table>
+    <tr><th>점선</th><th>내려온 거리</th><th>÷8 나머지</th><th>적용된 <code>mask-position</code></th></tr>
+    <tr><td>1 (수행중, 기준)</td><td>0</td><td>0</td><td><code>0 0px</code></td></tr>
+    <tr><td>2 (대기)</td><td>82</td><td>2</td><td><code>0 -2px</code></td></tr>
+    <tr><td>3 (대기)</td><td>166</td><td>6</td><td><code>0 -6px</code></td></tr>
+    <tr><td>4 (대기)</td><td>250</td><td>2</td><td><code>0 -2px</code></td></tr>
+  </table>
+  <p>
+    이 값들을 넣고 경계마다 이어지는지 직접 계산해 확인했습니다 — 네 칸을 지나는 내내
+    전역 좌표 기준 <code>(y mod 8) &lt; 2</code> 인 자리만 점이 켜집니다. 경계에서 어긋남이
+    없습니다.
+  </p>
+
+  <p><b>원인 2 — 브라우저가 하드 스톱 그라데이션을 긴 칸에 반복할 때의 버릇.</b></p>
+  <p>
+    원인 1 을 고치고도 <b>칸 하나 안에서(경계가 아닌 자리에서) 점 둘이 바짝 붙었다가
+    빈칸이 늘어나는 자리가 아홉~열 번째 주기쯤마다 나타났습니다.</b>
+    <code>--disable-gpu</code> 로 소프트웨어 렌더링을 강제해도, GPU 합성을 켜도 <b>똑같이</b>
+    나타나서 헤드리스 옵션 문제가 아니라 <b>Skia 가 하드 스톱
+    <code>repeating-linear-gradient</code> 를 334px 짜리(카드 네 칸) 요소에 타일링하는
+    방식 자체의 한계</b>였습니다. 같은 조건(높이 82·84·84·84, 같은 phaseRails 셈)을
+    흰 배경으로 떼어내 다시 그려서 재현을 확인했습니다.
+  </p>
+  <p>
+    <b>무늬를 그라데이션이 아니라 8px 짜리 SVG 타일 반복으로 바꿨습니다.</b>
+    <code>background-image: repeating-linear-gradient(...)</code> 대신
+    <code>mask-image: url(2×8 SVG 사각형)</code> + <code>mask-repeat: repeat-y</code> 로
+    무늬만 도려내고, 실제 색은 <code>background-color: border/default</code> 로 칠합니다 —
+    다른 화면에서 <code>--i</code> 아이콘에 쓰는 것과 같은 방식입니다.
+    같은 334px 을 같은 방법(흰 배경 위)으로 다시 재 보니 <b>2·6 이 41번 내내 한 번도
+    안 어긋났습니다.</b> 그라데이션 버전은 같은 조건에서 매번 어긋났습니다.
+  </p>
+
+  <p><strong>로봇 카드에 로봇 그림이 들어왔습니다.</strong> 빈 자리로 두었던 곳입니다.</p>
+  <ul>
+    <li>Figma 의 <code>Robot-Graphic</code>(168×80)을 SVG 로 내려받아
+      <code>assets/img/robot-graphic.svg</code> 로 넣었습니다. 아래 10 은 발광이 번진 몫이라 잘라냅니다.</li>
+    <li>이름 줄이 <strong>Label 프레임 40 고정</strong>(12 + 20 + 8)으로 떨어져 나오고 그림이 그 아래 형제가 되었습니다.</li>
+    <li>줄 높이가 <strong>24 → 26</strong>, 줄 묶음에 <strong>여백 0/4/4/4</strong> 가 생겼습니다.
+      카드 높이가 Figma 와 같은 <strong>206</strong> 이 되었습니다.</li>
+  </ul>
+
+  <p>
+    <strong>빠져 있던 Text Style 둘을 채웠습니다</strong> — <code>Title/2/SemiBold</code>(16/24/Bold)와
+    <code>Body/2/Regular</code>(14/22/Regular). AI 패널 입력창이 쓰고 있던 <code>t-body-2</code> 는
+    정의가 없어서 그동안 상속 값으로 그려지고 있었습니다.
+  </p>
+
+  <p>실측으로 맞춘 값입니다 — 괄호 안이 Figma 값입니다.</p>
+  <table>
+    <tr><th>요소</th><th>크기</th></tr>
+    <tr><td>Status Bar</td><td>높이 <strong>60</strong> (60) · 패딩 0/4 (0/4)</td></tr>
+    <tr><td>Right</td><td>높이 <strong>42</strong> (42) · 패딩 8 (8)</td></tr>
+    <tr><td>Mission 1</td><td><strong>420 × 312</strong> (420 × 312)</td></tr>
+    <tr><td>Robot Cards</td><td><strong>412 × 214</strong> (412 × 214)</td></tr>
+    <tr><td>로봇 카드</td><td>높이 <strong>206</strong> (206)</td></tr>
+    <tr><td>Timeline List</td><td>폭 <strong>412</strong> · 패딩 0/8 (412 · 0/8)</td></tr>
+    <tr><td>완료 단계</td><td><strong>396 × 80</strong> (396 × 80)</td></tr>
+  </table>
+
+  <p><strong>Figma 와 다르게 둔 것</strong></p>
+  <ul>
+    <li><strong>Account 칩 폭</strong> — Figma 는 223 고정인데 글자는 101 뿐입니다(안쪽 프레임이 179).
+      여기서는 글자에 맞춰 줄어듭니다(146). 이름과 직책은 값이라 고정 폭이 맞지 않습니다.</li>
+    <li><strong>로봇 카드 폭</strong> — Figma 는 168 고정이라 세 번째 카드가 잘립니다.
+      여기서는 폭을 나눠 갖고 132 아래로는 줄지 않습니다. 그래서 로봇 그림도 그만큼 작게 나옵니다. (전과 같습니다)</li>
+    <li><strong>로봇 그림이 오른쪽으로 치우쳐 잘립니다</strong> — <strong>Figma 도 같습니다</strong>.
+      그림이 168 폭 안에서 x 66~161 에 놓여 있어 오른쪽이 잘립니다. 그대로 옮겼습니다.</li>
+    <li><strong>단계 카드 오른쪽 여백</strong> — Figma 는 대기만 4 이고 완료·수행중은 8 입니다.
+      셋 다 8 로 두었습니다.</li>
+  </ul>
+
+  <h3>6-2. 로봇 줄 — 바가 생기고 카드가 옆으로 스크롤됩니다 (558:13332)</h3>
+  <p>
+    <strong>대수가 헤더에서 내려왔습니다.</strong> 전에는 제목 아래 부제였는데,
+    이제 카드 줄 바로 위에 <b>바</b>가 하나 생기고 거기로 옮겨갔습니다.
+    그 오른쪽이 <b>[로봇 더보기]</b> 자리입니다.
+  </p>
+  <table>
+    <tr><th>부분</th><th>값</th></tr>
+    <tr><td>바</td><td>36 높이 · <code>bg/surface/subtle</code> · padding <code>2/4/2/12</code> · gap 12</td></tr>
+    <tr><td>대수</td><td>bot 아이콘 16 + <code>3대 연결</code> + <code>1대 수행 중</code>,
+      사이 4 · <code>fg/tertiary</code> 12/18</td></tr>
+    <tr><td>[로봇 더보기]</td><td>Button <b>Type=Ghost, Size=Small</b> — 32 높이 · 좌우 12 ·
+      13/18 Medium · <code>button/ghost/fg/default</code></td></tr>
+    <tr><td>카드</td><td><b>132 고정</b> · 사이 4</td></tr>
+    <tr><td>스크롤 막대</td><td>4 두께 · <code>fg/tertiary</code> · 카드 밑에서 <b>8</b></td></tr>
+  </table>
+  <p>
+    <strong>가운뎃점을 뺐습니다.</strong> 전에는 <code>3대 연결 · 1대 수행 중</code> 한 줄이었는데
+    Figma 는 <b>두 덩이를 4 만큼 띄워</b> 놓습니다. 점 대신 여백이 가릅니다.
+  </p>
+  <p>
+    <strong>카드가 132 고정이라 세 대만 놓아도 넘칩니다.</strong>
+    <code>132×3 + 4×2 = 412</code> 인데 패널 안쪽이 <b>1920 에서 364</b> 입니다
+    (패널 폭이 3컬럼 유동값이라 Figma 의 420 보다 좁습니다).
+    그래서 <b>세 대부터 스크롤바가 생깁니다</b> — 말씀하신 대로입니다.
+    카드를 줄이면 안 되는 이유는 안쪽 세 줄(Mission · Battery · Signal)이
+    이 폭에 맞춰져 있어서입니다. 좁히면 <b>막대와 값이 붙습니다.</b>
+  </p>
+  <p>
+    <strong>스크롤 막대는 브라우저 것을 그대로 씁니다</strong>(<code>overflow-x: auto</code>).
+    Figma 는 사각형 하나로 그려 뒀지만 직접 그리면 <b>드래그·휠·키보드가 전부 사라집니다.</b>
+    색만 <code>fg/tertiary</code> 로 맞췄습니다 — 다른 스크롤 영역(타임라인 · 사이트 패널 ·
+    GNB)은 <code>border/default</code> 라 여기만 밝습니다.
+    두께와 자리는 공통값 그대로인데 <b>Figma 와 우연히 같습니다</b> —
+    트랙 12 안에 4 짜리 막대가 들고, 위에 strip 패딩 4 가 더해져
+    <b>카드 밑 8 · 막대 아래 4</b> 가 됩니다. 실측으로 확인했습니다.
+  </p>
+  <p>
+    <strong>[로봇 더보기]는 아직 아무 일도 안 합니다.</strong> 여러 대 리스트가
+    <b>모달로 뜨는 자리</b>인데 그 내용을 아직 못 받았습니다.
+    자리는 <code>[data-robot-more]</code> 로 잡아 뒀습니다.
+  </p>
+
+  <p><b>로봇을 8대로 늘리고, 한 화면에 세 대만 보이게 했습니다</b></p>
+  <p>
+    스크롤이 실제로 어떻게 읽히는지 보려고 <strong>표본을 12대로 늘렸습니다.</strong>
+    <b>132 고정을 잠시 내려놓고</b> 폭을 나눠 쓰게 바꿨습니다 —
+    <code>flex: 0 0 calc((100% - 8px) / 3)</code> 입니다.
+    간격 둘(4+4)을 뺀 나머지를 셋으로 가르므로 <b>패널 폭이 바뀌어도 늘 세 대가 딱</b> 맞습니다.
+  </p>
+  <table>
+    <tr><th></th><th>값</th></tr>
+    <tr><td>카드</td><td><b>12장</b> · 각 <b>115.98</b> (1920 에서)</td></tr>
+    <tr><td>보이는 수</td><td><b>정확히 3장</b> (실측)</td></tr>
+    <tr><td>막대 길이</td><td><b>25.2%</b> — 열둘 중 셋이라 <code>3/12</code> 그대로다</td></tr>
+  </table>
+  <p>
+    Figma 목업의 막대가 <code>147 / 404 = 36%</code> 인데,
+    <b>거기도 여덟 대쯤을 셋씩 보는 그림</b>이었던 셈입니다. 비율이 맞아떨어집니다.
+  </p>
+  <p>
+    <strong>고정값으로 되돌리는 건 한 줄입니다</strong> —
+    <code>.robot-card</code> 의 <code>flex</code> 를 <code>0 0 132px</code> 로 바꾸면 됩니다.
+    주석에 적어 뒀습니다.
+  </p>
+  <p>
+    <strong>좁히니 걸리는 데가 하나 나왔습니다.</strong> 배터리가 <b>세 자리(100%)</b>가 되면
+    <code>116</code> 폭에서 <code>Battery</code> 라벨이 <code>Batt…</code> 로 잘립니다.
+    표본을 <code>96%</code> 로 낮춰 뒀습니다. <b>Figma 의 132 는 이게 안 잘리는 폭</b>입니다 —
+    세 대만 보이게 하면서 세 자리도 살리려면 패널이 <code>132*3 + 8 + 8 = 412</code> 여야 합니다.
+  </p>
+  <p>
+    <strong>여덟 대 모두 아래 타임라인을 바꿉니다.</strong> <code>screen.js</code> 의
+    <code>ROBOTS</code> 에 다섯을 더 넣었습니다 — 안 넣으면 4번부터는 눌러도
+    <b>선택만 옮겨가고 타임라인은 그대로</b>입니다.
+    Figma 에는 타임라인이 하나뿐이라 나머지 내용은 여기서 지었습니다.
+  </p>
+
+  <p><b>수행 대수가 배지가 됐습니다 (710:24540)</b></p>
+  <p>
+    바의 둘째 값이 <strong>맨 글자에서 Badge 로 바뀌었습니다</strong> —
+    <code>Status=Info</code> · <code>Emphasis=Text</code> · 점 있음.
+    <b>면 없이 점 + 글자</b>라 로봇 카드의 <code>Mission</code> 줄 배지와 같은 꼴입니다.
+  </p>
+  <table>
+    <tr><th></th><th>이전</th><th>지금</th></tr>
+    <tr><td>연결 대수</td><td colspan="2"><code>fg/tertiary</code> 12/18 — 그대로</td></tr>
+    <tr><td>수행 대수</td><td>같은 맨 글자</td><td><b>Badge</b> — 점 <code>status/info/icon</code> ·
+      글자 <code>status/info/fg</code></td></tr>
+    <tr><td>줄 높이</td><td>18</td><td><b>26</b> (배지가 점 때문에 커집니다)</td></tr>
+    <tr><td>바 높이</td><td colspan="2">36 — <b>안 변합니다</b></td></tr>
+  </table>
+  <p>
+    실측 — 배지 <code>69×26</code>(Figma 68×26) · 줄 26 · 바 36.
+    Figma 글자는 <code>1대 수행중</code> 으로 <b>띄어쓰기가 빠졌습니다</b>(전엔 <code>1대 수행 중</code>).
+    화면은 로봇이 여덟이라 <code>8대 연결</code> · <code>2대 수행중</code> 입니다.
+  </p>
+
+  <p><b>Ghost 버튼을 새로 만들었습니다</b></p>
+  <p>
+    <code>.btn</code> 계열에 Primary · Secondary · Danger 만 있었습니다.
+    <b>인스턴스에 fill 이 안 걸려 있어</b> 면 없이 글자만 그립니다.
+    <b>hover 는 Figma 를 안 따랐습니다</b> — Figma 가 <code>gray/100</code> 인데
+    Light · Dark 값이 같아서 <b>Dark 에서 흰 판</b>이 됩니다.
+    이 화면 다른 유리 위 hover(<code>.ai-chip</code> · 모달 닫기)와 같은
+    <code>bg/surface/overlay-light</code> 로 뒀습니다.
+  </p>
+
+  <p><b>토큰 하나가 또 어긋나 있었습니다 — 고쳤습니다</b></p>
+  <p>
+    <code>button/ghost/fg/default</code> 의 <b>Dark 값</b>이 Figma 는
+    <code>color/main/500</code>(<code>#6AA7E7</code>)인데 <code>tokens.css</code> 에는
+    <code>color/main/700</code>(<code>#3B79D5</code>)으로 들어 있었습니다.
+    안 고치면 어두운 바 위에 진한 파랑 글자가 얹힙니다.
+    Light 값(<code>main/700</code>)은 맞아서 그대로입니다.
+    <b>이 토큰을 쓰는 곳은 지금 이 버튼뿐</b>이라 다른 화면에 영향은 없습니다.
+    (<code>status/critical/fg</code> 에 이어 두 번째입니다 — Dark 값만 어긋납니다.)
+  </p>
+
+  <p><b>비상정지가 웨이포인트 패널로 내려갔습니다 (558:13671)</b></p>
+  <p>
+    로봇 카드 헤더에는 <strong>제목만 남았습니다.</strong> 비상정지는 아래
+    웨이포인트 패널 머리의 <code>[변경] 수행로봇 제어</code> 줄로 옮겼고,
+    이름도 <strong><code>수행로봇 E-STOP</code></strong> 이 됐습니다.
+  </p>
+  <table>
+    <tr><th></th><th>이전</th><th>지금</th></tr>
+    <tr><td>자리</td><td>로봇 카드 헤더 오른쪽</td><td><b>웨이포인트 패널 머리</b>, 미션 이름 오른쪽</td></tr>
+    <tr><td>글자</td><td><code>E-STOP</code></td><td><code>수행로봇 E-STOP</code></td></tr>
+    <tr><td>크기</td><td>Size=Small — 32 · 좌우 12</td><td><b>Size=xSmall — 24 · 좌우 8</b></td></tr>
+  </table>
+  <p>
+    <strong><code>Size=xSmall</code> 을 새로 만들었습니다.</strong> 글자는 Small 과 같은
+    13/18/500 이고 높이와 좌우 여백만 줄어듭니다.
+    <b>24 는 토큰이 없습니다</b> — <code>--size-control</code> 은 lg 40 · md 36 · sm 32 까지입니다.
+  </p>
+  <p>
+    <strong>모달은 그대로 붙어 있습니다.</strong> 버튼만 옮겼고
+    <code>[data-modal-open="estop"]</code> 는 따라갔습니다 — 눌러서 확인했습니다.
+  </p>
+  <p>
+    <strong>두 헤더의 아래 여백도 같이 맞췄습니다.</strong> Figma 가 둘 다
+    <code>20/12/16/12</code> 인데 화면은 위아래 20 이었습니다.
+    실측으로 <b>로봇 카드 헤더 64 · 웨이포인트 머리 118</b> — Figma 와 같습니다.
+  </p>
+  <p>
+    <strong>옆의 <code>수행로봇 자동복귀</code>(Secondary xSmall)도 같이 붙였습니다.</strong>
+    Figma 순서대로 <b>자동복귀가 왼쪽, 비상정지가 오른쪽</b>입니다.
+  </p>
+
+  <p><b>자동복귀 모달 (737:13500)</b></p>
+  <p>
+    문구가 Figma 에 다 들어 있어서 <strong>모달까지 붙였습니다.</strong>
+  </p>
+  <table>
+    <tr><th></th><th>값</th></tr>
+    <tr><td>제목</td><td>로봇 <b>R-01</b>을 자동복귀 하시겠습니까?</td></tr>
+    <tr><td>타이머</td><td><code>Show Timer=false</code> — 없음</td></tr>
+    <tr><td>설명</td><td><code>Show 권장조치=false</code> — <b>한 문단</b></td></tr>
+    <tr><td>버튼</td><td>취소(Secondary) · <b>자동복귀 시작(Type=Accent)</b></td></tr>
+  </table>
+  <p>
+    <strong><code>Type=Accent</code> 를 새로 만들었습니다</strong> — 파란 면에 흰 글자입니다.
+    <code>Primary</code> 는 <b>흰 면</b>이라 다른 것입니다(모달 닫기·[확인]이 그쪽입니다).
+  </p>
+  <p>
+    <strong>[자동복귀 시작]을 누르면 그 버튼이 꺼집니다.</strong>
+    모달 문구가 <b>"복귀 중에는 자동복귀 버튼이 비활성화됩니다"</b> 라고 그대로 약속하고 있어서,
+    지어낸 동작이 아니라 <b>적혀 있는 대로</b> 따라 한 것입니다.
+    <code>:disabled</code> 색은 <code>button/*/bg|fg/disabled</code> 토큰입니다 —
+    <code>.btn</code> 계열에 없던 상태라 같이 채웠습니다.
+  </p>
+
+  <p><b>E-STOP 모달 설명이 한 문단으로 줄었습니다</b></p>
+  <p>
+    Figma 의 <code>Modal-E-STOP</code>(<code>737:13559</code>)도 <code>Show 권장조치=false</code> 입니다.
+    처음 주셨을 때 <code>/</code> 로 나눠 주셔서 두 줄로 뒀는데,
+    <strong>컴포넌트에는 한 칸에 두 문장이 붙어 있습니다.</strong> Figma 대로 합쳤습니다 —
+    실측 높이가 <b>198</b> 로 Figma 196 과 같아집니다(테두리 2 차이).
+    두 줄 색을 통일해 둔 터라 <b>바뀌는 건 줄 사이 8 뿐</b>입니다.
+  </p>
+
+  <p><b>확인이 필요한 지점 둘</b></p>
+  <p>
+    <strong>E-STOP 이 이 카드에서 빠졌습니다.</strong> Figma 의 새 로봇 카드 헤더에는
+    <b>제목만</b> 있고, E-STOP 은 <b>아래 미션 카드(558:13342)의 헤더</b>로 옮겨가
+    이름도 <code>수행로봇 E-STOP</code> 이 됐습니다. 옆에 <code>수행로봇 자동복귀</code> 도
+    새로 생겼습니다(모달 섹션의 <code>Modal-자동복귀</code> 와 짝입니다).
+    <strong>지금은 옮기지 않고 원래 자리에 두었습니다</strong> —
+    빼면 화면에서 긴급정지를 누를 곳이 사라지고,
+    옮기려면 그 카드의 진행 막대까지 같이 손대야 해서 이번 범위를 넘습니다.
+  </p>
+  <p>
+    <strong>둘째·셋째 카드 값이 Figma 와 다릅니다.</strong> Figma 는
+    2번 <code>대기 / 18% 충전 / Good</code>, 3번 <code>완료 / 78% 충전 / Weak</code> 인데
+    화면은 2번 <code>대기 / 18% 충전 / Weak</code>, 3번 <code>대기 / 35% / Good</code> 입니다.
+    <b>표본 값이라 이번에 건드리지 않았습니다.</b> 맞출지 말씀해 주세요.
+  </p>
+
+  <h3>6-3. 사전 점검 패널 — 안내를 바닥으로 내렸습니다</h3>
+  <p>
+    <strong>패널은 fill 로 둡니다</strong>(세로를 꽉 채웁니다). 셋이 같은 슬롯을 쓰는
+    흐름이라 <b>CTA 가 늘 같은 자리에 있어야</b> 하고, 점검항목 수가 바뀌어도
+    <b>버튼이 커서 밑에서 도망가지 않아야</b> 합니다. 옆의 지도도 fill 이라
+    오른쪽만 hug 면 바닥에 캔버스가 드러납니다.
+  </p>
+  <p>
+    <strong>대신 빈 자리가 큽니다.</strong> 1920×1080 에서 잰 값입니다.
+  </p>
+  <table>
+    <tr><th>화면</th><th>안쪽 박스</th><th>내용</th><th>빈 자리</th></tr>
+    <tr><td>미션 설정</td><td>759</td><td>600</td><td>159</td></tr>
+    <tr><td>사전 점검</td><td>758</td><td>315</td><td><b>443</b></td></tr>
+  </table>
+  <p>
+    <strong>안내(<code>inline-notice</code>)를 스크롤 밖으로 꺼내 버튼 바로 위에 붙였습니다.</strong>
+    빈 자리 크기는 그대로인데 <b>자리가 바뀝니다</b> —
+    전에는 카드 <b>아래 끝</b>에 몰려 "내용이 모자란" 것으로 읽혔고,
+    지금은 <b>위 덩이(점검 목록)와 아래 덩이(안내+버튼) 사이</b>에 놓여 "간격"으로 읽힙니다.
+    카드가 위아래 양끝에서 잡힙니다.
+  </p>
+  <p>
+    실측 — 안내가 버튼 위 <code>8</code>, 버튼 바닥이 카드 바닥에서 <code>4</code> 입니다.
+  </p>
+  <p>
+    <strong>그래도 443 은 큽니다.</strong> 다음 수로는 그 자리에 <b>내용을 넣는 쪽</b>이 남아 있습니다 —
+    지금 뭘 확인하고 있는지(고른 로봇·설비·예상 소요) 요약을 얹으면 대기 시간이 덜 비어 보이고,
+    미션 설정의 <code>예상 소요시간 / Way-point</code> 블록과도 이어집니다.
+  </p>
+
+  <h3>6-4. 미션 패널 배경색 · 선 다시 맞춤 (558:12646 · 558:12570 · 558:13670)</h3>
+  <p>
+    <strong>테두리로 나누던 것을 면으로 나누는 쪽으로 갔습니다.</strong>
+    덩이를 감싸던 <code>1px</code> 테두리가 빠지고, 대신 <b>면 밝기</b>로 층을 만듭니다.
+    선은 <b>덩이 안쪽 줄 사이</b>에만 남았습니다.
+  </p>
+  <table>
+    <tr><th>자리</th><th>이전</th><th>지금</th></tr>
+    <tr><td>Mission Form</td><td>면 <code>overlay-dark</code> + <b>테두리 <code>gray/600</code></b></td>
+        <td>면만 — <b>테두리 없음</b></td></tr>
+    <tr><td>요약 블록(Spacer)</td><td>면 <b><code>gray/950</code></b>(거의 검정) + 테두리</td>
+        <td>면 <b><code>bg/surface/subtle</code></b> — 테두리 없음</td></tr>
+    <tr><td>사전 점검 항목</td><td>면 <code>overlay-dark</code> + <b>테두리 <code>gray/600</code></b></td>
+        <td>면만 — <b>테두리 없음</b></td></tr>
+    <tr><td>목록 머리</td><td><code>gray/750</code> (값 직접)</td><td><code>bg/surface/subtle</code> (토큰)</td></tr>
+    <tr><td>구분선</td><td><code>gray/700</code> (값 직접)</td><td><code>border/subtle</code> (토큰)</td></tr>
+    <tr><td>줄 사이 선</td><td><code>gray/650</code> (값 직접)</td><td><code>border/default</code> (토큰)</td></tr>
+    <tr><td>확인 중인 줄</td><td>면 <code>gray/750</code></td><td>면 <b><code>border/subtle</code></b></td></tr>
+  </table>
+  <p>
+    <strong>가장 크게 달라진 건 요약 블록입니다.</strong> <code>#070A10</code> 에서
+    <code>#2C3443</code> 로 올라왔습니다 — <b>구덩이처럼 파여 있던 게 한 단 떠오릅니다.</b>
+    같은 <code>bg/surface/subtle</code> 을 사전 점검의 목록 머리도 쓰므로
+    <b>두 화면에서 같은 높이의 면</b>이 됩니다.
+  </p>
+  <p>
+    <strong>마지막 줄의 선을 다시 살렸습니다.</strong> 화면에서는
+    <code>:last-child</code> 로 지우고 있었는데, Figma 는 <b>네 줄 모두 아래 변에만</b> 긋습니다
+    (요약 두 줄도 같습니다). 그래서 <b>덩이 바닥에도 선이 한 줄 남습니다</b> —
+    면이 바뀐 지금은 그 선이 덩이의 끝을 알려 주는 몫을 합니다.
+  </p>
+  <p>
+    <strong>값을 직접 쓰던 자리를 토큰으로 바꿨습니다.</strong> 색은 안 변합니다
+    (<code>border/default</code> = <code>gray/650</code>, <code>border/subtle</code> = <code>gray/700</code>,
+    <code>bg/surface/subtle</code> = <code>gray/750</code> — Dark 기준). 모드가 갈릴 때 따라가라고 바꿨습니다.
+  </p>
+
+  <p><b>덤 — Figma 가 fill 논쟁을 끝내 줬습니다</b></p>
+  <p>
+    세 패널 모두 <strong>940 고정 높이</strong>이고, 안에
+    <code>Spacing</code> 이라는 <b>FILL/FILL 빈 프레임</b>이 있습니다.
+    <strong>빈 자리를 프레임으로 못 박아 두고 CTA 를 바닥에 붙인 구조</strong>입니다 —
+    6-3 에서 고른 1번과 같습니다.
+    사전 점검의 안내도 <b>Figma 에서 버튼 바로 위</b>에 있습니다.
+  </p>
+
+  <p><b>안 고친 것 하나</b></p>
+  <p>
+    바깥 패딩이 <code>4/4/4/4</code> 에서 <strong><code>4/4/12/4</code></strong> 로 바뀌었습니다
+    (아래만 12). 여백이라 이번 범위에서 뺐습니다 — 맞출지 말씀해 주세요.
+    미션 모니터링 두 카드는 <code>4</code> 그대로라 <b>미션 설정·사전 점검에만</b> 해당합니다.
+  </p>
+
+  <h3>7. Spectrum 막대 색 — Delta 오브와 같은 팔레트</h3>
+  <p>
+    막대가 단색(<code>main/600</code> · 주의 <code>#c9a52e</code>)이라
+    Delta 오브와 따로 놀았습니다. <b>오브가 쓰는 색을 그대로 가져왔습니다.</b>
+  </p>
+  <p>
+    오브(<code>assets/js/prism-orb.js</code>)는 코사인 팔레트를 씁니다 —
+    <code>pal(t) = a + b · cos(2π · (c·t + d))</code>. <code>c</code> 가 <code>0.6</code> 이라
+    <b>한 바퀴가 <code>t = 1/0.6</code></b> 이고, 그 한 바퀴를 8 등분해 CSS stop 으로 굳혔습니다.
+    <b>0% 와 100% 가 같은 색</b>이라 띠를 반복해도 이음매가 없습니다.
+  </p>
+  <table>
+    <tr><th>상태</th><th>팔레트</th><th>막대 색</th></tr>
+    <tr><td>기본</td><td><code>PALETTES.info</code></td>
+        <td>파랑 <code>#1B77EE</code> → 남보라 <code>#1E2FB0</code> → 라일락 <code>#858DA3</code>
+            → 청록 <code>#71A7C9</code> → 파랑</td></tr>
+    <tr><td>주의</td><td><code>PALETTES.warning</code></td>
+        <td>호박 <code>#F2B020</code> → 탄 주황 <code>#A5521A</code> → 자두 <code>#7D4F5A</code>
+            → 금빛 <code>#CBAD61</code> → 호박</td></tr>
+  </table>
+  <p>
+    띠 하나가 <b>패널 폭의 1/3</b> 이라 화면에서 세 바퀴가 지나갑니다.
+    파형이 흐르면 색도 같이 흘러갑니다.
+  </p>
+  <p>
+    <b>오브 팔레트를 고치면 이 값도 다시 뽑아야 합니다</b> — CSS 는 계산을 못 하니
+    stop 을 굳혀 둔 것입니다. <code>app-shell.css</code> 의
+    <code>--ai-spectrum-ramp</code> 주석에 방법을 적어 뒀습니다.
+    <code>critical</code> · <code>safe</code> 도 같은 방식으로 <code>--ai-spectrum-ramp</code> 만
+    더하면 됩니다.
+  </p>
+
+  <h3>7-1. AI 패널 일렁임 — 선 · Spectrum · 배경</h3>
+  <p>
+    Siri · Gemini 처럼 패널이 가만히 있지 않도록 세 층을 움직였습니다.
+    <strong>모두 한 방향으로만 흐르는 무한 루프</strong>라 갔다가 되돌아오지 않습니다.
+    <strong>Figma 에는 없는 층입니다</strong> — 정지 화면으로는 담을 수 없는 것이라 여기서만 더했습니다.
+  </p>
+  <table>
+    <tr><th>층</th><th>움직임</th><th>주기</th></tr>
+    <tr><td><strong>사면 테두리</strong></td>
+        <td>5-stop 무늬가 흐르고 그 위로 밝은 섬광 둘이 번갈아 훑습니다.
+            <b>예전에는 위쪽 선 하나였는데 링 전체로 넓혔습니다.</b></td><td>6s</td></tr>
+    <tr><td><strong>Spectrum</strong></td><td>막대 높낮이가 파형 두 겹을 따라 크게 물결치고 밝은 띠가 지나갑니다</td><td>7s · 4.5s</td></tr>
+    <tr><td>배경 그라데이션</td><td>계열 색 셋이 좌우로 천천히 흐릅니다(그대로 두었습니다)</td><td>18s · 25s · 31s</td></tr>
+  </table>
+
+  <p>
+    <strong>테두리에는 섬광이 지나갑니다.</strong> 아래에는 Figma 의 5-stop 을 좌우 대칭으로 이어 붙인
+    무늬가 등속으로 흐르고, 그 위로 <strong>좁고 밝은 줄기 둘</strong>이 서로 어긋난 구간
+    (0~62% · 38~100%)을 훑어서 섬광이 끊기지 않습니다.
+    무늬 한 칸은 <strong>상자 두 폭</strong>이고 6초에 정확히 한 칸을 밉니다 — 0% 와 100% 가 같은 값이라
+    이음매가 없습니다.
+  </p>
+  <p>
+    <b>섬광은 흰색입니다.</b> 예전 상단선은 <code>fg/primary</code> 를 심으로 써서 테마에 따라 뒤집혔는데,
+    <b>이 상자는 Light 에서도 안이 어둡습니다</b> — 화면에서 재 보니 테두리 바로 안쪽 평균이
+    <code>30</code>, 섬광이 <code>246</code> 이라 흰빛이 그대로 읽힙니다.
+    상자가 자기 그라데이션을 갖고 있어서 페이지 테마를 안 따라갑니다.
+  </p>
+  <p>
+    <b>흐르는 방향을 맞췄습니다.</b> 층이 상자보다 넓으면(<code>200%</code>)
+    <code>background-position</code> 의 백분율이 <b>남는 자리(음수)</b> 에 곱해집니다.
+    예전 상단선은 무늬에 양수를 줘서 <b>무늬는 왼쪽으로, 섬광은 오른쪽으로</b> 흐르고 있었습니다.
+    부호를 뒤집어 둘을 같은 쪽으로 보냈습니다.
+  </p>
+  <p>
+    <b>사면을 도는 conic 은 안 썼습니다.</b> 상자가 <code>559 x 76</code> 이라 각속도가 일정해도
+    호 길이가 안 맞습니다 — 긴 변 한가운데가 <code>38px/rad</code>, 모서리가 <code>2094px/rad</code> 라
+    <b>가운데서 기다가 모서리에서 튑니다.</b> 가로로 흐르면 위·아래 변이 등속으로 흐르고
+    <code>1px</code> 세로 변은 무늬가 지나갈 때 색만 같이 바뀝니다.
+  </p>
+
+  <p>
+    <strong>Spectrum 은 막대가 아니라 파형이 움직입니다.</strong> 막대(2px 간격 4px)는 제자리에 고정된
+    마스크이고, 그 안에서 <strong>높이를 정하는 파형만 흐릅니다</strong> — 막대가 흘러가는 게 아니라
+    제자리에서 길어졌다 짧아집니다.
+    <strong>띠 높이는 패널의 절반</strong>입니다 — Figma 는 16px 인데 화면에서는 닫힘 기준 34px 로 키웠습니다.
+    파형 · 감쇠 · 끝 흐림이 모두 요소 높이에 비례해서 모양은 그대로 커집니다.
+    막대는 그 안에서 <strong>14% 에서 86% 까지</strong>(약 5 ~ 29px) 오갑니다.
+    파형은 깊은 것(주기 240 · 80 · 48)과 얕은 것(240 · 120 · 60) <strong>두 겹을 겹쳐 낮은 쪽</strong>을 쓰고,
+    둘의 속도가 달라 같은 물결이 반복되지 않습니다. 막대 색에도 밝은 띠가 함께 지나갑니다.
+  </p>
+  <p>
+    <strong>물결 하나가 패널 한 폭입니다.</strong> 예전에는 반 폭이라 한눈에 여섯 개쯤 보였는데
+    <strong>폭을 두 배로 늘려 서너 개</strong>가 되었습니다. 흐르는 속도(거리/초)는 그대로여서
+    주기만 7s · 4.5s → <strong>14s · 9s</strong> 로 늘었습니다.
+  </p>
+  <p>
+    이때 <strong>루프 이음매가 생길 뻔했습니다.</strong> 한 바퀴는 무늬 한 칸만큼 미는 것인데,
+    얕은 파형과 색 띠의 칸이 그 거리의 약수가 아니면 제자리로 돌아올 때 그 무늬만 어긋나 툭 튑니다.
+    셋 다 <strong>33.333% · 33.333% · 11.111%</strong> 로 맞췄습니다 —
+    루프 경계 40ms 의 변화가 한가운데 40ms 와 똑같은 것으로 확인했습니다.
+    세로 감쇠는 <code>40% @70%</code> → <code>55% @55%</code> 로 더 풀었습니다.
+  </p>
+  <p>
+    <strong>막대 끝은 잘리지 않고 사라집니다.</strong> 파형이 곧 막대의 윗변인데 그 경계가 칼같아서
+    막대가 배경 위에 얹힌 것처럼 보였습니다. 같은 파형을 <strong>0.55px 씩 내려 열 겹</strong> 포개고
+    겹마다 불투명도를 달리 줘서 <strong>누적 알파가 0.04 에서 1 로 천천히 차오르게</strong> 했습니다 —
+    막대의 맨 위가 완전히 투명해서 배경에 녹아듭니다.
+    블러 필터로도 같은 모양이 나오지만, 겹쳐 그리는 쪽은 브라우저마다 결과가 달라질 여지가 없습니다.
+  </p>
+  <p>
+    <strong>불투명한 구간은 바닥 쪽으로 몰았습니다.</strong> 막대의 위 5px 이 서서히 차오르고,
+    띠 전체의 세로 감쇠도 <strong>30%에서 14% · 55%에서 38% · 80%에서 68%</strong> 로 눕혀
+    <strong>완전히 불투명한 곳은 맨 아래 한두 픽셀뿐</strong>입니다.
+    나머지는 전부 투명에서 차오르는 구간이라 배경과 경계가 지지 않습니다.
+    (띠를 두 배로 키우면서 감쇠 지점을 조금 앞당겼습니다 — 그대로 두었더니 위쪽 절반이
+    거의 보이지 않아 키운 티가 나지 않았습니다. 완전히 불투명한 곳이 맨 아래뿐인 것은 그대로입니다.)
+  </p>
+
+  <p>
+    <strong>배경은 건드리지 않았습니다.</strong> 계열 색 셋이 패널의 300% 폭 안에서 가로로 반복되고
+    <strong>무늬 딱 한 칸만큼</strong> 밀리므로 <code>linear</code> 로 무한히 돌려도 이음매가 없습니다.
+    칸 크기 · 속도 · 방향이 층마다 달라(18s → · 25s ← · 31s →) 겹치는 모양이 열두 시간 넘게
+    되풀이되지 않고, 무늬끼리 넉넉히 겹쳐 <strong>전체 밝기는 4% 안에서만</strong> 움직입니다.
+  </p>
+  <p>
+    색은 모두 계열 토큰을 섞은 것이라 Type 을 Warning · Critical · Safe 로 바꾸면 함께 바뀝니다
+    (<code>--ai-tone-a · b · c</code> 와 <code>--ai-line-spark</code>).
+    배경은 <code>transform</code> 만 바꾸므로 합성기에서 처리되고, 선과 Spectrum 은
+    <code>background-position</code> · <code>mask-position</code> 을 쓰지만
+    각각 높이 24px · 16px 띠라 다시 칠할 넓이가 작습니다.
+    <strong><code>prefers-reduced-motion</code> 을 켠 환경에서는 모두 멈춥니다.</strong>
+  </p>
+  <p>
+    곁들여 두 가지를 맞췄습니다.
+    <strong>Spectrum 이 글자 아래로 내려갔습니다</strong> — Figma 에서도 Spectrum 은 맨 아래 층인데
+    퍼블리싱에서는 글자 위에 얹혀 있었습니다.
+    그리고 <strong>열린 상태에서는 Spectrum 을 감춥니다</strong> — Figma 의 opened 변형에는 Spectrum 이 없고
+    그 자리를 입력창이 차지합니다.
+  </p>
+
+  <h3>8. 이번 업데이트 — 사이트 패널 · AI 바 · 토큰</h3>
+
+  <p><strong>사이트 패널이 세 덩이로 나뉘었습니다.</strong> 패널 자체에는 여백이 없고 각 덩이가 자기 여백을 갖습니다.</p>
+  <table>
+    <tr><th>덩이</th><th>크기</th><th>여백 · 간격</th><th>면</th></tr>
+    <tr><td>머리줄</td><td>240 × 44</td><td>패딩 12, 간격 20</td><td>—</td></tr>
+    <tr><td>사이트 블록</td><td>240 × 108</td><td>패딩 20/12/16, 간격 12</td><td><strong><code>bg/accent</code></strong></td></tr>
+    <tr><td>나머지</td><td>240 × 84</td><td>패딩 16/12, 간격 20</td><td>—</td></tr>
+  </table>
+  <p>
+    <code>SITE</code> 라벨이 <strong>접기 버튼과 같은 줄</strong>로 올라왔고,
+    사이트 이름과 터빈 선택이 파란 면 위로 들어갔습니다.
+    Select 는 테두리가 없어지고 면이 <code>bg/surface/alpha</code>로 바뀌었습니다.
+  </p>
+
+  <p>
+    <strong>지도가 사이트 패널에 붙었습니다.</strong> <code>Margin</code>의 왼쪽 패딩이 4 → <strong>0</strong>이 되어
+    Two Column 이 1596 → <strong>1600</strong>, Map Panel 이 1160 → <strong>1164</strong>가 되었습니다.
+  </p>
+
+  <p>
+    <strong>AI Assist Panel 이 새 컴포넌트로 교체됐습니다.</strong>
+    <code>Type</code>(Default · Warning · Critical · Safe) × <code>state</code>(opened · cloased)
+    <strong>4×2 Variant</strong> 세트입니다. 화면은 <code>Default / cloased</code>를 씁니다.
+  </p>
+  <ul>
+    <li>면이 5-stop 세로 그라데이션으로 바뀌었고 <strong>마지막 stop 이 불투명</strong>합니다
+      (<code>alert/Default/glow-Primary</code>에 묶여 있습니다). 아래 변이 밝게 빛납니다.</li>
+    <li><strong>내부 그림자</strong>가 생겼습니다 — <code>inset 0 -8px 12px -4px</code>,
+      색은 <code>alert/Default/glow-Secondary</code>.</li>
+    <li><strong>Spectrum</strong> — 2px 선 300개가 아래 변에 깔립니다. 선마다 위가 투명하고 아래가 불투명합니다.
+      DOM 300개 대신 <code>repeating-linear-gradient</code> + <code>mask</code> 하나로 같은 그림을 그렸습니다.</li>
+  </ul>
+
+  <p>
+    <strong>토큰이 또 커졌습니다.</strong> Primitive 111 → <strong>120</strong>,
+    Semantic 123 → <strong>134</strong>. <code>tokens.css</code>를 다시 만들었습니다.
+  </p>
+  <ul>
+    <li><code>alert/…/glow</code>가 둘로 갈렸습니다 — <code>glow-Primary</code>(불투명 원색) ·
+      <code>glow-Secondary</code>(반투명). 이전 이름은 사라졌습니다.</li>
+    <li><code>alert/Default/*</code> 계열이 새로 생겼습니다. AI 바가 이걸 씁니다.</li>
+    <li><strong><code>bg/accent</code>의 Light·Dark 가 서로 바뀌었습니다</strong> —
+      Light <code>main/700 → 600</code>, Dark <code>main/600 → 700</code>.
+      GNB 선택 아이콘 배경과 로봇 카드 그라데이션 끝 색이 같이 따라갑니다.</li>
+    <li>새 계열: <code>bg/Safe</code> · <code>bg/navigation</code> ·
+      <code>bg/interactive/accent-*</code> · <code>bg/interactive/inverse-*</code> ·
+      <code>chart/categorical/1~4</code> · <code>chart/heat/1~5</code> · <code>radius/Chart</code></li>
+    <li>Primitive 추가: <code>main/50·200·400·800·950</code>, <code>danger/200</code>,
+      <code>safe/200</code>, <code>warning/100 2</code>, <code>gray/450</code>, <code>radius/2</code>,
+      <code>alpha/glow/Primary·Secondary</code> 8개</li>
+  </ul>
+
+  <p><strong>확인 부탁드립니다.</strong></p>
+  <ul>
+    <li>Variant 값이 <code>cloased</code>입니다. <code>closed</code> 오타로 보입니다.</li>
+    <li>Primitive 이름 <code>color/warning/100 2</code>에 공백과 숫자가 붙어 있습니다.</li>
+    <li><code>alert/…/glow-Primary</code> · <code>glow-Secondary</code>는 두 모드 값이 같습니다.
+      AI 바의 발광이라 의도로 보입니다만, 맞는지 봐 주세요.</li>
+    <li>이전 Paint Style 을 옮겨 둔 <code>--gradient-main</code> 넷은 이제 쓰이지 않습니다.
+      다른 화면에서 쓸 수 있어 <code>tokens.css</code>에 남겨 뒀습니다.</li>
+  </ul>
+
+  <p>
+    <strong>Progress Bar 도 바뀌어 반영했습니다.</strong> 칸 색이 셋으로 갈렸습니다.
+  </p>
+  <table>
+    <tr><th>칸 상태</th><th>표현</th></tr>
+    <tr><td>완료</td><td><code>bg/Safe</code> 초록</td></tr>
+    <tr><td>수행중</td><td><code>bg/brand</code> 파랑</td></tr>
+    <tr><td>대기</td><td>2px 선을 2px 간격으로 깐 빗금(<code>fg/disabled</code>)</td></tr>
+  </table>
+  <p>
+    칸 사이 간격이 2 → <strong>4</strong>, 모서리가 <code>radius/card</code> →
+    <strong><code>radius/Chart</code>(2)</strong>가 되었습니다.
+    제목과 점도 <code>fg/primary</code>·<code>fg/secondary</code>에서
+    <code>status/info/fg</code>·<code>status/info/icon</code>으로 바뀌었습니다.
+    Figma 는 칸 하나에 선 37개를 넣어 두었는데, 여기서는 반복 배경 하나로 같은 그림을 그립니다.
+  </p>
+  <p>
+    <strong>칸은 단계와 1:1 입니다.</strong> 로봇을 바꾸면 칸 수와 색이 같이 바뀝니다 —
+    1번 <code>초록 3 · 파랑 1 · 빗금 3</code>, 2번 <code>초록 5</code>, 3번 <code>빗금 4</code>.
+  </p>
+
+  <p>
+    <strong>Progress Bar 칸의 발광을 빠뜨렸다가 채웠습니다.</strong>
+    채워진 칸마다 아래 변에서 위로 번지는 <code>INNER_SHADOW</code>가 있습니다
+    (<code>offset 0/-4 · blur 4 · spread 0</code>). 대기 칸에는 없습니다.
+  </p>
+  <table>
+    <tr><th>칸</th><th>면</th><th>발광</th></tr>
+    <tr><td>완료</td><td><code>bg/Safe</code></td><td><code>alert/safe/glow-Primary</code> <code>#72F494</code></td></tr>
+    <tr><td>수행중</td><td><code>bg/brand</code></td><td><code>alert/Default/glow-Primary</code> <code>#89B9ED</code></td></tr>
+    <tr><td>실패</td><td><code>bg/critical</code></td><td><code>alert/danger/glow-Primary</code> <code>#FFA69A</code></td></tr>
+    <tr><td>대기</td><td>빗금 <code>fg/disabled</code></td><td>없음</td></tr>
+  </table>
+  <p>
+    <strong><code>실패</code> Variant 는 화면에 아직 쓰이지 않습니다.</strong>
+    CSS 자리(<code>.is-failed</code>)만 만들어 뒀습니다.
+  </p>
+
+  <p>
+    <strong>AI Assist Panel 은 Type 이 넷입니다</strong> — Default · Warning · Critical · Safe.
+    구조는 같고 그라데이션 · 발광 · 위 테두리 색만 다릅니다. 넷 다 CSS 에 넣어 뒀고
+    (<code>.is-warning</code> · <code>.is-critical</code> · <code>.is-safe</code>),
+    화면은 Default 를 씁니다. Spectrum 색도 계열을 따라갑니다.
+  </p>
+  <table>
+    <tr><th>Type</th><th>끝 stop</th><th>발광</th><th>위 테두리</th></tr>
+    <tr><td>Default</td><td><code>alert/Default/glow-Primary</code></td><td><code>alert/Default/glow-Secondary</code></td><td><code>border/focus</code></td></tr>
+    <tr><td>Warning</td><td><code>#F7CD36</code> (raw)</td><td><code>alert/warning/glow-Secondary</code></td><td><code>status/warning/border</code></td></tr>
+    <tr><td>Critical</td><td><code>#F4463F</code> (raw)</td><td><code>alert/danger/glow-Secondary</code></td><td><code>status/critical/border</code></td></tr>
+    <tr><td>Safe</td><td><code>#1FB18C</code> (raw)</td><td><code>alert/safe/glow-Secondary</code></td><td><strong><code>chart/positive</code></strong></td></tr>
+  </table>
+  <p>
+    Safe 의 테두리는 <code>chart/positive</code>였는데 <strong>Figma 에서
+    <code>status/normal/border</code>로 고쳤습니다</strong> — 다음 항목을 봐 주세요.
+  </p>
+
+  <p>
+    화면이 컴포넌트(<code>478:17275</code>)가 되면서 노드가 잠깐 읽히지 않아,
+    구조는 끊기기 전 실측 덤프로 먼저 맞추고 나중에 새 노드로 다시 대조했습니다.
+    <strong>지금은 Figma 렌더와 나란히 비교해 확인했습니다.</strong>
+    패널 240/44/108/84 · Two Column 1600 · Map Panel 1164 · Map Canvas 1124×829 ·
+    Right Panel 420 · Mission 292/636 — 전부 일치합니다.
+  </p>
+  <p>
+    남는 차이는 문서에 적어 둔 둘뿐입니다 — 로봇 카드 폭(Figma 는 168 고정이라 3번째가 잘리고,
+    여기서는 셋 다 들어가게 나눕니다)과 타임라인 내용(로봇별로 다르게 지었습니다).
+  </p>
+
+  <h3>9. AI 패널 디테일</h3>
+  <p>퍼블리싱에서 빠져 있던 세 가지를 채웠습니다.</p>
+  <table>
+    <tr><th>부분</th><th>이전</th><th>현재</th></tr>
+    <tr><td>위쪽 2px 선</td><td><code>border/focus</code> 단색</td><td><strong>가로 그라데이션 5-stop</strong></td></tr>
+    <tr><td>입력창</td><td><code>bg/surface/default</code> + 1px 테두리</td><td><strong><code>bg/surface/alpha</code></strong>, 테두리 없음</td></tr>
+    <tr><td>캡슐</td><td><code>bg/accent</code> 불투명</td><td><strong><code>bg/surface/alpha</code></strong></td></tr>
+  </table>
+  <p>
+    상단선 stop 은
+    <code>0% border/focus</code> → <code>25% alert/default/edge</code> →
+    <code>46.2% alert/default/glow-Primary</code> → <code>72.1% border/focus</code> →
+    <code>100% alert/default/edge</code> 입니다.
+    CSS <code>border</code> 로는 그라데이션 색을 못 줍니다. 그래서
+    <strong>모양은 진짜 <code>border-top</code> 으로 잡고, 그 테두리 영역만 마스크로 남겨
+    그라데이션을 통과시킵니다</strong> (<code>::before</code> 에서 border-box 와 padding-box 를 XOR).
+    덤으로 닫힘 높이가 <strong>70 → 68</strong> 로 Figma 와 같아졌습니다 —
+    <code>::before</code> 는 절대배치라 높이를 늘리지 않습니다.
+    <strong>Default 만 그라데이션</strong>이고 Warning · Critical · Safe 는 단색입니다.
+  </p>
+  <p>
+    <strong>모서리도 이 방식이라야 맞습니다.</strong> 처음에는 곧은 2px 막대를 얹고
+    <code>overflow: hidden</code> 으로 잘랐는데, 그러면 라운드 구간에서 선이 뭉툭하게 끊깁니다.
+    Figma 는 위쪽만 있는 stroke 를 <strong>라운드를 따라 휘면서 가늘어지게</strong> 그리고,
+    브라우저의 <code>border-top</code> 도 인접 변(0px)과 만나며 같은 테이퍼를 그립니다.
+    실측으로 대조하니 Figma 와 web 모두 패널 위에서 <strong>약 5px</strong> 내려간 지점에서
+    선이 사라집니다(라운드 8px).
+  </p>
+  <p>
+    <strong>열림 상태의 구조도 같이 맞췄습니다.</strong> 패널 패딩이 24 → <strong>4</strong> 이고
+    안쪽 Summary 가 <code>16/12</code> 를 갖습니다. 입력창은 Summary 밖에 있어 패널 패딩만 받습니다.
+    토글 위치도 <code>20/16</code> 으로 옮겼고, 입력창 안내 문구를
+    <code>fg/tertiary</code> → <code>fg/secondary</code> 로 맞췄습니다.
+  </p>
+  <p>
+    <strong>지난번 <code>bg/surface/alpha</code> Light 예외를 로봇 카드 안으로 좁혔습니다.</strong>
+    AI 패널은 원색 면 위에 얹히므로 Figma 대로 <strong>두 모드 모두 어두운 scrim</strong> 이 맞습니다.
+    선택된 로봇 카드만 Light 에서 밝은 쪽으로 뒤집습니다 — 그 카드는 면이
+    <code>main/100</code>(밝은 파랑)이라 어두운 scrim 을 깔면 값 대비가 1.1~1.5 로 무너집니다.
+    토큰은 이제 Figma 값 그대로이고, 예외는 <code>app-shell.css</code> 한 곳에만 있습니다.
+  </p>
+  <p>
+    <strong>Light 에서 캡슐 글자가 잘 안 읽힙니다.</strong> 캡슐 라벨이 <code>fg/primary</code>
+    (Light 에서 진한 색)인데 면은 어두운 scrim 이라 어두운 글자가 어두운 면에 얹힙니다.
+    <strong>Figma 도 같은 상태</strong>라 여기서는 그대로 뒀습니다. 헤드라인 두 줄이
+    raw white 인 것도 마찬가지입니다 — Light 에서 밝은 면 위 흰 글자가 됩니다.
+  </p>
+
+  <h3>9-1. Delta 를 미션 설정 · 사전 점검에도 놓았습니다 — 파란 상태</h3>
+  <p>
+    <strong>Delta 가 관제 화면에만 있었습니다.</strong> 미션을 만들고 점검하는 두 화면에는 없다가
+    모니터링에 들어와야 나타나니, 운영자 입장에서는 <strong>사고가 나야 등장하는 존재</strong>가 됩니다.
+    같은 패널을 세 화면에 이어 두고 <strong>심각도만 바뀌게</strong> 했습니다.
+  </p>
+  <table>
+    <tr><th>화면</th><th>상태</th><th>태그</th></tr>
+    <tr><td>미션 설정</td><td><strong>Info(파랑)</strong> — <code>.ai-panel</code></td>
+        <td>인계 알림 3건 · 예정 미션 1건</td></tr>
+    <tr><td>사전 점검</td><td><strong>Info(파랑)</strong> — <code>.ai-panel</code></td>
+        <td>인계 알림 3건 · 예정 미션 1건</td></tr>
+    <tr><td>미션 모니터링</td><td><strong>Warning(노랑)</strong> — <code>.ai-panel.is-warning</code></td>
+        <td>원인 분석 완료 · 후보 1건 확인</td></tr>
+  </table>
+  <p>
+    <strong>파랑이 Figma 의 기본값입니다.</strong> 컴포넌트(121:665)에 그려져 있는 유일한 모습이
+    이 파란 상태이고, 노랑은 이 시스템에서 얹은 심각도 변형입니다. 그래서 새로 만든 두 화면은
+    <strong>클래스를 하나도 안 붙인 <code>.ai-panel</code></strong> 그대로입니다 — 파랑을 위해
+    따로 쓴 CSS 가 없습니다.
+  </p>
+  <p>
+    <strong>닫힘 상태의 [확인] 버튼은 두 화면에 안 넣었습니다.</strong> Figma 파란 상태에는 있지만,
+    이 시스템에서 [확인]은 <strong>주의 알림을 받았다는 응답</strong>입니다 — 누르면 노랑이 파랑으로
+    돌아갑니다. 설정·점검 화면에는 받을 알림이 없어서 누를 것이 없습니다.
+    (CSS 에도 <code>.ai-panel:not(.is-warning) .ai-ack { display: none }</code> 이 이미 있어
+    넣어도 안 보이지만, 마크업에서 아예 뺐습니다.)
+  </p>
+  <p>
+    <strong>Delta 오브 색은 클래스를 따라갑니다.</strong> <code>screen.js</code> 의
+    <code>severity()</code> 가 패널 클래스를 읽어 팔레트를 고르므로,
+    두 화면은 <code>PALETTES.info</code> 로 뜹니다. 두 화면에
+    <code>prism-orb.js</code> 를 추가했습니다 — 없으면 자리표시자 원만 남습니다.
+  </p>
+  <p>
+    <strong>멘트는 세 화면이 하나입니다.</strong> 처음에는 화면마다 다르게 썼는데
+    (설정은 점검항목 추천, 점검은 진행 상황) <strong>같은 문구로 통일했습니다</strong> —
+    <code>screen.js</code> 의 <code>NORMAL_LINE_1</code> · <code>NORMAL_LINE_2</code> 그대로,
+    관제 화면에서 [확인]을 누른 뒤 나오는 그 문구입니다.
+  </p>
+  <table>
+    <tr><td>인사</td><td>안녕하세요, 홍길동 님.</td></tr>
+    <tr><td>본문</td><td>인계된 알림 3건과 진행 예정인 미션 1건이 있어요. 먼저 살펴볼까요?</td></tr>
+  </table>
+  <p>
+    Figma 본문이 <code>DELTA의 분석 결과를 입력하세요.</code> 라는 자리표시 문장이라
+    어차피 화면에 쓸 수 없습니다. <strong>태그도 같이 <code>NORMAL_TAG</code> 로 맞췄습니다</strong> —
+    "추천 4건" 같은 화면별 태그를 남겨 두면 본문의 "알림 3건 · 미션 1건" 과 숫자가 어긋납니다.
+    <strong>캡슐 세 개만 화면별로 다릅니다</strong> — 저 문구는 Delta 가 하는 말이고
+    캡슐은 운영자가 물을 만한 말이라 화면 맥락을 따라가는 편이 맞습니다.
+  </p>
+  <p>
+    닫힘·펼침 모두 <strong>본문이 한 줄에 들어갑니다</strong>(펼침 20/32 에서 실측).
+    문안을 갈 때는 이 길이를 넘지 않는지 보셔야 합니다 — 넘치면 마지막 몇 글자만
+    다음 줄로 떨어집니다.
+  </p>
+
+  <h3>9-2. AI 패널 입력칸을 실제로 칠 수 있게 했습니다</h3>
+  <p>
+    <code>무엇이든 물어보세요</code> 가 <strong>글자 한 줄(<code>&lt;span&gt;</code>)이었습니다.</strong>
+    Figma 에 그려진 것이 안내 문구뿐이라 그대로 옮겨 뒀던 것인데,
+    <strong>진짜 <code>&lt;input&gt;</code> 으로 바꿨습니다.</strong> 세 화면 모두입니다.
+  </p>
+  <table>
+    <tr><th></th><th>값</th></tr>
+    <tr><td>안내 문구</td><td>Body/3 (14/22) · <code>fg/secondary</code> — <strong>Figma 그대로</strong></td></tr>
+    <tr><td>친 글자</td><td>Body/3 (14/22) · <strong><code>fg/primary</code></strong></td></tr>
+    <tr><td>칸 높이</td><td><strong>48 그대로</strong></td></tr>
+  </table>
+  <p>
+    <strong>친 글자를 안내 문구보다 진하게 뒀습니다</strong>(<code>fg/secondary</code> →
+    <code>fg/primary</code>, <code>.ai-line-*</code> 와 같은 색). 같은 농도로 두면
+    <strong>친 것인지 아직 안 친 것인지가 안 읽힙니다.</strong> Figma 에는 친 상태가 없어서
+    여기서 정한 값입니다.
+  </p>
+  <p>
+    <strong>칸 높이는 안 변합니다.</strong> 48 은 이 줄이 아니라 오른쪽 보내기 버튼(32)과
+    위아래 패딩 8 이 정합니다 — <code>span</code> 이든 <code>input</code> 이든 22 짜리
+    한 줄이라 높이에 손을 안 댑니다. 실측 <strong>48.0</strong> 으로 같습니다.
+  </p>
+  <p>
+    <strong>초점 링을 따로 두르지 않습니다.</strong> 처음에는 칸 바깥에
+    <code>outline 2px</code> 을 얹었는데, 칸이 <strong>그라데이션 테두리를 갖고 있어</strong>
+    링이 두 겹으로 보였습니다. 지금은 <strong>그 테두리 자체가 초점 링</strong>입니다.
+  </p>
+  <p>
+    <strong>쉴 때는 선이 아예 없습니다.</strong> 처음엔 1px 테두리가 늘 있었는데,
+    <b>가만히 있는 칸에 선이 있으면 이미 눌러 놓은 것처럼 읽혀</b> 뺐습니다.
+    이제 <b>선이 있다 = 지금 여기에 친다</b> 한 가지 뜻입니다.
+    <code>0 → 2px</code> 로 벌어지며 생깁니다 — 테두리를 그리는
+    <code>::before</code> 의 <code>padding</code> 하나만 움직이므로 규칙이 하나뿐입니다.
+    <b>Figma(121:665) 는 쉴 때도 1px 을 그립니다 — 뺀 것은 여기 판단입니다.</b>
+  </p>
+  <table>
+    <tr><th></th><th>쉴 때</th><th>초점</th></tr>
+    <tr><td>테두리</td><td><b>없음</b></td><td><strong><code>2px</code> 그라데이션</strong></td></tr>
+    <tr><td>면</td><td><code>bg/surface/overlay-dark</code> (반투명)</td>
+        <td><strong>알림 팔레트의 가장 어두운 자리 (솔리드)</strong></td></tr>
+  </table>
+  <p>
+    <strong>색은 알림을 따라갑니다 — 새로 쓴 값이 없습니다.</strong> 테두리 무늬가
+    <code>--ai-input-edge</code> 인데 이 변수는 <code>.ai-panel.is-warning</code> 에서 이미
+    노란 무늬로 덮입니다. 그 변수를 그대로 굵히기만 하니
+    <strong>일반은 파란 링, 주의는 노란 링</strong>이 됩니다.
+    Critical · Safe 를 붙일 때도 이 변수만 덮으면 링이 따라옵니다.
+  </p>
+  <p>
+    <strong>두께만으로는 신호가 약해서 면도 같이 바뀝니다.</strong>
+    처음에는 한 단계 <b>밝게</b> 들어 올렸는데(캡슐 hover 와 같은 짝),
+    <strong>칠 자리가 밝아지는 것이 어색하다</strong>고 해서
+    <strong>어두운 솔리드</strong>로 뒤집었습니다. 링이 아니라 면이라 겹으로 안 읽힙니다.
+  </p>
+  <table>
+    <tr><th>알림</th><th>초점 면</th></tr>
+    <tr><td>일반(Info)</td><td><code>color/main/950</code> — <code>#1E2D4D</code></td></tr>
+    <tr><td>주의(Warning)</td><td><code>color/warning/900</code> — <code>#383116</code></td></tr>
+  </table>
+  <p>
+    <strong>이 두 값은 이 컴포넌트가 이미 쓰는 짝입니다</strong> —
+    <code>.ai-tag</code> 글자색이 일반 <code>#1E2D4D</code>, 주의 <code>#383116</code> 입니다.
+    지시받은 값은 주의 쪽(<code>color/warning/900</code>)이고,
+    일반 쪽은 그 짝의 반대편을 골랐습니다 — 파란 패널에 노란 면을 깔 수는 없습니다.
+  </p>
+  <p>
+    <strong>반투명 scrim 이 아니라 솔리드입니다.</strong> 반투명이면 뒤에 깔린
+    상자 그라데이션이 비쳐서 <strong>칠 때 글자 뒤가 조용하지 않습니다.</strong>
+    솔리드라 글자만 남습니다.
+  </p>
+  <p>
+    <strong>어두운 면으로 뒤집으면서 글자도 같이 뒤집었습니다</strong> —
+    친 글자 <code>gray/50</code>, 안내 문구 <code>gray/400</code>.
+    <strong>Light 에서 <code>fg/primary</code> 는 거의 검정</strong>이라
+    <code>#1E2D4D</code> 위에 그대로 얹으면 안 읽힙니다.
+    실측 — Dark·Light 모두 초점 면 <code>#1e2d4d</code>(주의는 <code>#383116</code>),
+    테두리 <code>2px</code> 입니다.
+  </p>
+  <p>
+    <strong>투명한 <code>outline</code> 하나는 남겨 뒀습니다.</strong> Windows 고대비 같은
+    강제 색상 모드에서는 그라데이션 테두리가 통째로 지워집니다 — 그러면 초점이 어디 있는지
+    안 보입니다. 투명 outline 은 <strong>그 모드에서만 시스템 색으로 칠해지고</strong>
+    일반 화면에서는 안 보이므로 링이 두 겹이 되지 않습니다.
+  </p>
+  <p>
+    <strong>덤으로 접힌 판의 탭 순서를 고쳤습니다.</strong> 여닫이는 두 판을 DOM 에 두고
+    <code>grid-rows 0fr ↔ 1fr</code> 로 접습니다 — <strong>눈에만 안 보이고 초점은 들어갑니다.</strong>
+    지금까지는 접힌 판의 캡슐·보내기 버튼에 탭이 걸리는 정도였는데,
+    입력칸이 생기면서 <strong>안 보이는 칸에 글자를 치게</strong> 됩니다.
+    <code>screen.js</code> 의 <code>apply()</code> 에서 접힌 쪽에 <code>inert</code> 를 겁니다 —
+    탭 순서와 스크린리더에서 같이 빠집니다.
+  </p>
+  <p>
+    <strong>보내도 Delta 는 아직 답하지 않습니다.</strong> 서버가 없는 퍼블리싱이라
+    보내기 버튼은 그대로 두었습니다 — 누르면 아무 일도 안 일어납니다.
+    친 글자가 지워지지도 않습니다(검토 중에 실수로 날아가지 않게).
+  </p>
+  <p>
+    Light 에서도 봤습니다. 이 칸의 면(<code>bg/surface/overlay-dark</code>)은
+    Light 에서 <strong>밝은 쪽으로 뒤집히므로</strong>(<code>rgba(209 213 222 / 40%)</code>)
+    친 글자가 <code>rgb(7 10 16)</code> 로 또렷합니다 —
+    9번에 적어 둔 캡슐·헤드라인의 Light 대비 문제는 여기엔 없습니다.
+  </p>
+
+  <h3>9-3. 모달 — 두 자리에 붙였습니다 (71:492)</h3>
+  <p>
+    <code>Modal</code> 컴포넌트를 그대로 옮기고 <strong>문구만 자리에 맞게</strong> 갈았습니다.
+    짜임은 하나고 두 곳에서 뜹니다.
+  </p>
+  <table>
+    <tr><th>부르는 곳</th><th>제목</th><th>타이머</th><th>버튼</th></tr>
+    <tr><td>상태바 · 계정 메뉴 <b>[로그아웃]</b><br />(세 화면 모두)</td>
+        <td>로그아웃할까요?</td><td><b>35s</b></td><td>취소 · <b>로그아웃</b></td></tr>
+    <tr><td>미션 모니터링 우측 <b>[E-STOP]</b></td>
+        <td>로봇명 NA를 중지하시겠습니까?</td><td><b>없음</b></td><td>취소 · <b>중지하기</b></td></tr>
+  </table>
+  <p>
+    <strong>타이머는 컴포넌트의 <code>Show Timer</code> 스위치입니다.</strong>
+    로그아웃은 켜고, E-STOP 은 껐습니다 — <b>재촉할 일이 아니라 되묻는 자리</b>라서입니다.
+    긴급정지는 늦어서 문제가 되는 게 아니라 잘못 눌러서 문제가 됩니다.
+  </p>
+  <p>
+    <strong>Figma 는 <code>00s</code> 한 칸입니다. 실제로 줄어들게 뒀습니다</strong> —
+    멈춘 숫자는 고장으로 읽힙니다. <b><code>0s</code> 가 되면 그대로 로그인 화면으로 나갑니다.</b>
+    세는 것을 보여 놓고 아무 일도 안 일어나면 그게 더 이상합니다.
+  </p>
+  <p>
+    <strong>이름은 상태바 계정 칩에서 가져옵니다.</strong> 주신 문구는
+    <code>김현수 · 관제운영</code> 이었는데 같은 화면 상태바가 <code>홍길동 | 관제운영</code> 이라
+    <b>한 화면에 두 사람이 뜹니다.</b> 칩을 읽어 채우게 해서 늘 같이 갑니다 —
+    칩 이름을 바꾸면 모달도 따라옵니다.
+  </p>
+  <p>
+    <strong>로봇 이름은 주신 문구 그대로 <code>로봇명 NA</code> 입니다.</strong>
+    지금 로봇 카드 셋이 다 <code>로봇명</code> 이라는 자리표시자라 가져올 진짜 이름이 없습니다.
+    <code>[data-modal-robot]</code> 한 칸만 채우면 되게 잘라 뒀습니다.
+  </p>
+
+  <p><b>Figma 에 컴포넌트로 굳었습니다 — 붙인 것은 [로그아웃] 쪽입니다</b></p>
+  <p>
+    모달이 <code>02. Components</code> 페이지의 <code>Modal</code> 섹션(<code>737:12205</code>)에
+    모이고 있습니다. 이름이 비슷한 둘이 있는데 <strong>서로 다른 모달입니다.</strong>
+  </p>
+  <table>
+    <tr><th></th><th>제목</th><th>버튼</th><th>언제</th></tr>
+    <tr><td><b>로그아웃</b><br /><code>737:12334</code></td>
+        <td>로그아웃할까요?</td><td>취소 · <b>로그아웃</b></td>
+        <td><b>지금 붙어 있는 것</b> — 상태바에서 직접 누른 경우</td></tr>
+    <tr><td>자동 로그아웃<br /><code>737:12279</code></td>
+        <td>자동 로그아웃 안내</td><td>로그아웃 · <b>연장하기</b></td>
+        <td>자리를 비워 시간이 지났을 때 <b>저절로 뜨는 것</b></td></tr>
+  </table>
+  <p>
+    <strong>자동 로그아웃은 안 붙였습니다</strong> — 그렇게 하기로 했습니다.
+    붙이려면 화면에 <b>무입력 시간을 재는 장치</b>가 필요하고,
+    <b>버튼의 뜻이 뒤집힙니다</b> — 여기서는 왼쪽이 [로그아웃]이고 오른쪽 빨간 자리가
+    [연장하기]입니다. 같은 카드에 같은 자리인데 누르는 뜻이 반대라
+    <b>한 벌로 묶어 쓰면 안 되는 짝</b>입니다.
+  </p>
+  <p>
+    제목의 띄어쓰기를 Figma 에 맞췄습니다 — <code>로그아웃 할까요?</code> →
+    <strong><code>로그아웃할까요?</code></strong>. <code>로그아웃하다</code> 가 한 낱말이라
+    Figma 쪽이 맞습니다.
+  </p>
+  <p>
+    컴포넌트 속성 이름도 정리됐습니다 —
+    <code>제목</code> · <code>현재 상태 문구</code> · <code>권장 조치</code> ·
+    <code>Show Timer</code> · <code>Show 권장조치</code> 입니다.
+    화면의 <code>.modal-desc-1</code> 이 <b>현재 상태 문구</b>,
+    <code>.modal-desc-2</code> 가 <b>권장 조치</b> 자리입니다.
+  </p>
+
+  <p><b>설명 두 줄은 같은 색입니다 — Figma 에서 벗어난 자리입니다</b></p>
+  <p>
+    Figma 는 첫 줄 <code>fg/secondary</code>, 둘째 줄 <code>fg/primary</code> 입니다.
+    그대로 옮겼더니 <strong>둘째 줄이 제목과 똑같은 색</strong>이 됩니다 — 제목도
+    <code>fg/primary</code> 입니다. 사이에 낀 첫 줄만 어두워서 밝기가
+    <b>밝음 → 어두움 → 밝음</b> 으로 되돌아옵니다.
+    <strong>시선이 제목에서 셋째 줄로 건너뛰고 첫 줄을 나중에 주워 읽습니다.</strong>
+  </p>
+  <p>
+    뿌리는 <strong>같은 토큰이 두 뜻으로 쓰인 것</strong>입니다 —
+    헤더에서 <code>fg/primary</code> 는 "이건 제목이다"이고,
+    본문에서는 "이 줄이 더 중요하다"입니다. 뜻이 다른 두 신호가 바로 붙어 있으니 위계가 흔들립니다.
+  </p>
+  <table>
+    <tr><th></th><th>첫 줄</th><th>둘째 줄</th><th>시선</th></tr>
+    <tr><td>Figma</td><td><code>fg/secondary</code></td><td><code>fg/primary</code></td>
+        <td>제목 → <b>건너뜀</b> → 둘째 줄 → 되돌아옴</td></tr>
+    <tr><td><b>지금</b></td><td><code>fg/secondary</code></td><td><b><code>fg/secondary</code></b></td>
+        <td><b>제목 → 본문 → 버튼</b>, 한 방향</td></tr>
+  </table>
+  <p>
+    <strong>위계가 없어지는 게 아니라 제자리로 갑니다.</strong>
+    무슨 일이 일어나는지가 먼저, 그 대가가 뒤 — <b>순서와 문장</b>이 이미 그 일을 합니다.
+    색까지 얹으니 두 채널이 겹쳐 흔들린 것입니다.
+    본문 두 줄은 간격으로도 이미 한 덩이입니다(줄 사이 8, 헤더와는 20).
+  </p>
+  <p>
+    <b>확인 모달에서 시선이 마지막에 닿아야 할 곳은 빨간 버튼입니다.</b>
+    본문에 밝은 줄이 하나 있으면 그 무게를 나눠 가집니다.
+  </p>
+  <p>
+    <b>첫 줄을 밝히고 둘째를 어둡게 하는 안(뒤집기)도 흐름은 깨끗해집니다.</b>
+    안 쓴 이유는 <strong>두 화면에서 뜻이 갈리기 때문</strong>입니다 —
+    E-STOP 은 첫 줄이 위험(전원 차단)이라 강조가 맞지만, 로그아웃은 첫 줄이
+    "세션이 종료됩니다"라서 안심시키는 둘째 줄이 묻힙니다.
+    화면마다 규칙이 달라지면 컴포넌트로 안 굳습니다.
+  </p>
+  <p>
+    <strong>클래스 <code>.modal-desc-1</code> · <code>.modal-desc-2</code> 는 남겨 뒀습니다</strong> —
+    역할이 다른 두 줄이라는 표시이고, 되돌릴 자리이기도 합니다.
+    <b>Figma 컴포넌트(71:492)의 둘째 Description 도 <code>fg/secondary</code> 로 같이 바꿔야</b>
+    다음에 컴포넌트를 다시 읽을 때 되돌아오지 않습니다.
+  </p>
+
+  <p><b>Figma 에 없어서 여기서 정한 것</b></p>
+  <ul>
+    <li><b>뒤를 덮는 scrim.</b> 컴포넌트가 카드 하나로만 그려져 있습니다.
+      <code>alpha/dark/600</code> 을 깔았습니다 — 카드 흐림이 20 이라
+      <b>뒤가 다 비치면 글이 안 읽힙니다.</b></li>
+    <li><b>Button Size=Medium.</b> 푸터 버튼이 36 · 좌우 16 · Label/1(14/20/800) 인데
+      <code>.btn</code> 기본은 Size=Small(32 · 13/18/500) 이었습니다.
+      <code>.btn.is-md</code> 를 더했습니다.</li>
+    <li><b>닫는 길 넷.</b> [취소] · 닫기(×) · 바탕 클릭 · <code>Esc</code>.
+      Figma 에는 × 만 그려져 있습니다.</li>
+  </ul>
+  <p>
+    <strong>초점은 <code>.app</code> 에 <code>inert</code> 를 걸어 가둡니다.</strong>
+    직접 짠 탭 트랩보다 새는 구멍이 없습니다 — 모달이 떠 있는 동안 뒤 화면은
+    탭으로도 스크린리더로도 안 닿습니다. 닫으면 <b>부른 자리로 초점이 돌아갑니다</b>.
+    계정 메뉴에서 불렀으면 그 사이 메뉴가 접히므로 <b>메뉴를 여는 칩</b>으로 보냅니다 —
+    안 보이는 곳에 초점을 두면 다음 탭이 화면 맨 앞에서 다시 시작합니다.
+  </p>
+  <p>
+    <strong>[중지하기]를 누르면 Delta 가 위험(critical)으로 넘어갑니다.</strong>
+    화면 테두리도 같이 빨개집니다.
+  </p>
+  <table>
+    <tr><th></th><th>값</th></tr>
+    <tr><td>첫 줄</td><td>비상정지 발동 — 로봇 구동이 차단되었습니다</td></tr>
+    <tr><td>둘째 줄</td><td>현장 안전을 확인한 뒤 해제 절차를 진행하세요.</td></tr>
+    <tr><td>태그</td><td><b>비상정지 발동 · 해제 절차 필요</b> — 못 받아서 제가 썼습니다</td></tr>
+  </table>
+  <p>
+    <strong>두 줄이 제 자리에 들어갔습니다.</strong> 이 패널은 첫 줄이 상황,
+    둘째 줄이 할 일입니다(둘째 줄만 볼드입니다). 모달의
+    <code>현재 상태 문구 → 권장 조치</code> 와 같은 짜임이라 순서를 그대로 옮겼습니다.
+  </p>
+  <p>
+    <strong>[확인] 버튼은 안 뜹니다.</strong> 주의 상태에서만 나오게 돼 있는데,
+    <b>비상정지는 눌러서 지울 수 있는 게 아니라서</b> 그대로 맞습니다 —
+    해제하려면 현장 확인이 먼저입니다.
+  </p>
+  <p>
+    <strong>모달과 패널은 직접 안 엮었습니다.</strong> 서로 다른 닫힘(IIFE)이라
+    <code>document</code> 에 <code>aprism:estop</code> 이벤트를 쏘고 패널이 받습니다 —
+    앞으로 다른 자리에서도 같은 상태를 부를 수 있습니다.
+  </p>
+  <p>
+    로그아웃처럼 <b>갈 곳이 있는 모달</b>은 <code>[data-modal-confirm]</code> 에 주소를 적습니다
+    (<code>login.html</code>). <b>그 자리에서 상태만 바꾸는 모달</b>은
+    <code>[data-modal-then]</code> 에 이름을 적습니다 — 지금 <code>estop</code> 과
+    <code>recall</code> 둘입니다.
+  </p>
+
+  <p><b>위험(critical) 색은 어디서 왔나</b></p>
+  <table>
+    <tr><th>층</th><th>출처</th></tr>
+    <tr><td>상자 그라데이션</td><td>Figma paint style <b><code>Gradient/Danger</code></b> 그대로</td></tr>
+    <tr><td>태그</td><td><code>alert/danger/bg</code> · <code>alert/danger/fg</code></td></tr>
+    <tr><td>입력창 테두리</td><td><code>status/critical/border</code> · <code>danger/500</code></td></tr>
+    <tr><td>Spectrum · 엣지 글로우</td><td><b><code>PALETTES.critical</code></b> 한 바퀴를 여덟 등분</td></tr>
+  </table>
+  <p>
+    <strong>주의 상태를 만들 때 쓴 방법을 그대로 다시 썼습니다.</strong>
+    오브의 코사인 팔레트를 여덟 번 훑어 stop 으로 굳히는 방식인데,
+    같은 스크립트로 주의 값을 다시 뽑아 보니 <b>지금 CSS 에 있는 여덟 색과 한 자리도 안 틀립니다</b> —
+    그래서 위험 값도 믿고 씁니다.
+  </p>
+  <table>
+    <tr><th></th><th>주의</th><th>위험</th></tr>
+    <tr><td>기준 색</td><td><code>#F2B020</code></td><td><b><code>#F05937</code></b></td></tr>
+    <tr><td>선 색</td><td><code>hsl(41 89% 80%)</code></td><td><b><code>hsl(11 86% 80%)</code></b></td></tr>
+    <tr><td>바깥 링</td><td><code>#EEC242</code> 60%</td><td><b><code>#D96F5E</code> 60%</b></td></tr>
+  </table>
+  <p>
+    <strong>얼룩의 자리(radial 좌표)는 주의와 같게 뒀습니다.</strong> 색만 갈리고 무늬는 같아서
+    <b>두 상태가 같은 것의 다른 세기</b>로 읽힙니다. 두께·박자(2초)도 그대로입니다 —
+    <b>급을 올리는 축은 색 하나</b>입니다.
+  </p>
+  <p>
+    엣지 글로우의 짜임 규칙은 <code>.two-col.is-warning</code> 과 나눠 씁니다.
+    선택자만 넓혔고 <b>움직임 규칙은 한 벌</b>입니다 —
+    <code>prefers-reduced-motion</code> 처리도 같이 따라갑니다.
+  </p>
+
+  <p><b>토큰 하나가 Figma 와 어긋나 있었습니다 — 고쳤습니다</b></p>
+  <p>
+    타이머 색을 맞추다 찾았습니다. <code>status/critical/fg</code> 의 <b>Dark 값</b>이
+    Figma 는 <code>color/danger/200</code>(<code>#FFA69A</code>)인데
+    <code>tokens.css</code> 에는 <code>color/danger/300</code>(<code>#FF6B72</code>)으로 들어 있었습니다.
+    Figma 값으로 고쳤고, <b>같은 토큰을 쓰던 세 곳이 같이 바뀝니다</b> —
+    모달 타이머 · Text Field 의 Error Helper(비밀번호 변경 화면) ·
+    배터리 위험 상태입니다. Light 값(<code>danger/700</code>)은 맞아서 그대로입니다.
+  </p>
+
+  <h3>9-4. 로봇 선택 모달 (734:8981)</h3>
+  <p>
+    로봇 줄의 <b>[로봇 더보기]</b> 로 엽니다. <strong>같은 모달 껍데기인데 폭이 다릅니다</strong> —
+    <code>744</code> 입니다(다른 모달은 480). 카드를 <b>넉 장씩</b> 놓아야 해서입니다.
+  </p>
+  <table>
+    <tr><th>부분</th><th>값</th></tr>
+    <tr><td>카드 판</td><td>516 높이 · 면 <code>bg/surface/overlay-dark</code> ·
+      테두리 <code>border/strong</code> 1px · radius 4 · 안쪽 4</td></tr>
+    <tr><td>격자</td><td><b>4열</b> · 가로 사이 <code>4</code> · <b>세로 사이 <code>16</code></b></td></tr>
+    <tr><td>카드</td><td>Figma 168 — 화면 실측 <b>169</b></td></tr>
+    <tr><td>검색</td><td>Text Field <b>Size=Small</b> — 32 · 좌우 12 · 13/20</td></tr>
+    <tr><td>버튼</td><td>취소(Secondary) · <b>선택(Primary — 흰 면)</b></td></tr>
+  </table>
+  <p>
+    <strong>머리가 다릅니다.</strong> 다른 모달은 제목 옆에 타이머가 붙는데
+    여기는 <b>제목 아래 부제</b>가 깔립니다(<code>fg/tertiary</code> 16/24).
+    <code>.modal-titles.is-stacked</code> 로 세로로 세웠고 닫기는 오른쪽 끝 그대로입니다.
+  </p>
+  <p>
+    <strong>열두 장이 판보다 깁니다</strong>(<code>634</code> / <code>516</code>) — <b>세로로 스크롤</b>합니다.
+    Figma 는 여기도 사각형 하나로 막대를 그려 뒀지만, 로봇 줄과 같은 이유로
+    브라우저 것을 쓰고 <b>색만 <code>fg/tertiary</code></b> 로 맞췄습니다.
+  </p>
+  <p>
+    <strong>검색은 이름으로 거릅니다.</strong> 다만 <b>카드 이름이 모두 자리표시자
+    (<code>로봇명</code>)</b>라 지금은 다 남거나 다 사라집니다 — 진짜 이름이 들어오면 그대로 걸립니다.
+    <b>결과가 없을 때만</b> "찾는 이름이 없습니다." 한 줄이 뜹니다(Figma 에 없는 상태라 여기서 정했습니다).
+  </p>
+  <p>
+    <strong>카드에 <code>data-robot</code> 을 안 붙였습니다.</strong> 그 이름은
+    우측 패널의 로봇 띠가 이미 쓰고 있어서, 같이 붙이면 <b>띠 선택 로직이 모달 카드까지 집습니다.</b>
+    <code>data-robot-pick</code> 으로 갈라 뒀습니다.
+  </p>
+  <p>
+    <strong>[선택]이 띠로 이어집니다.</strong> 양쪽이 같은 열두 대가 되면서
+    <b>순번(0~11)이 그대로 짝</b>이 됐습니다 — 띠 카드는 <code>data-robot</code>,
+    모달 카드는 <code>data-robot-pick</code> 으로 이름만 다릅니다.
+  </p>
+  <table>
+    <tr><th>언제</th><th>무엇</th></tr>
+    <tr><td>열 때</td><td><b>띠에서 고른 것을 모달로 가져옵니다</b> —
+      안 그러면 늘 첫 장이 골라진 채로 열립니다</td></tr>
+    <tr><td>[선택]</td><td>띠의 짝 카드를 <b>그냥 누릅니다</b>. 선택 표시와 아래 타임라인 갱신을
+      그쪽이 이미 하고 있어서, 같은 일을 여기서 다시 짜면 두 곳이 갈라집니다</td></tr>
+    <tr><td>그다음</td><td>고른 카드가 띠 밖이면 <b>보이는 자리로 끌어옵니다</b>(셋만 보입니다)</td></tr>
+    <tr><td>[취소]</td><td>띠는 <b>안 바뀝니다</b></td></tr>
+  </table>
+  <p>
+    실측 — 11번째를 고르고 [선택]을 누르니 띠 선택이 <code>0 → 10</code> 으로 가고,
+    띠가 <code>1080</code> 만큼 밀려 그 카드가 가운데로 오고,
+    아래 타임라인이 <code>3 / 7 43%</code>(Thust BRG Cooling Water Flow) 에서
+    <b><code>3 / 5 60%</code></b>(Switchgear Room Thermal Scan) 로 바뀝니다.
+    다시 열면 <b>10번이 골라진 채</b>로 열립니다.
+  </p>
+  <p>
+    <code>search</code> 아이콘을 새로 넣었습니다(<code>27:45</code>).
+  </p>
+
+  <h3>9-5. 패널과 모달의 대수를 12로 맞췄습니다</h3>
+  <p>
+    <strong>같은 화면에 두 숫자가 떠 있었습니다.</strong> 바에는 <code>8대 연결</code>,
+    모달 부제에는 <code>연결된 로봇 12대</code> 였습니다 —
+    <b>같은 로봇을 두 자리에서 보는 것</b>이라 수가 다르면 안 됩니다.
+  </p>
+  <p>
+    <strong>12로 통일했습니다.</strong> 모달 쪽이 Figma 그대로이고(<code>734:8981</code> 이
+    "9대 이상" 변형입니다), 패널은 몇 장이 있든 <b>세 대만 보이는 건 같아서</b>입니다.
+    띠에 넉 장을 더해 <b>모달과 같은 열두 대</b>가 됐습니다 — 값도 하나씩 같습니다.
+  </p>
+  <table>
+    <tr><th></th><th>값</th></tr>
+    <tr><td>바</td><td><code>12대 연결</code> · 배지 <code>3대 수행중</code></td></tr>
+    <tr><td>띠</td><td>12장 · 보이는 수 <b>3</b> · 막대 <b>25.2%</b>(= 3/12)</td></tr>
+    <tr><td>모달</td><td>12장 · 부제 <code>연결된 로봇 12대</code></td></tr>
+  </table>
+  <p>
+    <strong>수행중이 셋입니다</strong>(1 · 5 · 11번). 배지 숫자는 카드 상태를 센 값입니다 —
+    카드를 고치면 이 숫자도 같이 고쳐야 합니다. 서버가 없어서 셈이 자동이 아닙니다.
+  </p>
+  <p>
+    <code>ROBOTS</code> 에 넷을 더 넣어 <b>열두 장 모두 아래 타임라인을 바꿉니다</b> —
+    마지막 장을 눌러 <code>충전 중</code> 으로 바뀌는 것까지 확인했습니다.
+  </p>
+
+  <h3>9-6. [확인] 을 위험 상태에도 냈습니다</h3>
+  <p>
+    <strong>주의에서만 보이던 버튼입니다.</strong> CSS 한 줄이
+    <code>.ai-panel:not(.is-warning) .ai-ack { display: none }</code> 였습니다 —
+    주의 상태만 알림으로 치던 규칙이라, E-STOP 으로 위험(critical) 이 되면
+    <b>버튼이 사라져 되돌아올 길이 없었습니다</b>.
+  </p>
+  <p>
+    <strong>조건을 "알림 상태냐" 로 바꿨습니다</strong> —
+    <code>:not(.is-warning):not(.is-critical)</code>. 일반(파란) 상태에는 받을 알림이
+    없으니 그대로 감춥니다. <b>버튼 모양·자리·동작은 주의와 완전히 같습니다</b> —
+    흰 면 32h, 닫힘 판 오른쪽 끝, 누르면 일반 상태 멘트로 돌아갑니다.
+    심각도마다 다르게 굴 이유가 없습니다. 어느 쪽이든 <b>"봤다"</b> 는 한 가지 뜻입니다.
+  </p>
+  <table>
+    <tr><th>상태</th><th>[확인]</th></tr>
+    <tr><td>일반(파랑)</td><td><code>display: none</code></td></tr>
+    <tr><td>주의(노랑)</td><td><code>flex</code> · 32h · 흰 면 <code>#FFFFFF</code> / 글자 <code>#070A10</code></td></tr>
+    <tr><td><b>위험(빨강)</b></td><td><b><code>flex</code> · 같은 값</b></td></tr>
+  </table>
+  <p>
+    <strong>흐름이 닫혔습니다.</strong> 주의 → [확인] → 일반, E-STOP → 위험 → [확인] → 일반.
+    이제 화면을 새로 고치지 않아도 처음으로 돌아옵니다.
+  </p>
+  <p>
+    <strong>Figma 에는 위험 상태의 패널이 없습니다.</strong> AI Assist Panel
+    (<code>121:665</code>)에 그려진 것은 파란 판 하나뿐이고, 주의·위험은 여기서 만든
+    상태입니다. <b>버튼 자체는 Figma 의 Acknowledge Button 값 그대로</b>이니
+    나중에 위험 판을 그리실 때 이 값과 맞는지 봐 주세요.
+  </p>
+
+  <h3>9-7. 로봇 상세 Drawer (778:11895 · 정의서 862:42223)</h3>
+  <p>
+    <strong>컴포넌트는 Figma, 동작은 정의서를 따랐습니다.</strong> 다섯 줄짜리
+    정의서를 한 줄씩 화면에 옮겼습니다.
+  </p>
+  <table>
+    <tr><th>정의서</th><th>화면에서</th></tr>
+    <tr><td>1 · 카드 1회 클릭 = 선택만</td><td>이미 그랬습니다. <b>연결 끊김은 클릭 불가</b>만 더했습니다</td></tr>
+    <tr><td>2 · 더블클릭 · 우클릭 = Drawer</td><td>둘 다 엽니다. 열려 있으면 <b>그 로봇 값으로 갈아 끼웁니다</b></td></tr>
+    <tr><td>3 · Drawer 구성 · 실시간 값</td><td>카메라 · 정보 7행 · [수동조작] · 최근 이벤트. <b>최신순 정렬</b></td></tr>
+    <tr><td>4 · [✕] · ESC 로만 닫힘</td><td>밖을 눌러도 <b>안 닫힙니다</b>. 배경막도 없습니다</td></tr>
+    <tr><td>5 · 일시정지 · 자동복귀 시 Alert</td><td>알림이 뜨고 <b>최근 이벤트에 한 줄 쌓입니다</b></td></tr>
+  </table>
+
+  <p><strong>모달이 아닙니다.</strong> 4번이 "Drawer 밖 영역 클릭시 열림 유지" 라고
+    못 박아서, <code>modal-scrim</code> 도 <code>inert</code> 도 쓰지 않았습니다 —
+    지도와 미션 패널을 <b>그대로 쓰면서</b> 옆에서 값을 읽는 자리입니다.
+    자리는 우측 패널 바로 왼쪽입니다(<code>right: 100%</code>). 2번의
+    "지도·미션 패널은 유지" 를 지키려면 <b>미션 패널을 덮으면 안 되고</b>,
+    패널 폭이 그리드 따라 변하니 % 로 붙였습니다.
+  </p>
+
+  <p><strong>값을 두 번 적지 않았습니다.</strong> 3번이 "로봇 실시간 상태를 그대로
+    표시" 라고 해서, <b>상태 · 배터리 · 신호는 카드 DOM 에서 그대로 읽습니다</b>.
+    같은 값을 데이터에도 적어 두면 카드만 고쳤을 때 조용히 어긋납니다.
+    자리 · 시각 · 위치 · 도킹 · 이벤트만 <code>DETAILS</code> 에 있습니다.
+  </p>
+  <table>
+    <tr><th>Drawer 행</th><th>어디서 오나</th></tr>
+    <tr><td>상태</td><td>카드 배지 (수행중 → <code>미션 수행 중</code>)</td></tr>
+    <tr><td>현재 미션</td><td><b>수행 중일 때만</b> <code>ROBOTS[].current</code>, 아니면 <code>—</code></td></tr>
+    <tr><td>배터리</td><td>카드 % + 충전 여부 (30% 이하면 <code>충전 필요</code>)</td></tr>
+    <tr><td>신호</td><td>카드 등급 + <code>DETAILS.dbm</code> (Strong ≥ −55 · Good ≥ −67 · Weak &lt; −70)</td></tr>
+    <tr><td>마지막 통신 · 위치 · 도킹</td><td><code>DETAILS</code></td></tr>
+  </table>
+  <p>
+    <strong>현재 미션을 조건부로 둔 이유가 있습니다.</strong>
+    <code>ROBOTS[].current</code> 에는 <code>대기 중</code> · <code>복귀 중</code> ·
+    <code>충전 중</code> 처럼 <b>미션이 아니라 상태인 말</b>도 들어 있습니다.
+    그대로 쓰면 바로 윗줄(상태)과 같은 말이 두 번 적힙니다.
+  </p>
+
+  <p><strong>한 곳은 읽는 법을 정해야 했습니다 — 알려 드립니다.</strong>
+    1번은 "1회 클릭 = 선택", 2번은 "더블클릭 = State 변화없이 유지" 입니다.
+    엄격히 읽으면 <b>다른 카드를 더블클릭해도 선택이 안 바뀌어야</b> 하는데,
+    그러려면 클릭 선택을 250ms 쯤 미뤄 두고 더블클릭이 오면 취소해야 합니다 —
+    가장 자주 쓰는 동작(선택)에 지연이 붙습니다.
+    그래서 <b>클릭은 즉시 선택하고, 더블클릭은 선택을 건드리지 않게</b> 했습니다.
+    선택을 전혀 안 바꾸고 열고 싶으면 <b>우클릭</b>이 그 길입니다.
+    엄격한 쪽이 맞다면 한 줄로 바꿉니다.
+  </p>
+
+  <p><strong>알림은 닫혀 있어도 쌓입니다.</strong> 5번의 Alert 는 화면이 아니라
+    데이터에 붙습니다 — Drawer 를 닫아 둔 채 자동복귀를 눌러도, 다음에 열면
+    알림과 이벤트 한 줄이 그대로 있습니다. 열려 있으면 즉시 다시 그립니다.
+    화면에 <b>"일시정지" 버튼이 없어서</b> 미션을 멈추는 자리인 <b>E-STOP</b> 을
+    그 자리로 썼습니다.
+  </p>
+  <table>
+    <tr><th>누른 것</th><th>알림</th><th>쌓이는 이벤트</th></tr>
+    <tr><td>수행로봇 자동복귀</td><td>주의 · <code>자동복귀 중</code></td><td><code>자동복귀 시작 · 도킹 스테이션 이동</code></td></tr>
+    <tr><td>수행로봇 E-STOP</td><td>위험 · <code>비상정지 발동</code></td><td><code>비상정지 발동 · 모터 전원 차단</code></td></tr>
+  </table>
+
+  <p><strong>연결 끊김 로봇을 한 대 만들었습니다.</strong> 1·2번의 예외가
+    <b>걸릴 로봇이 없으면 확인할 수 없어서</b>입니다. <code>10번</code> 카드를
+    끊김으로 돌렸습니다 — 대기 · 29% · Weak 라 가장 그럴듯한 자리였습니다.
+    누르면 선택도 Drawer 도 반응하지 않고, 면이 낮아지고 커서가 바뀝니다.
+    <b>세는 자리 두 곳이 같이 내려갔습니다</b> — 바 <code>12대 연결 → 11대 연결</code>,
+    모달 부제 <code>연결된 로봇 12대 → 11대</code>. 카드는 여전히 12장입니다
+    (12대 중 11대 연결). <code>3대 수행중</code> 은 그대로입니다.
+  </p>
+
+  <p><strong>어긋난 곳과 채우지 못한 곳입니다.</strong></p>
+  <table>
+    <tr><th>자리</th><th>Figma · 정의서</th><th>화면</th><th>이유</th></tr>
+    <tr><td>카메라</td><td>사진 한 장</td><td>어두운 화면 + LIVE 배지</td><td><b>출처를 모르는 이미지</b>를 공개 저장소에 올릴 수 없습니다. 스틸을 주시면 한 줄만 바꿉니다</td></tr>
+    <tr><td>[수동조작]</td><td>컴포넌트 <b>Secondary</b> / 정의서 글 <b>Accent</b></td><td>Secondary</td><td><b>두 문서가 다릅니다.</b> 컴포넌트를 따랐습니다 — 어느 쪽인지 정해 주세요</td></tr>
+    <tr><td>[수동조작] 동작</td><td>없음</td><td>누르면 아무 일도 없음</td><td>눌렀을 때 무엇이 열리는지 정의서에 없습니다</td></tr>
+    <tr><td>알림 제목</td><td><code>오류명</code></td><td><code>통신 불안정</code></td><td>자리표시자로 읽었습니다</td></tr>
+    <tr><td>로봇 이름</td><td><code>Robot 04</code> · <code>로봇명</code></td><td><b><code>Robot 01~12</code></b></td><td>대수만큼 번호를 답니다. 이름은 <b>카드에만</b> 있고 Drawer 제목 · E-STOP 모달은 고른 카드에서 읽습니다</td></tr>
+    <tr><td>알림 제목 크기</td><td>16/24</td><td><b>14/22</b></td><td>짧은 알림 한 장에서 제목만 두 급 커서 혼자 튀었습니다. 굵기(700)로만 제목임을 남겼습니다 — <b>Figma 컴포넌트도 같이 내려야 합니다</b></td></tr>
+    <tr><td>끊긴 로봇 상세</td><td>—</td><td>열 수 없음</td><td>2번이 "더블클릭 · 우클릭 불가" 라 <b>끊긴 이유를 볼 길이 없습니다</b>. 예외를 두는 게 맞을지 봐 주세요</td></tr>
+  </table>
+  <p>
+    <strong>이름은 카드 한 곳에만 적습니다.</strong> Drawer 제목도 E-STOP 모달 제목도
+    <b>지금 고른 카드의 라벨을 그대로 읽습니다</b> — 상태·배터리·신호와 같은 원칙입니다.
+    이름 규칙이 정해지면 카드 24장만 고치면 나머지가 따라옵니다.
+  </p>
+  <p>
+    <strong>조사도 번호를 따라갑니다.</strong> E-STOP 제목이
+    <code>Robot 08를</code> 처럼 어긋나서, 끝자리를 읽는 소리에 맞춰 갈아 끼웁니다 —
+    <code>02 · 04 · 05 · 09</code> 는 <b>를</b>, 나머지는 <b>을</b> 입니다
+    (일 · 삼 · 육 · 칠 · 팔 · 영은 받침이 있습니다).
+  </p>
+  <p>
+    <code>--ic-map-pin</code> 아이콘을 새로 넣었습니다(Figma <code>30:12</code>, 33개째).
+    <code>Inline Notice</code> 는 info 판뿐이었는데 <b>주의 · 위험 판</b>을 더했습니다.
+  </p>
+  <p>
+    <strong>본문 칸이 눌리지 않게 막아 뒀습니다.</strong> 내용이 넘칠 때 flex 가
+    칸을 줄이면서 <code>[수동조작]</code> 처럼 <b>높이가 정해진 것이 찌그러졌습니다</b>.
+    <code>.rd-body > * { flex: none }</code> 한 줄로 세로는 줄이지 않고
+    스크롤이 받게 했습니다 — 본문을 300 으로 조여도 버튼은 32 를 지킵니다.
+  </p>
+
+  <h3>9-8. 호버에서 아이콘이 사라지던 곳들</h3>
+  <p>
+    <strong>지도 조작 버튼에서 시작했습니다.</strong> 커서를 올리면 면이 흰색이 되는데
+    아이콘도 흰색이라 <b>버튼만 남고 그림이 사라졌습니다</b>.
+    같은 종류가 더 있을 것 같아 화면 전체를 한 번에 재 봤습니다.
+  </p>
+  <p>
+    <strong>재는 법입니다.</strong> 스타일시트에서 <code>:hover</code> 를 임시 클래스로
+    바꿔 새 시트로 붙이고, <b>모든 요소에 그 클래스를 얹어 한꺼번에 호버 상태로</b>
+    만들었습니다. 그러고 나서 면이 바뀌는 자리마다 <b>그 위에 실제로 칠해지는 색</b>
+    (자기 글자색 + 자식들의 색 + 아이콘)과의 대비를 계산했습니다.
+    아이콘은 <code>background-color: currentColor</code> 로 그려서 <b>면이 아니라 잉크로</b>
+    세어야 합니다 — 처음엔 이걸 면으로 세는 바람에 메뉴 아이콘을 놓쳤습니다.
+    화면 6장에서 면이 바뀌는 자리 <b>27종 · 요소 159개</b>를 쟀습니다.
+  </p>
+  <table>
+    <tr><th>자리</th><th>전</th><th>후</th><th>무엇이 잘못됐나</th></tr>
+    <tr><td>지도 조작 · 모든 <code>.icon-button</code></td><td><b>1.06</b></td><td><b>4.68</b></td><td>Ghost 의 호버 면이 <b>Dark 값을 못 받았습니다</b></td></tr>
+    <tr><td>GNB 레일 항목</td><td><b>1.46</b></td><td><b>13.9</b></td><td>Figma 와 <b>면 토큰이 다르고</b>, 아이콘 색을 안 올렸습니다</td></tr>
+    <tr><td>계정 · 신호 메뉴 아이콘</td><td><b>2.47</b></td><td><b>4.68</b></td><td>Figma 는 <code>fg/primary</code> 인데 <code>fg/secondary</code> 로 뒀습니다</td></tr>
+  </table>
+
+  <p><strong>1. Ghost 호버 면 — Figma 변수의 빈칸이었습니다.</strong>
+    <code>button/ghost/bg/hover</code> 가 <b>Light · Dark 모두 <code>gray/100</code></b>
+    이었습니다. 같은 계열의 <code>fg</code> 는 모드별로 잘 나뉘어 있는데
+    (<code>main/700</code> → <code>main/500</code>) <b>면 쪽만 Dark 값을 못 받은 것</b>입니다.
+    <code>bg/pressed</code>(<code>gray/200</code>) · <code>fg/pressed</code>(<code>gray/950</code>)
+    도 같습니다.
+  </p>
+  <table>
+    <tr><th>변수</th><th>Light</th><th>Dark (지금까지)</th><th>Dark (넣은 값)</th></tr>
+    <tr><td><code>button/ghost/bg/hover</code></td><td><code>gray/100</code></td><td><b><code>gray/100</code></b></td><td><code>gray/500</code></td></tr>
+    <tr><td><code>button/ghost/bg/pressed</code></td><td><code>gray/200</code></td><td><b><code>gray/200</code></b></td><td><code>gray/700</code></td></tr>
+    <tr><td><code>button/ghost/fg/pressed</code></td><td><code>gray/950</code></td><td><b><code>gray/950</code></b></td><td><code>gray/50</code></td></tr>
+  </table>
+  <p>
+    Dark 값은 <b>Figma 가 다른 호버에서 실제로 쓰는 것</b>과 같게 골랐습니다 —
+    <code>Menu Item-Icon</code> 과 <code>Robot-card</code> 의 Hover 면이 모두
+    <code>bg/interactive/hover</code>(Dark 에서 <code>gray/500</code>)입니다.
+    pressed 는 <code>bg/interactive/pressed</code>(<code>gray/700</code>)를 따랐습니다.
+    <strong>Figma 변수도 같이 고쳐야 합니다 — 값 변경이라 라이브러리를 쓰는 파일에
+    번져서, 말씀 주시면 넣겠습니다.</strong>
+  </p>
+
+  <p><strong>2. GNB 는 우리 쪽이 Figma 와 달랐습니다.</strong>
+    <code>GNB Rail Item · State=Hover</code> 를 읽어 보니 셋 다 정해져 있었는데
+    화면은 면 하나만, 그것도 다른 토큰으로 바꾸고 있었습니다.
+  </p>
+  <table>
+    <tr><th></th><th>Figma Hover</th><th>화면 (전)</th></tr>
+    <tr><td>아이콘 면</td><td><code>bg/container</code> #202838</td><td><b><code>bg/interactive/hover</code> #667085</b></td></tr>
+    <tr><td>아이콘</td><td><code>fg/primary</code> #F7F8FA</td><td><b><code>fg/disabled</code> #4E576A</b></td></tr>
+    <tr><td>라벨</td><td><code>fg/secondary</code> #AFB7C8</td><td><b><code>fg/disabled</code> #4E576A</b></td></tr>
+  </table>
+  <p>
+    밝아진 면 위에 <b>비활성 색을 그대로 얹고 있었으니</b> 안 보이는 게 당연했습니다.
+    셋 다 Figma 값으로 맞췄습니다.
+  </p>
+
+  <p><strong>3. 메뉴 아이콘도 같은 실수였습니다.</strong>
+    <code>Menu Item-Icon · State=Hover</code> 는 면이 밝아지는 만큼 아이콘을
+    <code>fg/primary</code> 로 올립니다. 화면은 <code>fg/secondary</code> 에 머물러
+    2.47 이었습니다. 면 값(<code>bg/interactive/hover</code>)은 원래 맞았습니다.
+  </p>
+
+  <p><strong>남은 2.2~3.0 도 뿌리를 찾아 고쳤습니다.</strong>
+    로봇 카드 · 메뉴 배지 · Select 옵션이 2.24~2.96 이었는데 전부
+    <code>bg/interactive/hover</code> 하나였습니다. 그 변수의 <b>설명을 읽어 보니
+    답이 적혀 있었습니다</b> — <code>Light → gray/100 | Dark → gray/700</code>.
+    <b>값이 그 설명에서 밀려나 있었습니다</b>(<code>gray/0 | gray/500</code>).
+  </p>
+  <table>
+    <tr><th>모드</th><th>설명에 적힌 값</th><th>실제 값</th><th>그래서</th></tr>
+    <tr><td>Light</td><td><code>gray/100</code></td><td><b><code>gray/0</code> 순백</b></td><td>밝은 면 위의 흰 호버 — 안 보입니다</td></tr>
+    <tr><td>Dark</td><td><code>gray/700</code></td><td><b><code>gray/500</code></b></td><td>밝기 한가운데 회색 — 그 위 상태색이 다 낮아집니다</td></tr>
+  </table>
+  <p>
+    설명에 적힌 짝으로 되돌렸습니다. <b>세 자리가 한꺼번에 4.5 위로</b> 올라갑니다 —
+    로봇 카드 라벨 4.93 · 배지 4.5 · Select 옵션 6.0.
+    호버가 옅어지지 않았는지 눈으로도 봤습니다. 카드 면이 또렷하게 한 단 올라옵니다.
+  </p>
+
+  <p><strong>Figma 변수도 같이 고쳤습니다.</strong> 값 변경이라 여쭤 봤던 것들입니다.</p>
+  <table>
+    <tr><th>변수</th><th>전</th><th>후</th></tr>
+    <tr><td><code>bg/interactive/hover</code></td><td><code>gray/0</code> | <code>gray/500</code></td><td><code>gray/100</code> | <code>gray/700</code></td></tr>
+    <tr><td><code>button/ghost/bg/hover</code></td><td><code>gray/100</code> | <code>gray/100</code></td><td>→ <code>bg/interactive/hover</code> Alias</td></tr>
+    <tr><td><code>button/ghost/bg/pressed</code></td><td><code>gray/200</code> | <code>gray/200</code></td><td>→ <code>bg/interactive/pressed</code> Alias</td></tr>
+    <tr><td><code>button/ghost/fg/pressed</code></td><td><code>gray/950</code> | <code>gray/950</code></td><td><code>gray/950</code> | <code>gray/50</code></td></tr>
+  </table>
+  <p>
+    Ghost 의 면 둘은 <b>원시값 대신 Semantic 을 가리키게</b> 했습니다 —
+    그 변수 설명이 <em>"최종값: Semantic bg/interactive/hover 를 Alias한다.
+    Primitive를 직접 참조하지 않는다"</em> 라고 이미 적고 있었는데 값만 안 따라가고
+    있었습니다. 이제 모드는 Semantic 이 알아서 갈라 줍니다.
+    <strong>published 라이브러리라 Publish 를 해야 다른 파일에 반영됩니다.</strong>
+  </p>
+
+  <p><strong>설명의 값 줄 60개가 실제 값과 어긋나 있었습니다.</strong>
+    변수를 고치다 보니 눈에 걸려서 전수 대조했습니다. 두 종류였습니다.
+  </p>
+  <table>
+    <tr><th>종류</th><th>건수</th><th>보기</th></tr>
+    <tr><td>모드가 다른데 <code>Light·Dark 동일</code> 이라고 적힘</td><td><b>24</b></td><td><code>button/primary/bg/default</code> — 실제로는 <code>gray/950</code> | <code>gray/0</code> 로 <b>정반대</b></td></tr>
+    <tr><td>값 줄의 숫자가 틀림 · 값 줄이 아예 없음</td><td><b>36</b></td><td><code>bg/canvas</code> 가 <code>gray/50</code> 이라고 적혔지만 실제는 <code>gray/200</code></td></tr>
+  </table>
+  <p>
+    전부 <b>실측값으로 다시 썼습니다</b>. 규칙은 원래 쓰시던 두 줄 그대로입니다 —
+    같으면 <code>Light·Dark 동일 → X</code>, 다르면 <code>Light → X | Dark → Y</code>.
+    <b>값은 건드리지 않고 설명만</b> 고쳤습니다(위 표의 네 변수는 예외).
+  </p>
+
+  <p><strong>하나 더 봐 주셔야 할 것이 있습니다 — 사라진 변수를 붙들고 있는 컴포넌트들입니다.</strong>
+    <code>Nav Item</code> 호버 면이 <code>navigation/item/bg/hover</code> = #F0F1F5 인데,
+    이 변수를 따라가 보니 <b><code>Component</code> 라는 컬렉션에 속해 있다고 나오면서
+    정작 그 컬렉션은 비어 있습니다</b>. 모드도 <code>Value</code> 하나뿐입니다 —
+    <b>Light/Dark 자체가 없는 변수</b>라 어느 모드에서도 #F0F1F5 입니다.
+  </p>
+  <table>
+    <tr><th>컴포넌트</th><th>붙들고 있는 이름</th></tr>
+    <tr><td>Nav Item · Tab Item</td><td><code>navigation/item/bg/hover</code> · <code>bg/selected</code></td></tr>
+    <tr><td>Text Field · Textarea · Radio</td><td><code>input/border/default · hover · focus · error · disabled</code></td></tr>
+  </table>
+  <p>
+    예전에 <em>"Figma 에 없는 토큰 10개"</em> 로 적어 둔 것들이 바로 이것들이었습니다 —
+    <b>없는 게 아니라 컬렉션에서 빠진 채 컴포넌트만 붙들고 있었습니다</b>.
+    아직 화면에서 안 쓰는 컴포넌트라 지금 깨지는 곳은 없지만,
+    <b>쓰기 시작하면 Dark 에서 그대로 안 보입니다</b>.
+    어떤 Semantic 으로 다시 묶을지는 디자인 판단이라 손대지 않았습니다.
+  </p>
+
+  <p><strong>Dark 에서 hover 와 pressed 가 같은 색이 됐습니다.</strong>
+    <code>bg/interactive/hover</code> 와 <code>bg/interactive/pressed</code> 가 둘 다
+    <code>gray/700</code> 입니다. 지금 화면은 <code>pressed</code> 를 쓰는 곳이 없어
+    티가 안 나지만, 쓰기 시작하면 <b>누른 순간 아무 변화가 없습니다</b>.
+    <code>pressed</code> 를 <code>gray/650 #3F485C</code> 쯤으로 한 단 올리면 갈라집니다 —
+    값을 정해 주시면 넣겠습니다.
+  </p>
+
+  <p>
+    <strong>다시 쟀습니다 — 화면 5장 전부 걸리는 곳이 없습니다.</strong>
+    스플래시는 재지 못했습니다. 열자마자 다음 화면으로 넘어가서 측정이 붙기 전에
+    사라집니다(호버가 걸리는 요소도 없습니다).
+  </p>
+
+  <h3>9-9. 지도를 3D 모델로 바꿨습니다 (APRO 4F)</h3>
+  <p>
+    <strong>평면 SVG 한 장이던 지도가 실제 3D 모델이 됐습니다.</strong>
+    디자이너가 <code>assets/source/</code> 에 <code>APRO 4F.glb</code> 를 넣어 주셨습니다.
+    <b>파일에는 층의 껍데기만 들어 있습니다</b> — 바깥벽 · 칸막이 몇 장 · 단 하나.
+    19개 덩이 · 삼각형 1,919개, 재질은 검정 하나이고 텍스처 · 조명 · 카메라 · 이름은 없습니다.
+  </p>
+  <p>
+    <strong>그래서 지도 위 표식이 전부 없어졌습니다.</strong> 예전 지도가 들고 있던 것들은
+    SVG 안에 그려져 있던 것이라 모델에는 하나도 없습니다.
+    <b>다시 얹지 않기로 정했습니다</b>(2026-09-10) — 지금은 층만 봅니다.
+  </p>
+  <table>
+    <tr><th>없어진 것</th><th>몇 개</th></tr>
+    <tr><td>구역 이름 (터빈 1호기 · 제어반 A …)</td><td>11</td></tr>
+    <tr><td>웨이포인트 — 순번 칩 · 상태 뱃지 · <code>WP-01</code> 이름</td><td>4 묶음</td></tr>
+    <tr><td>점선 경로</td><td>1</td></tr>
+    <tr><td>로봇과 상태 뱃지 · 로봇 번호</td><td>4 · 4 · 3</td></tr>
+    <tr><td>도킹 스테이션</td><td>1</td></tr>
+  </table>
+  <p>
+    <b>같이 사라진 코드</b> — 확대해도 안 커지게 얼려 두던 장치(9-9 이전 판)와
+    <code>tools/inline-map.py</code>, 그리고 <code>assets/figma/map-temp.svg</code> 입니다.
+    <b>지금은 벡터를 배율마다 다시 굽는 일 자체가 없습니다</b> —
+    3D 라 어느 배율에서도 그 자리에서 다시 그려집니다.
+  </p>
+
+  <p><strong>직교(orthographic) 카메라입니다.</strong>
+    예전 지도가 아이소메트릭 평면이었습니다. 원근을 주면 <b>같은 크기의 설비가 자리마다
+    다르게 보여서</b> 배치를 읽기 어렵습니다. 각도를 고정해 두면 확대 · 이동이 예전과
+    똑같이 "판을 밀고 당기는" 느낌으로 남습니다. 각도는 <code>(1, 0.85, 1)</code> —
+    y 를 낮춰 옆면이 보이게 했습니다.
+  </p>
+  <table>
+    <tr><th>조작</th><th>지금</th><th>예전과</th></tr>
+    <tr><td>휠</td><td>확대 · 축소 (커서 밑 지점 고정)</td><td>같음</td></tr>
+    <tr><td>끌기</td><td>이동. 도구 레일 위에서 시작한 것은 무시</td><td>같음</td></tr>
+    <tr><td>[확대] 버튼</td><td>1.5배씩</td><td>같음</td></tr>
+    <tr><td>[전체 보기] 버튼</td><td>처음 자리로</td><td><b>예전엔 "로봇 추적"</b> — 따라갈 로봇이 없어졌습니다</td></tr>
+  </table>
+  <p>
+    <b>모델은 보이는 칸 한가운데에 섭니다.</b> 창(<code>.map-view</code>)은 우측 패널 뒤까지
+    덮기 때문에, 창 한가운데에 맞추면 모델이 패널에 반쯤 가린 자리에 섭니다.
+    카메라가 보는 지점을 <code>.map-canvas</code> 와의 차이만큼 밀어 줍니다 —
+    도구 레일 자리를 잡을 때 쓴 것과 같은 셈입니다.
+  </p>
+
+  <p><strong>면과 모서리를 따로 그립니다.</strong> 모델이 가진 재질은
+    <b>순검정 하나뿐</b>이라 그대로 두면 실루엣만 남습니다.
+    면은 <code>#2C3443</code>, 모서리는 한 단 밝은 <code>#4E576A</code> 선입니다 —
+    예전 평면 지도가 갖고 있던 인상입니다. 조명은 둘(하늘빛 반구 + 방향광 하나)이고,
+    아래쪽을 화면 바탕색으로 두어 바닥으로 갈수록 어두워지게 했습니다.
+  </p>
+
+  <p><strong>모델은 <code>&lt;script&gt;</code> 로 실립니다.</strong>
+    브라우저는 <code>file://</code> 로 연 페이지에서 <code>fetch</code> 로 로컬 파일을 읽는 것을
+    막습니다 — 그냥 열면 지도가 안 뜹니다. 그래서
+    <code>tools/inline-model.py</code> 가 <code>.glb</code> 를 base64 로 바꿔
+    <code>assets/js/map-model.js</code>(235KB)에 담고, 평범한 <code>&lt;script src&gt;</code> 로 싣습니다.
+    <b>아이콘을 CSS 에 인라인한 것과 같은 이유이고 같은 방식입니다.</b>
+    모델을 다시 내보내시면 그 한 줄만 돌리면 됩니다.
+  </p>
+  <p>
+    <b>화면이 도로 가벼워졌습니다</b> — 지도 SVG 163KB 를 세 화면에 박아 두던 것이
+    빠지고, 대신 <b>모델 한 벌을 셋이 나눠 씁니다</b>.
+  </p>
+  <table>
+    <tr><th>화면</th><th>SVG 를 박았을 때</th><th>지금</th></tr>
+    <tr><td>미션 모니터링</td><td>250KB</td><td><b>78KB</b></td></tr>
+    <tr><td>미션 설정</td><td>188KB</td><td><b>19KB</b></td></tr>
+    <tr><td>사전 점검</td><td>186KB</td><td><b>17KB</b></td></tr>
+    <tr><td>공통</td><td>—</td><td><code>map-model.js</code> 235KB (한 벌)</td></tr>
+  </table>
+
+  <p><strong>three.js 가 처음으로 들어왔습니다 — 그리고 CDN 에서 옵니다.</strong>
+    화면 <code>&lt;head&gt;</code> 의 importmap 이 <code>three</code> 와 <code>three/addons/</code> 를
+    <code>cdn.jsdelivr.net</code> 으로 이어 주고, <code>map.js</code> 가 동적 <code>import()</code> 로
+    가져옵니다. <b>망이 막힌 현장에서는 지도가 안 뜹니다</b>(나머지 화면은 그대로 돕니다).
+    저장소에 넣어 두는 쪽으로 바꿀 수 있지만, 그러면 <code>file://</code> 로 여는 길이 막힙니다 —
+    모듈은 <code>file://</code> 에서 교차 출처로 걸립니다. <b>둘 중 하나는 골라야 합니다.</b>
+    라이선스는 MIT 이고 <code>THIRD-PARTY.md</code> 에 적어 뒀습니다.
+  </p>
+  <p>
+    Delta 오브는 여전히 three 를 안 씁니다 — 순수 WebGL2 그대로입니다.
+  </p>
+
+  <h3>9-10. 확대하면 앞을 가린 것이 비칩니다 (X-ray)</h3>
+  <p>
+    <strong>지도 렌더링 스펙을 받아 그대로 옮겼습니다.</strong>
+    다크모드 기술 도면 + 확대 시 X-ray 입니다.
+    <b>지금 모델로 할 수 있는 것은 다 넣었고, 이름이 있어야 되는 것만 남겼습니다</b>(아래).
+  </p>
+
+  <p><strong>1 · 색을 스펙 값으로 맞췄습니다.</strong>
+    사실적인 재질 대신 저채도 블루그레이로 통일하고 모서리 선을 한 겹 얹습니다.
+  </p>
+  <table>
+    <tr><th>자리</th><th>스펙</th><th>화면</th></tr>
+    <tr><td>바탕</td><td><code>#070B12 ~ #0B1018</code></td><td><code>bg/canvas</code> = <b><code>#070A10</code></b> 그대로 비칩니다</td></tr>
+    <tr><td>바닥</td><td><code>#101722</code></td><td>같음</td></tr>
+    <tr><td>덩이</td><td><code>#222C3D</code> · <code>#2B3547</code> · <code>#313B4D</code></td><td>같음 — <b>높이로 세 단계를 나눕니다</b></td></tr>
+    <tr><td>모서리</td><td><code>#42506A</code> · opacity 0.5~0.8</td><td><code>#52627D</code> · <b>0.6</b> (스펙 코드 쪽 값)</td></tr>
+    <tr><td>유령색</td><td><code>#6A7890</code></td><td>같음 — 투명해질수록 이 색으로 다가갑니다</td></tr>
+    <tr><td>조명</td><td>Ambient 0.8 + Directional 1.5 <code>(5,10,8)</code></td><td>같음</td></tr>
+  </table>
+  <p>
+    <b>덩이 색을 높이로 나눈 것은 임시입니다.</b> 스펙은 벽 · 설비 · 배관을 나눠 칠하라고
+    하는데 <b>모델에 이름이 하나도 없습니다</b>(19개 덩이 전부). 이름으로 가를 수 없어
+    바닥에 붙어 낮게 깔린 것 → 낮은 덩이 → 높은 덩이 순으로 세 단계를 줬습니다.
+  </p>
+
+  <p><strong>2 · 확대하면 가린 것만 비칩니다.</strong>
+    "가까우면 다 투명"이 아닙니다. <b>카메라와 지금 보는 지점 사이에 실제로 걸리는
+    덩이만</b> 낮춥니다. 그래서 확대해도 공간이 사라지지 않고 위계가 생깁니다.
+  </p>
+  <table>
+    <tr><th>단계</th><th>언제</th><th>가린 것</th><th>한가운데</th><th>언저리</th><th>먼 배경</th></tr>
+    <tr><td>1 · 보통</td><td>zoom ≤ 1.3</td><td>—</td><td>100</td><td>100</td><td>85</td></tr>
+    <tr><td>2 · 집중</td><td>1.3 ~ 1.9</td><td><b>35</b></td><td>100</td><td>65</td><td>65</td></tr>
+    <tr><td>3 · X-ray</td><td>zoom ≥ 1.9</td><td><b>15</b></td><td>100</td><td>35</td><td>55</td></tr>
+  </table>
+  <p>
+    <b>언저리가 먼 배경보다 더 투명한 것은 일부러입니다</b>(35 &lt; 55) —
+    스펙이 그렇게 정해 두었고, 보는 지점을 도드라지게 하는 쪽이 맞습니다.
+  </p>
+  <p>
+    <b>가린 것을 찾는 방법</b> — 보는 지점으로 광선을 쏴서 그 앞에 걸리는 덩이를 셉니다.
+    한가운데 한 줄만 쏘면 정작 눈앞의 벽이 안 걸릴 때가 있어서 <b>십자로 다섯 줄</b>을 쏩니다.
+    삼각형이 1,919개뿐이라 값이 쌉니다. 확대할 때도, 끌어서 옮길 때도 다시 셉니다.
+  </p>
+  <p>
+    <b>툭 끊기지 않습니다.</b> 목표치로 한 프레임에 8% 씩 다가가고, 다 닿으면 멈춥니다 —
+    관제 화면이라 가만히 있을 때 프레임을 계속 돌릴 이유가 없습니다.
+    옅어질수록 면 색이 유령색으로 다가가고 <code>depthWrite</code> 가 꺼져서,
+    <b>뒤에 있는 것의 모서리가 벽을 뚫고 비칩니다</b>. 스펙이 말한
+    "면 15% · 모서리 35%" 가 이 대목입니다.
+  </p>
+
+  <p><strong>확대 범위도 줄였습니다.</strong> 6배까지 열려 있었는데 층 하나짜리 모델이라
+    <b>4배면 벽 하나가 화면을 다 덮습니다</b>. 문턱도 1.4/2.5 에서 1.3/1.9 로 낮췄습니다 —
+    <b>아직 건물이 보이는 배율이라야</b> 비치는 것이 뜻이 있습니다.
+  </p>
+
+  <p><strong>남은 것 — 모델에 이름이 있어야 합니다.</strong>
+    스펙의 8번(라이노에서 레이어를 나누라는 대목)이 아직 안 된 상태입니다.
+    지금 <code>.glb</code> 는 <b>이름 없는 덩이 19개</b>라 다음이 안 됩니다.
+  </p>
+  <table>
+    <tr><th>못 하는 것</th><th>필요한 것</th></tr>
+    <tr><td>설비를 눌러 고르기</td><td><code>EQ_TURBINE</code> · <code>EQ_VALVE</code> 처럼 이름 붙은 오브젝트</td></tr>
+    <tr><td>고른 설비만 100% 로 두기</td><td>같음 — 지금은 <b>화면 한가운데</b>가 그 자리를 대신합니다</td></tr>
+    <tr><td>경로 · POI 를 <code>#5AB8FF</code> emissive 로</td><td><code>NAV_ROUTE</code> · <code>POI</code> 오브젝트</td></tr>
+    <tr><td>보는 방향의 벽 하나만 비치게</td><td>벽을 <code>WALL_NORTH</code> … 로 나눠 내보내기</td></tr>
+    <tr><td>벽 · 설비 · 배관을 색으로 가르기</td><td>같음 — 지금은 <b>높이로 대신</b>합니다</td></tr>
+  </table>
+  <p>
+    <b>최소 네 그룹(Environment · Equipment · Route · POI)만 나눠 주셔도</b>
+    위 다섯 줄이 전부 열립니다. 스펙도 같은 말을 합니다.
+  </p>
+  <p>
+    한 가지 더 — <b>지금 모델은 천장이 없습니다.</b> 위에서 내려다보는 각도라
+    가리는 것이 바깥벽 정도뿐입니다. 상부 구조가 들어오면 X-ray 가 훨씬 크게 일합니다.
+  </p>
+
+  <h3>9-11. 끌어서 돌려 보고, 탑뷰로 떨어집니다</h3>
+  <p>
+    <strong>고정 각도를 풀었습니다.</strong> 카메라 방향을 상수 하나로 박아 두던 것을
+    <b>각도 둘</b>로 바꿨습니다 — 바닥에서 도는 각(yaw)과 올려다보는 각(pitch).
+    그냥 끌면 돌아보고, <b>Shift 를 누르거나 가운데 버튼으로 끌면</b> 예전처럼 판이 밀립니다.
+  </p>
+  <table>
+    <tr><th>조작</th><th>하는 일</th></tr>
+    <tr><td>끌기</td><td><b>돌려 보기</b> — 커서를 따라 도는 방향</td></tr>
+    <tr><td>Shift + 끌기 · 가운데 버튼 끌기</td><td>이동 (예전 끌기)</td></tr>
+    <tr><td>휠</td><td>확대 · 축소</td></tr>
+    <tr><td>[전체 보기]</td><td>처음 각도 · 처음 배율 · 한가운데</td></tr>
+    <tr><td><b>[탑뷰]</b></td><td><b>바로 위에서 내려다보기</b></td></tr>
+  </table>
+
+  <p><strong>90도 정각은 안 씁니다 — 89도입니다.</strong>
+    바로 위에서는 <b>"화면 오른쪽"이 정해지지 않습니다</b>. 보는 방향과 월드의 위쪽이
+    같은 선에 놓여서 가로축을 만들 수 없고, 그 자리를 지나면 카메라가 한 바퀴 뒤집힙니다.
+    <b>89도면 눈으로는 탑뷰이고 셈은 멀쩡합니다.</b> 올려다보는 각은 6도~89도로 묶어
+    바닥 아래로 내려가지 않게 했습니다.
+  </p>
+  <p>
+    <b>탑뷰는 yaw 도 0 으로 돌립니다.</b> 모델의 벽이 축에 나란해서, 0 이라야
+    평면도처럼 화면 축과 맞아떨어집니다.
+  </p>
+
+  <p><strong>자리를 옮길 때는 끌고 갑니다.</strong> 툭 바뀌면 어디를 보고 있었는지
+    놓칩니다. <b>320ms 동안 부드럽게</b> 각도 · 배율 · 한가운데를 함께 몰고 갑니다.
+    가는 도중에 다른 버튼을 누르면 앞의 것은 그 자리에서 손을 뗍니다.
+  </p>
+  <p>
+    <strong>가다 마는 일이 있었습니다.</strong> 처음에는 <b>"19프레임 동안"</b> 으로
+    셌습니다. 프레임이 드문 곳에서는 몇 장 만에 끝나 버려서
+    <b>카메라가 어중간한 각도에 멎었습니다</b> — [탑뷰] 를 눌러도 절반쯤 기울어진
+    자리에 서 있곤 했습니다. <b>시간으로 세도록 바꿨습니다</b>.
+  </p>
+  <p>
+    거기에 <b>타이머 보험</b>을 하나 더 뒀습니다. 탭이 뒤에 있는 동안에는 화면을 안 그려서
+    <code>requestAnimationFrame</code> 이 <b>아예 오지 않습니다</b> — 시간으로 세도
+    셈할 기회가 없습니다. 타이머는 그때도 오므로, <b>360ms 뒤에 아직 도착하지 않았으면
+    끝 자리에 앉힙니다</b>. 이미 도착했으면 아무 일도 하지 않습니다.
+  </p>
+  <p>
+    <b>돌리면 X-ray 도 다시 셉니다.</b> 가린 것을 찾는 광선이 <b>지금 보는 방향</b>으로
+    나가기 때문에, 돌려서 벽 뒤로 들어가면 그 벽이 비칩니다.
+    이동 범위도 위아래로 새지 않게 층 높이 언저리로 묶었습니다.
+  </p>
+  <p>
+    <b>탑뷰 아이콘은 임시입니다</b> — 마땅한 것이 없어 <code>--ic-eye</code> 를 썼습니다.
+    Figma 에 탑뷰 아이콘을 만들어 주시면 바꾸겠습니다.
+  </p>
+
+  <h3>10. Figma 정리 — 이름 · 설명 · 토큰 바인딩</h3>
+  <p>
+    작업하면서 눈에 걸린 것들을 Figma 에서 직접 정리했습니다.
+    <strong>published 라이브러리라 Publish 를 해야 다른 파일에 반영됩니다.</strong>
+  </p>
+
+  <p><strong>이름 — 값은 그대로이고 이름만 바뀝니다.</strong></p>
+  <table>
+    <tr><th>이전</th><th>현재</th><th>이유</th></tr>
+    <tr><td><code>state = cloased</code></td><td><code>closed</code></td><td>오타. AI Assist Panel Variant 4개</td></tr>
+    <tr><td><code>Mission Timeline Iist</code></td><td><code>Mission Timeline List</code></td><td>오타(대문자 I)</td></tr>
+    <tr><td><code>color/warning/100 2</code></td><td><code>color/warning/200</code></td><td>공백 이름. danger/200 · safe/200 처럼 램프의 200 단계다</td></tr>
+    <tr><td><code>bg/Safe</code></td><td><code>bg/safe</code></td><td>다른 <code>bg/*</code> 는 모두 소문자</td></tr>
+    <tr><td><code>radius/Chart</code></td><td><code>radius/chart</code></td><td>다른 <code>radius/*</code> 는 모두 소문자</td></tr>
+    <tr><td><code>alert/Default/*</code> 6개</td><td><code>alert/default/*</code></td><td>danger · safe · warning 은 소문자</td></tr>
+    <tr><td><code>alpha/glow/*/Default</code></td><td><code>*/default</code></td><td>danger · safe · warning 은 소문자</td></tr>
+  </table>
+  <p>
+    <code>glow/Primary</code> · <code>glow/Secondary</code> 의 대문자는 <strong>그대로 뒀습니다</strong> —
+    16개 전부가 같은 규칙이라 예외가 아니라 규칙입니다.
+  </p>
+
+  <p>
+    <strong>설명이 값과 어긋나 있었습니다.</strong> 새 변수를 만들 때 다른 계열 설명이
+    복사된 것으로 보입니다. 전수 대조해서 고쳤습니다.
+  </p>
+  <table>
+    <tr><th>구분</th><th>건수</th><th>처리</th></tr>
+    <tr><td>Semantic · 값 줄이 틀림</td><td><strong>44</strong></td><td><code>valuesByMode</code> 실측으로 교체</td></tr>
+    <tr><td>Semantic · 값 줄이 없음</td><td><strong>57</strong></td><td>실측 값 줄을 붙임</td></tr>
+    <tr><td>Primitive · hex 가 틀림</td><td><strong>22</strong></td><td>실측 hex 로 교체</td></tr>
+    <tr><td>계열이 통째로 다른 설명</td><td><strong>18</strong></td><td>다시 씀</td></tr>
+  </table>
+  <p>
+    눈에 띄던 것들입니다 — <code>bg/Safe</code> 설명이 <em>"삭제 · 운행 중지 등 파괴적 액션"</em>
+    (<code>bg/critical</code> 것)이었고, <code>alert/Default/*</code> 넷이 전부 <em>"안전 알림"</em>
+    (safe 계열 것)이었으며, <code>alpha/glow/Primary/*</code> 넷이 모두 <em>"#1DA67F @ 40%"</em>
+    라고 적혀 있었습니다. 실제 값은 각각 다릅니다.
+    <strong>지금은 어긋난 설명이 0건입니다.</strong>
+  </p>
+
+  <p><strong>바인딩 하나를 고쳤습니다.</strong></p>
+  <ul>
+    <li>
+      AI Assist Panel <code>Type=Safe</code> 의 위 테두리가 <code>chart/positive</code>였습니다.
+      나머지 셋은 <code>border/focus</code> · <code>status/…/border</code> 를 씁니다.
+      디자인 시스템 자체 규칙(<em>"알림 컴포넌트에 상태·차트 토큰을 섞지 않는다"</em>)에도
+      어긋나서 <strong><code>status/normal/border</code>로 바꿨습니다</strong>
+      (<code>478:11774</code> · <code>478:11779</code>). Dark 에서 밝은 초록 → 진한 초록이 됩니다.
+    </li>
+  </ul>
+
+  <p><strong>이건 손대지 않았습니다 — 판단이 필요합니다.</strong></p>
+  <ul>
+    <li>
+      <strong>AI 패널 그라데이션의 마지막 stop 이 Default 만 토큰에 묶여 있습니다.</strong>
+      Warning · Critical · Safe 는 raw 값이고, 그 값이 각 계열의 <code>glow-Primary</code>와
+      아예 다릅니다 (<code>#F7CD36</code> ≠ <code>#F8EBAE</code>,
+      <code>#F4463F</code> ≠ <code>#FFA69A</code>, <code>#1FB18C</code> ≠ <code>#72F494</code>).
+      묶으면 세 패널의 색이 눈에 띄게 달라져서 정리가 아니라 디자인 변경입니다.
+      <strong>어느 쪽이 맞는지 알려 주세요.</strong>
+    </li>
+  </ul>
+
+  <h3>11. 지난 업데이트 — 갭 · 라운드</h3>
+  <p>
+    Figma에서 간격과 모서리 값을 고치신 것을 반영했습니다. 실제로 바뀐 값입니다.
+  </p>
+  <table>
+    <tr><th>대상</th><th>이전</th><th>현재</th></tr>
+    <tr><td>Container (GNB 오른쪽 1844)</td><td>모서리 없음</td><td>위 두 모서리 <code>radius/container</code> 8, 아래 <code>radius/none</code></td></tr>
+    <tr><td>Margin (지도 바깥 여백)</td><td>8</td><td><strong>4</strong></td></tr>
+    <tr><td>Site Context Panel 패딩</td><td>16</td><td><strong>8 / 12</strong></td></tr>
+    <tr><td>Map Panel</td><td>테두리 없음</td><td>테두리 없음 (아래 설명)</td></tr>
+    <tr><td>Floating 패딩</td><td>16</td><td><strong>8</strong></td></tr>
+    <tr><td>Right Panel 카드 간격</td><td>18</td><td><strong>8</strong> (<code>space/8</code>)</td></tr>
+    <tr><td>Panel Header 좌우 패딩</td><td>16</td><td><strong>12</strong></td></tr>
+    <tr><td>Robot Cards · Robot Card · Timeline 모서리</td><td><code>radius/container</code> 8</td><td><strong><code>radius/card</code> 4</strong></td></tr>
+  </table>
+  <p>
+    같이 들어온 것 셋입니다. <strong>Site 패널 우상단에 <code>panel-left</code> 아이콘</strong>이 생겼고
+    (패널 접기 자리로 보입니다 — 동작은 Figma에 걸려 있지 않아 모양만 옮겼습니다),
+    <strong>미션 헤더에 <code>비상정지</code>(Danger) 버튼</strong>이 추가됐고,
+    <strong>로봇 카드 3장의 상태가 갈렸습니다</strong> —
+    <code>Running</code> 78% Strong · <code>Returning</code> 18% Weak · <code>Idle</code> 35% Good.
+  </p>
+  <p>
+    <strong>Map Panel 의 테두리는 넣지 않았습니다.</strong> Figma 에는
+    <code>border/default</code> 1px stroke 가 걸려 있는데, 지도 영역에 선이 보이면 안 된다고 하셔서 뺐습니다.
+    Figma 쪽도 지우시는 게 맞을 것 같습니다.
+  </p>
+  <p>
+    <strong>Robot Card 의 Selected 색이 바뀌어 반영했습니다.</strong> 단색이 아니라
+    세로 그라데이션이고, stop 셋이 모두 토큰에 묶여 있어 두 모드를 알아서 따라갑니다.
+    줄 배경은 새 토큰 <code>bg/surface/alpha</code>(어두운 scrim 50%)입니다.
+    Semantic 이 122 → <strong>123</strong>이 되었습니다.
+  </p>
+  <table>
+    <tr><th>자리</th><th>토큰</th><th>Light</th><th>Dark</th></tr>
+    <tr><td>카드 30%</td><td><code>bg/surface/selected</code></td><td>main/100 <code>#E0ECFB</code></td><td>gray/700 <code>#4B4D4F</code></td></tr>
+    <tr><td>카드 98%</td><td><code>status/info/bg</code></td><td>main/100 <code>#E0ECFB</code></td><td>main/900 <code>#2E539F</code></td></tr>
+    <tr><td>카드 100%</td><td><code>bg/accent</code></td><td>main/700 <code>#3B79D5</code></td><td>main/600 <code>#4990E0</code></td></tr>
+    <tr><td>줄 배경</td><td><code>bg/surface/alpha</code></td><td><code>rgb(255 255 255 / 70%)</code> — Figma 와 다름</td><td>scrim/light <code>rgb(23 23 25 / 50%)</code></td></tr>
+  </table>
+  <p>
+    카드 패딩 4 · 줄 사이 2 로 이 면이 줄 둘레에 비쳐 <strong>파란 테두리처럼 보입니다</strong>.
+    실제 stroke 는 없습니다.
+  </p>
+  <p>
+    <strong>Light 의 <code>bg/surface/alpha</code>만 밝은 쪽으로 뒤집었습니다.</strong>
+    Figma 는 두 모드 모두 어두운 scrim 인데, 밝은 카드 위에 얹으면 줄 배경이 중간 회색
+    (<code>#7C828A</code>)이 되어 그 위의 Light 용 값 색이 <strong>대비 1.11 · 1.52</strong>로 무너집니다.
+    값 색만 밝게 바꿔 봐도 2.31 에 그쳐서, 면을 뒤집는 쪽이 맞았습니다.
+    <strong>Figma 의 <code>bg/surface/alpha</code>도 Light 모드 값을
+    <code>rgb(255 255 255 / 70%)</code>로 바꿔 주세요.</strong>
+  </p>
+  <table>
+    <tr><th>대비</th><th>Light</th><th>Dark</th></tr>
+    <tr><td>줄 배경</td><td><code>#F6F9FE</code></td><td><code>#2A3448</code></td></tr>
+    <tr><td>수행중 <code>status/info/fg</code></td><td>4.08</td><td>7.43</td></tr>
+    <tr><td>78% <code>status/normal/fg</code></td><td>5.58</td><td>5.62</td></tr>
+    <tr><td>라벨 <code>fg/secondary</code></td><td>6.00</td><td>6.00</td></tr>
+  </table>
+  <p>
+    면이 모드마다 반대 방향이라 글자는 따로 손대지 않았습니다 — 각 모드의 Semantic 이 그대로 맞습니다.
+    줄 라벨도 Figma 의 raw white 대신 <code>fg/secondary</code>를 씁니다(선택되지 않은 줄과 같습니다).
+  </p>
+  <p>
+    <strong>하나 남았습니다. Light 에서는 그라데이션이 사라집니다.</strong> 30% 와 98% stop 이
+    <code>bg/surface/selected</code> · <code>status/info/bg</code>인데 Light 에서 둘 다
+    <code>main/100</code>이라 같은 색입니다. 평평한 면에 아래 2%만 진한 파란 선으로 남습니다.
+    의도한 것인지 확인 부탁드립니다.
+  </p>
+  <p>
+    맞추는 과정에서 저희 쪽 어긋남 넷도 같이 고쳤습니다.
+    로봇 카드의 Mission/Battery/Signal 행이 24가 아니라 26~34로 나오고 있었고(패딩 때문),
+    AI 바가 닫힌 상태에서 68이 아니라 88이었으며(접힌 쪽이 gap을 먹고 있었습니다),
+    오른쪽 패널이 420이 아니라 425였고(로봇 카드 3장의 min-content가 바닥이 되어 있었습니다),
+    상태바가 64가 아니라 66이었습니다(Figma의 안쪽 stroke는 높이를 늘리지 않는데 CSS border는 늘립니다).
+  </p>
+
+  <h3>12. 화면에서 바뀐 것</h3>
+  <table>
+    <tr><th>항목</th><th>이전</th><th>현재</th></tr>
+    <tr><td>Status Bar</td><td>GNB 오른쪽, 1842</td><td><strong>전체 폭</strong>, 로고가 안으로 들어옴</td></tr>
+    <tr><td>GNB Rail</td><td>78 (HUG)</td><td>76 (<code>size/gnb/rail</code>과 일치)</td></tr>
+    <tr><td>Context Panel</td><td>SITE · 운영 모드 · 퀵 액션</td><td>퀵 액션 <strong>삭제</strong></td></tr>
+    <tr><td>Right Panel</td><td>360, 카드 1개</td><td><strong>420</strong>, 카드 2개로 분리</td></tr>
+    <tr><td>Robot Card</td><td>101 폭, 세로 나열</td><td>168 폭, 썸네일 + Mission/Battery/Signal 행</td></tr>
+    <tr><td>Progress Bar</td><td>연속 막대</td><td><strong>5칸 분할 막대</strong></td></tr>
+    <tr><td>Timeline</td><td>알약 캡슐, 4개</td><td>번호 + 아이콘/세로선, 7개</td></tr>
+    <tr><td>AI 영역</td><td>지도 위 588×240 그라데이션 면</td><td>지도 하단 <strong>얇은 알림 바</strong></td></tr>
+    <tr><td>지도 도구</td><td>좌하단</td><td>우상단</td></tr>
+    <tr><td>Panel Actions</td><td>수동 조작 / 미션 관리</td><td><strong>삭제</strong> (미션 관리는 헤더로 이동)</td></tr>
+  </table>
+  <p>
+    도면 도형 5개도 사라져서 지도는 빈 캔버스입니다. 아이콘 에셋도 27개에서 18개로 줄었습니다.
+  </p>
+
+  <h3>13. 디자인 시스템에서 바뀐 것</h3>
+  <p>
+    <strong>Component 컬렉션이 없어지고</strong> <code>button/*</code> 32개가 Semantic으로 들어왔습니다.
+    컬렉션 구성이 <code>Primitive(111) · Semantic(122) · Texts(7)</code>이 되었습니다.
+  </p>
+  <ul>
+    <li><strong>main 램프가 11단계로 재설계</strong>됐습니다 (50~950). 이전은 7단계였습니다.</li>
+    <li><strong>원색 3개가 바뀌었습니다</strong> — <code>danger/500 #F03918 → #FF383C</code>,
+      <code>safe/300 #5FD382 → #34C759</code>, <code>warning/500 #EECE1B → #FFCC00</code></li>
+    <li><code>size/panel/right</code> 360 → <strong>420</strong>, <code>space/2</code> 추가</li>
+    <li><code>bg/container</code> Dark가 gray/850 → gray/800, <code>bg/brand</code> Dark가 main/500 → main/600</li>
+    <li>Dark의 상태 아이콘 3개가 300 → <strong>500</strong>으로 (원색을 그대로 쓰는 방향)</li>
+    <li><strong>Texts 컬렉션</strong>(문자열 7개)이 새로 생겼습니다. 화면 문구용이라 CSS로는 내보내지 않았습니다.</li>
+  </ul>
+
+  <h3>14. 확인이 필요한 지점</h3>
+  <ul>
+    <li>
+      <strong>AI Assist Panel 의 <code>Contrast Scrim</code> 이 비어 있습니다.</strong>
+      opened 변형 넷 모두 맨 아래에 <code>Contrast Scrim</code>(920×262, ABSOLUTE) 이 있는데
+      <strong>채우기가 하나도 없어 아무것도 그리지 않습니다</strong>.
+      이름대로라면 글자 대비를 받치는 층일 텐데, 그렇다면 Light 모드에서 캡슐 · 헤드라인이
+      읽히지 않는 문제가 바로 이 층으로 풀립니다. 채우실 값이 정해지면 퍼블리싱에 반영하겠습니다.
+      지금은 Figma 그대로 비워 두었습니다.
+    </li>
+    <li>
+      <strong><code>button/*</code> 32개의 Light와 Dark 값이 전부 같습니다.</strong>
+      Component 컬렉션에 있을 때는 별칭 하나(<code>bg/inverse</code> 등)가 모드를 알아서 따라갔는데,
+      Semantic으로 옮기면서 두 모드에 Light 값이 같이 들어갔습니다. 눈에 띄는 두 곳입니다 —
+      <code>button/primary/bg/default</code>가 <code>gray/950</code>이라 <code>bg/canvas</code>와 같은 색이고,
+      <code>button/secondary/bg/default</code>가 <code>gray/0</code>이라 어두운 화면 위에 흰 버튼이 놓입니다.
+      <strong>의도한 것인지 확인 부탁드립니다.</strong> Figma를 그대로 따랐습니다.
+    </li>
+    <li>
+      <strong><code>input/border/*</code> · <code>navigation/item/*</code> · <code>table/row/*</code> 10개가
+      이관 없이 사라졌습니다.</strong> Text Field · Select · Nav Item · GNB Rail Item · Table Row의
+      바인딩 확인이 필요합니다. 여기서는 대응하는 Semantic(<code>border/control</code> 등)을 직접 씁니다.
+    </li>
+    <li>
+      <strong>Waypoint 텍스트 속성이 동작하지 않습니다.</strong> 7개 항목 모두
+      <code>Waypoint = "Thrust Oil 정유기 운전 상태"</code>로 설정돼 있는데, 텍스트 레이어가
+      <code>Texts</code> 컬렉션의 문자열 변수(<code>Waypoint/Default</code> ·
+      <code>Waypoint/예시 1</code>)에 묶여 있어 <strong>변수 바인딩이 컴포넌트 속성을 이깁니다.</strong>
+      그래서 화면에는 "waypoint name"이 나옵니다. 둘 중 하나를 끊어야 합니다.
+    </li>
+    <li>
+      <strong><code>Show Progress = true</code>인데 진행 블록이 어디에도 안 나옵니다.</strong>
+      7개 항목 전부에 <code>Progress Label = "센서 판독 진행"</code>,
+      <code>Progress Value = "3 / 5 지점 · 62%"</code>가 들어가 있지만 화면에 없습니다.
+      <code>Show Description = true</code>도 마찬가지로 Running 항목에서만 보입니다.
+      Done · Pending Variant 에 해당 레이어가 없어서 불리언이 무력화된 것으로 보입니다.
+    </li>
+    <li>
+      <strong>로봇 카드는 정리됐습니다.</strong> 이전 판에서 3장 모두 <code>State = Running</code>에
+      1번만 수동 fill 오버라이드였는데, 지금은 <code>Running · Returning · Idle</code>로 갈렸고
+      선택된 면도 Variant 가 갖습니다. 오버라이드는 크기뿐입니다.
+      다만 <code>Running</code>이 "수행 중"인 동시에 "선택됨"을 겸하고 있어서,
+      수행 중인 로봇이 둘이 되면 표현할 방법이 없습니다.
+      카드에 텍스트 속성이 둘인 것도 그대로입니다 —
+      <code>Robot = "ROBOT 02"</code>(화면에 안 나옴), <code>로봇명 = "로봇명"</code>(화면에 나옴).
+    </li>
+    <li>
+      <strong>Mode Badge 가 <code>Status = Normal</code>인데 중립색으로 오버라이드돼 있습니다.</strong>
+      오버라이드 3개가 걸려 있어 초록 대신 <code>fg/secondary</code>로 나옵니다.
+    </li>
+    <li>
+      Turbine Select 에 <code>Label = "터빈 선택"</code>,
+      <code>Helper = "현재 관제 대상 터빈을 선택합니다."</code>가 들어 있지만
+      <code>Show Label</code> · <code>Show Helper</code>가 false 라 숨겨져 있습니다. 화면도 그대로 두었습니다.
+    </li>
+    <li>
+      <strong>Status Bar 로고가 raw white입니다.</strong> 토큰이 아니라서 Light 모드에서는
+      흰 면 위 흰 로고가 됩니다. 여기서는 <code>fg/primary</code>로 두었습니다.
+    </li>
+    <li>
+      <strong>Robot Card의 Mission/Battery/Signal 라벨이 raw white입니다.</strong> 토큰이 아니라서
+      Light 모드에서는 흰 면 위 흰 글자가 됩니다. 여기서는 <code>fg/secondary</code>로 두었습니다.
+    </li>
+    <li>
+      <strong><code>Gradient/Main</code>의 방향이 뒤집혔습니다.</strong> 코어가 오른쪽 끝이고 왼쪽으로 감쇠합니다.
+      나머지 셋은 여전히 코어가 왼쪽입니다. 또 최소 알파가 0이 아니라 0.1이라 완전히 사라지지 않습니다.
+      (이 화면에서는 그라데이션을 쓰지 않아 눈에 띄지 않습니다.)
+    </li>
+    <li>
+      <strong>Text Style 이름과 실제 굵기가 어긋납니다.</strong>
+      <code>Heading/3/SemiBold</code>와 <code>Label/1/SemiBold</code>는 실제 ExtraBold,
+      <code>Title/1/SemiBold</code>는 실제 Bold입니다. 실제 굵기를 따랐습니다.
+    </li>
+    <li>
+      <strong><code>Mission Timeline Iist</code></strong> — <code>List</code>의 <code>l</code>이 대문자
+      <code>I</code>입니다. 지난번에도 남아 있던 오타입니다.
+    </li>
+    <li>
+      진행률이 <code>3 / 5</code> · <code>00%</code>로 서로 맞지 않았습니다.
+      웨이포인트가 로봇 선택에 따라 달라지게 되면서 <strong>진행률은 단계에서 계산</strong>합니다 —
+      1번 로봇은 7단계 중 3단계 완료라 <code>3 / 7</code> · <code>43%</code>로 나옵니다.
+      <strong>Figma 쪽 값도 맞춰 주시면 좋겠습니다.</strong>
+    </li>
+  </ul>
+
+  <h3>15. AI(Delta) 요약 — closed / opened</h3>
+  <p>
+    <code>AI Assist Panel</code>의 <code>Emphasis</code> 속성(<code>closed</code> · <code>opened</code>)을
+    <strong>우측 상단 토글 버튼</strong>으로 전환합니다. 기본은 closed 입니다.
+    닫힘 <code>^</code> · 열림 <code>v</code>로 방향이 바뀌고, <code>chevron-down</code> 하나를 돌려 씁니다.
+  </p>
+  <p>
+    두 상태를 모두 DOM에 두고 <code>grid-template-rows</code>를 <code>0fr ↔ 1fr</code>로 여닫습니다.
+    <code>height: auto</code>는 전환이 안 되지만 이 방식은 됩니다.
+    <code>prefers-reduced-motion</code>이 켜진 환경에서는 전환 없이 바로 바뀝니다.
+    펼친 상태에서 <code>Esc</code>로 닫을 수 있고, 초점은 버튼에 남습니다.
+  </p>
+  <p>
+    닫힌 상태의 2px 상단 테두리(<code>border/focus</code>)는 열릴 때 <strong>투명해집니다</strong> —
+    Figma의 opened에는 테두리가 없지만, 폭을 0으로 만들면 여닫을 때 2px씩 튀어서 색만 없앴습니다.
+  </p>
+
+  <h3>16. 붙인 동작 — 패널 접기 · 로봇 선택</h3>
+  <p>
+    <strong>사이트 패널 접기.</strong> 우상단 <code>panel-left</code> 버튼으로 여닫습니다.
+    <strong>접힌 모습은 Figma에 없어서 여기서 정했습니다</strong> — 버튼만 남는
+    <strong>44</strong>(12+20+12) 폭으로 줄이고 남는 자리는 지도가 가져갑니다.
+    버튼이 패널 안에 있어서 폭을 0으로 만들 수는 없었습니다.
+    접히면 아이콘이 좌우로 뒤집혀 "펼치기"로 읽힙니다.
+    <strong>접힌 상태를 그려 주시면 그대로 맞추겠습니다.</strong>
+  </p>
+  <p>
+    <strong>로봇 선택.</strong> 카드를 누르면 <code>Robot Card</code>의
+    <code>Type = Default ↔ Selected</code>가 바뀝니다. 두 Variant의 차이는 카드 면
+    (<code>bg/surface/selected</code>) 하나뿐이라 그대로 옮겼습니다.
+    한 번에 하나만 선택됩니다(<code>aria-pressed</code>).
+  </p>
+  <p>
+    <strong>선택에 따라 아래 waypoint 목록과 진행률이 바뀝니다.</strong>
+    Figma에는 타임라인이 하나뿐이라 <strong>2·3번 로봇의 내용은 여기서 지었습니다</strong> —
+    카드에 걸린 상태를 따랐습니다.
+  </p>
+  <table>
+    <tr><th>로봇</th><th>카드 상태</th><th>waypoint</th><th>진행률</th></tr>
+    <tr><td>1</td><td><code>Running</code> · 78% · Strong</td><td>7단계 — 3 완료, 4 수행중(설명 있음), 나머지 대기</td><td>3 / 7 · 43%</td></tr>
+    <tr><td>2</td><td><code>Returning</code> · 18% · Weak</td><td>5단계 — 전부 완료</td><td>5 / 5 · 100%</td></tr>
+    <tr><td>3</td><td><code>Idle</code> · 35% · Good</td><td>4단계 — 전부 대기</td><td>0 / 4 · 0%</td></tr>
+  </table>
+  <p>
+    문구는 Figma와 같은 <code>waypoint name</code>을 그대로 씁니다. 시각·소요 시간만 다릅니다.
+    <strong>실제 값이 정해지면 알려 주세요.</strong>
+    타임라인은 <code>assets/js/screen.js</code> 안의 <code>ROBOTS</code> 배열에서 그립니다.
+  </p>
+
+  <h3>17. 그대로 둔 것 · 코드에서 정한 것</h3>
+  <p>
+    <strong>문구는 자리표시자 그대로 둡니다.</strong>
+    <code>로봇명</code> ×3, <code>waypoint name</code>, <code>전체 미션명</code>,
+    채워지지 않은 사각형 자리 모두 Figma 그대로입니다.
+    진행률(<code>00%</code>)만 계산 값으로 바뀌었습니다 — 아래 14번을 봐 주세요.
+  </p>
+  <p>
+    <strong>스크롤바도 토큰으로 맞췄습니다.</strong> Figma 에 없는 부분이라 코드에서 정했습니다 —
+    막대는 <code>border/default</code>, 손이 닿으면 <code>border/strong</code>으로 한 단 진해집니다.
+    Light 는 <code>gray/300 → 400</code>(어두워짐), Dark 는 <code>gray/650 → 600</code>(밝아짐)이라
+    두 모드 모두 대비가 커지는 방향입니다. 트랙은 비워 두고 패널 면(<code>bg/canvas</code>)이 비칩니다.
+    막대는 <code>radius/pill</code>이고 실제 두께는 4px 입니다.
+    Chrome · Safari 는 <code>::-webkit-scrollbar</code>, Firefox 는 <code>scrollbar-color</code>로
+    갈라 뒀습니다 — 둘을 같이 주면 Chrome 이 표준 속성을 우선하면서 앞쪽을 무시합니다.
+    타임라인 · 로봇 카드 · 사이트 패널 · GNB 에 같이 적용했습니다.
+  </p>
+  <p>
+    무엇이 늘어나는지는 코드에서 정했습니다 — 고정 폭은
+    <strong>GNB(76) · Context Panel(240) · Right Panel(420)</strong> 셋뿐이고 지도가 나머지를 흡수합니다.
+    우측 패널은 높이를 채우고 <strong>타임라인만 스크롤</strong>합니다. 웨이포인트가 7개로 늘어난 지금은
+    이게 없으면 아래쪽이 잘립니다. 로봇 카드는 대수 상한이 미정이라 132px 아래로는 줄지 않고
+    그보다 좁아지면 가로로 스크롤합니다.
+  </p>
+</section>
+    <p class="notes open" style="max-width:880px;margin:0 auto;padding:0 var(--space-20) 64px">
+      <a class="screen-name" href="./dashboard-home.html">화면 보기 →</a>
+      <a class="screen-name" href="../index.html">목록으로</a>
+    </p>
+  </main>
+
+  <footer class="site-footer">
+    <span>APRISM · 공장 환경점검 로봇 관제 대시보드</span>
+  </footer>
+
+  <script src="../assets/js/theme.js?v=c86093d9"></script>
+</body>
+</html>

@@ -1,0 +1,1302 @@
+/*
+ * v3 — 2026-10-21 부터의 화면(디자이너). v2.2 화면은 이날로 멈췄다.
+ * v3 화면(screens/*-v3.html)만 이 파일을 읽고, body 에 .ver-3 이 붙는다.
+ * 공용 CSS(monitor.css · delta-v3.css 등)를 고치면 v2.2 도 같이 바뀌므로, v3 의 변경은 여기에 .ver-3 으로 쓴다.
+ * (.v3 는 예전 시안 3 Delta 의 이름이라 버전 표시는 .ver-3 으로 따로 둔다.)
+ */
+
+/* ==================================================================
+ * 오늘 확인 완료 — 접기 (10/21 디자이너, v2.2 피드백 2번)
+ * 머리 줄(제목 · 건수 · 꺾쇠)이 통째로 단추다. 접으면 머리 줄만 남고 위 최신 알림 칸이 그 높이를 가져간다.
+ * 두 칸은 flex 1 1 0 으로 반씩 나누므로, 접힌 칸의 flex-grow 를 0 으로 내리고 그 변화를 움직인다.
+ * 접힌 높이 = 위 선 1 + 칸 위 여백 12 + 머리 26 + 아래 여백 12 — 접히면 아래 여백을 위와 같게 맞춘다(10/21 디자이너).
+ * 꺾쇠 — 펼침은 아래(접으면 아래로 내려간다), 접힘은 위(펼치면 위로 자란다).
+ * ================================================================== */
+.ver-3 .done-sec {
+  transition: flex-grow 240ms cubic-bezier(.2, .7, .3, 1), gap 240ms, padding-bottom 240ms;
+}
+.ver-3 .done-sec.is-folded {
+  flex-grow: 0;
+  min-height: calc(var(--border-width-thin) + var(--space-12) + 26px + var(--space-12));
+  padding-bottom: var(--space-12);
+  gap: 0;
+  overflow: hidden;
+}
+.ver-3 .done-sec.is-folded > .ah-box { visibility: hidden; transition: visibility 0s 240ms; }
+.ver-3 .done-sec.no-motion,
+.ver-3 .done-sec.no-motion > .ah-box { transition: none; }
+
+.ver-3 .done-head { cursor: pointer; user-select: none; }
+.ver-3 .done-head .done-count { margin-left: auto; }
+
+.ver-3 .done-fold {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  margin-right: calc(var(--space-4) * -1);
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-control);
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+.ver-3 .done-head:hover .done-fold { color: var(--text-primary); background-color: var(--state-hover, rgb(255 255 255 / 8%)); }
+.ver-3 .done-fold .i { transition: transform 240ms cubic-bezier(.2, .7, .3, 1); }
+.ver-3 .done-sec.is-folded .done-fold .i { transform: rotate(180deg); }
+.ver-3 .done-sec.no-motion .done-fold .i { transition: none; }
+
+/*
+ * 접힌 채 조치 완료 — 착지 (10/21 디자이너). 쪽지가 건수로 빨려 들어간 뒤(monitor.js .is-landed)
+ * 건수가 살짝 튀고(1 → 1.25 → 1) 머리 줄 바탕이 잠깐 밝아졌다 돌아온다. 600ms 한 번. 펼치지는 않는다.
+ * 움직임 줄이기면 쪽지는 그 자리에서 사라지고(monitor.js) 건수만 바뀐다 — .is-landed 가 안 붙는다.
+ */
+.ver-3 .done-sec.is-folded.is-landed .done-head { animation: done-land-flash 600ms ease-out; }
+.ver-3 .done-sec.is-folded.is-landed .done-count { animation: done-land-pop 420ms cubic-bezier(.3, 1.6, .5, 1); }
+@keyframes done-land-flash {
+  0% { background-color: transparent; }
+  20% { background-color: var(--state-hover, rgb(255 255 255 / 8%)); }
+  100% { background-color: transparent; }
+}
+@keyframes done-land-pop {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.25); }
+  100% { transform: scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ver-3 .done-sec,
+  .ver-3 .done-sec > .ah-box,
+  .ver-3 .done-fold .i { transition: none; }
+}
+
+/* ==================================================================
+ * Delta 위젯형 · 기본 (10/21 디자이너, Figma DS 1320:14679 Card — 3차 디테일)
+ *   Default 1320:14678  220×220 — 머리(위 12 · 좌우 12 · 아래 4 · 표식 16 + "Delta" Label/1 14/20 ExtraBold)
+ *                                  요약(좌우 12 · Body/2 16/24, 절반부터 fg/disabled 로 옅어진다)
+ *                                  아래 40 줄 — 근거 아이콘(info 20 셋이 5 씩 겹친다) + "Thinking..." Mono 13 (X 위젯처럼)
+ *   Hover   1322:14692  220×220 — 아래 40 줄이 "Delta와 대화" 둥근 단추(폭 가득 · 24)로 바뀐다 — 누르면 펼친다
+ *   expand  1320:14677  295×637 — 화면에서는 지도 높이 가득(위 · 아래 20).
+ *                                  머리(위 12 · 왼쪽 12 · 오른쪽 8 · 아래 4, 오른쪽 끝 닫기 Ghost 24) · 안쪽 4 ·
+ *                                  [요약 상자 — bg/map-chip · radius 4 · 좌우 12 · 위아래 8 · 글 + 조치 버튼] 사이 4
+ *                                  [묻기 칸 — bg/map-chip · radius 4 · 좌우 12 · 위아래 8 · 보내기 둥근 24]
+ *   면은 셋 다 bg/cell → bg/glass 세로 그라데이션(채움 100% — 10/21 디자이너, Figma 55% 에서 올림) + 안쪽 윗변 반사(inset 0 2 3 -1 effect/glass-edge) · radius/container.
+ * 판 색은 Figma 그대로 단계와 상관없이 하나다 — 위험 · 주의의 판 색 표현은 나중에(10/21 디자이너). 표식 모션 · 프레임 엣지 글로우는 그대로.
+ *
+ * v2.2 규칙이 :root[data-delta][data-glow] … 로 무겁게 걸려 있어 같은 무게 이상으로 덮는다.
+ * ================================================================== */
+
+/* ---------- 공통 면 — 단계와 상관없이 하나 ---------- */
+:root[data-theme][data-delta][data-glow] body.ver-3.v2-2.v3 .delta3:not(.is-open) .delta3-card,
+:root[data-theme][data-delta][data-glow] body.ver-3.v2-2.v3 .delta3.is-open {
+  background-color: transparent;
+  background-image: linear-gradient(to bottom,
+    var(--bg-cell),
+    var(--bg-glass));
+  box-shadow: inset 0 2px 3px -1px var(--effect-glass-edge);
+  border-radius: var(--radius-container);
+  animation: none;
+}
+/* 펼친 창은 창 자체가 카드다 — 안쪽 카드 면 · 윗변 분광선(위험)은 걷는다. */
+:root[data-theme][data-delta][data-glow] body.ver-3.v2-2.v3 .delta3.is-open .delta3-card {
+  background: none;
+  box-shadow: none;
+}
+:root[data-theme][data-delta][data-glow] body.ver-3.v2-2.v3 .delta3.is-open::after { display: none; }
+
+/* 표식 — Icon/Delta 16. 단계 모션(주의 1-2-3 · 위험 깜빡임 · 답 기다림)은 v2.2 그대로 둔다(10/21 디자이너). */
+body.ver-3.v2-2.v3 .delta3 .delta3-name .delta-dots { width: 16px; height: 16px; }
+
+/* 머리 — 위 12 · 좌우 12 · 아래 4. "Delta" 는 Label/1 14/20 ExtraBold fg/primary. */
+body.ver-3.v2-2.v3 .delta3 .delta3-name {
+  padding: var(--space-12) var(--space-12) var(--space-4);
+  gap: var(--space-8);
+}
+body.ver-3.v2-2.v3 .delta3 .delta3-name .delta3-name-in { gap: var(--space-4); }
+body.ver-3.v2-2.v3 .delta3 .delta3-name b {
+  display: block;
+  font-family: var(--font-family-sans);
+  font-size: var(--font-size-14);
+  line-height: var(--font-line-height-20);
+  font-weight: 800;
+  color: var(--text-primary);
+}
+
+/* 요약 상자 · 묻기 칸 — 면 · 선 · 그림자는 아래에서 상태별로 다시 준다. */
+:root[data-theme][data-delta][data-glow] body.ver-3.v2-2.v3 .delta3 .delta3-body {
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+}
+body.ver-3.v2-2.v3 .delta3 .delta3-body > .ai-line-2 {
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* ---------- 접힘 220 ---------- */
+/* 판(260) 자체는 눌리지 않는다 — 카드 · 머리만 눌리고, 그 위에 올라갔을 때만 hover 가 된다. */
+body.ver-3.v2-2.v3 .delta3:not(.is-open) { pointer-events: none; }
+body.ver-3.v2-2.v3 .delta3:not(.is-open) .delta3-card,
+body.ver-3.v2-2.v3 .delta3:not(.is-open) .delta3-name { pointer-events: auto; }
+
+/* 머리는 카드 위 36 칸(12 + 20 + 4)에 앉는다(카드 자리 = 판 안쪽 20). 카드는 그 36 을 비우고 요약부터 채운다. */
+body.ver-3.v2-2.v3 .delta3:not(.is-open) .delta3-name {
+  left: var(--space-20);
+  top: var(--space-20);
+  width: 220px;
+  height: 36px;
+  align-items: center;
+}
+body.ver-3.v2-2.v3 .delta3:not(.is-open) .delta3-name::before { display: none; }
+body.ver-3.v2-2.v3 .delta3:not(.is-open) .delta3-card { padding: 36px 0 0; }
+body.ver-3.v2-2.v3 .delta3:not(.is-open) .delta3-body {
+  order: 1;
+  flex: 1 1 auto;
+  padding: 0 var(--space-12);
+}
+/* 요약 칸 144 = 24 × 6 줄 — 넘치면 마지막 줄 끝이 … . 위 절반은 또렷하고 아래로 fg/disabled 까지 옅어진다. */
+body.ver-3.v2-2.v3 .delta3:not(.is-open) .delta3-body > .ai-line-2 {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 6;
+  overflow: hidden;
+  font-size: var(--font-size-16);
+  line-height: var(--font-line-height-24);
+  background-image: linear-gradient(to bottom, var(--text-primary) 50%, var(--text-disabled));
+}
+
+/* 근거 줄 — 이 요약이 무엇을 보고 나왔는지(X 위젯의 출처 얼굴 자리). 지금은 Figma 대로 info 아이콘 셋이다. */
+body.ver-3.v2-2.v3 .delta3-clue {
+  order: 2;
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
+  height: 40px;
+  padding: var(--space-8);
+}
+body.ver-3.v2-2.v3 .delta3-clue-ics { flex: none; display: flex; align-items: center; }
+/*
+ * 근거 아이콘(감지 종류) — 24 동그라미 칩 안에 아이콘 16. 칩은 6 씩 겹친다.
+ * 불투명 칩 + 은은한 그림자(10/21 디자이너 — 프로젝트 카드 레퍼런스의 겹친 아바타처럼). 반투명일 때는 아이콘이 작고
+ * 판 색에 묻혀 잘 안 읽혔다. 카드 쪽 테(2)로 갈랐더니 너무 도드라져, 테를 빼고 왼쪽으로 지는 옅은 그림자로 칩 사이를 가른다
+ * (뒤 칩 위에 앞 칩이 살짝 떠 보인다).
+ * 다크 — 칩 bg/raised · 그림자 검정 45%. 라이트 — 칩 bg/cell · 그림자 검정 12%(밝은 판이라 옅게).
+ */
+body.ver-3.v2-2.v3 .delta3-clue-ics {
+  --clue-bg: var(--bg-raised);
+  --clue-bg-on: color-mix(in srgb, var(--bg-raised), var(--text-primary) 14%);
+  --clue-shadow: rgb(0 0 0 / 45%);
+}
+:root[data-theme="light"] body.ver-3.v2-2.v3 .delta3-clue-ics {
+  --clue-bg: var(--bg-cell);
+  --clue-bg-on: var(--bg-raised);
+  --clue-shadow: rgb(0 0 0 / 12%);
+}
+body.ver-3.v2-2.v3 .delta3-clue-ics .i {
+  position: relative;
+  width: 24px;
+  height: 24px;
+  box-sizing: border-box;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background-color: var(--clue-bg);
+  box-shadow: -2px 0 4px 0 var(--clue-shadow);
+  -webkit-mask: none;
+  mask: none;
+}
+body.ver-3.v2-2.v3 .delta3-clue-ics .i::before {
+  content: "";
+  position: absolute;
+  inset: 4px;
+  background-color: var(--text-primary);
+  -webkit-mask: var(--i) center / contain no-repeat;
+  mask: var(--i) center / contain no-repeat;
+}
+body.ver-3.v2-2.v3 .delta3-clue-ics .i + .i { margin-left: -6px; }
+body.ver-3.v2-2.v3 .delta3-clue-more {
+  margin-left: var(--space-4);
+  color: var(--text-secondary);
+  font-size: var(--font-size-12);
+  line-height: 1;
+}
+body.ver-3.v2-2.v3 .delta3-clue-txt {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  /* Figma 는 Mono 13(영문 "Thinking...")이다. 한글 행동 문구로 바꾸며 SUIT 13 Regular 로 — Mono 는 한글 사이 빈칸이 넓게 벌어진다. */
+  font-family: var(--font-family-sans);
+  font-size: var(--font-size-13);
+  line-height: var(--font-line-height-18);
+  color: var(--text-primary);
+}
+body.ver-3.v2-2.v3 .delta3.is-open .delta3-clue { display: none; }
+
+/* 아래 단추 줄 — 쉴 때는 근거 줄이 서고, 카드에 올라가거나(hover) Tab 으로 들어오면(focus) 단추 줄로 바뀐다.
+ * 숨길 때도 display 를 끄지 않는다 — 단추가 Tab 순서에 남아 있어야 키보드로 들어와 펼칠 수 있다. */
+body.ver-3.v2-2.v3 .delta3:not(.is-open) .delta3-head {
+  order: 3;
+  height: 0;
+  padding: 0 var(--space-8);
+  overflow: hidden;
+  opacity: 0;
+}
+body.ver-3.v2-2.v3 .delta3:not(.is-open) .delta3-head p { display: none; }
+body.ver-3.v2-2.v3 .delta3:not(.is-open):is(:hover, :focus-within) .delta3-head {
+  height: 40px;
+  padding: var(--space-8);
+  opacity: 1;
+}
+body.ver-3.v2-2.v3 .delta3:not(.is-open):is(:hover, :focus-within) .delta3-clue { display: none; }
+
+/* "Delta와 대화" — Icon Button 꼴(Secondary · pill)을 폭 가득 24 로. 글은 Caption 12/18, 세로 그라데이션. */
+/*
+ * 밝은 반투명 오버레이(10/21 디자이너) — 불투명 Secondary 면 대신 흰빛을 얇게 깔아 아래 판 색(위험이면 붉은 빛)이 비친다.
+ * 라이트는 판이 밝아 흰빛을 더 짙게 깔고 선을 한 단 어둡게 둔다.
+ */
+body.ver-3.v2-2.v3 .delta3 .delta3-plus {
+  flex: 1 1 auto;
+  width: auto;
+  height: 24px;
+  border: var(--border-width-thin) solid rgb(255 255 255 / 18%);
+  border-radius: var(--radius-pill);
+  background-color: rgb(255 255 255 / 10%);
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+}
+body.ver-3.v2-2.v3 .delta3 .delta3-plus:hover { background-color: rgb(255 255 255 / 18%); }
+:root[data-theme="light"] body.ver-3.v2-2.v3 .delta3 .delta3-plus {
+  border-color: rgb(0 0 0 / 8%);
+  background-color: rgb(255 255 255 / 45%);
+}
+:root[data-theme="light"] body.ver-3.v2-2.v3 .delta3 .delta3-plus:hover { background-color: rgb(255 255 255 / 70%); }
+body.ver-3.v2-2.v3 .delta3 .delta3-plus .i { display: none; }
+body.ver-3.v2-2.v3 .delta3 .delta3-plus-label {
+  font-size: var(--font-size-12);
+  line-height: var(--font-line-height-18);
+  font-weight: 400;
+  white-space: nowrap;
+  background-image: linear-gradient(to bottom, var(--text-primary), var(--text-secondary));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+body.ver-3.v2-2.v3 .delta3.is-open .delta3-plus-label { display: none; }
+
+/* ---------- 펼침 295 × 지도 높이 ---------- */
+:root[data-theme] body.ver-3.v2-2.v3 .delta3.is-open {
+  width: var(--d3-w, 295px);
+  /* 지도 높이 가득 — 접힌 카드 자리(위 20)에서 아래로 펼쳐 아래도 20 남긴다(10/21 디자이너, Figma 637 보다 길게). */
+  height: calc(100% - var(--space-20) * 2);
+  min-height: 0;
+  padding: 0;
+}
+body.ver-3.v2-2.v3 .delta3.is-open .delta3-name { padding: var(--space-12) var(--space-8) var(--space-4) var(--space-12); }
+/* 제목 줄은 Figma 에서 빠졌다 — 머리(Delta)와 요약만 남는다. */
+body.ver-3.v2-2.v3 .delta3.is-open .delta3-head { display: none; }
+body.ver-3.v2-2.v3 .delta3.is-open .delta3-card {
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: var(--space-4);
+}
+/*
+ * 요약 상자와 묻기 칸은 따로 선 두 상자다(사이 4). DOM 에서는 묻기 칸이 요약 칸(.delta3-body) 안 맨 끝에 있다
+ * (delta-chat.js 가 그 자리를 기준으로 대화를 끼워 넣는다) — 그래서 요약 상자 면은 ::before 로,
+ * 묻기 칸 높이(8 + 24 + 8) + 사이 4 = 44 만큼 아래를 비우고 깐다.
+ */
+:root[data-theme][data-delta][data-glow] body.ver-3.v2-2.v3 .delta3.is-open .delta3-body {
+  position: relative;
+  isolation: isolate;
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 0;
+  gap: 0;
+  overflow: hidden;
+}
+body.ver-3.v2-2.v3 .delta3.is-open .delta3-body::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 44px;
+  z-index: -1;
+  border-radius: var(--radius-4);
+  background-color: var(--bg-map-chip);
+  pointer-events: none;
+}
+body.ver-3.v2-2.v3 .delta3.is-open .delta3-body > .ai-line-2 {
+  flex: 1 1 auto;
+  min-height: 0;
+  margin: var(--space-8) var(--space-12) 0;
+  overflow: hidden;
+  font-size: var(--font-size-14);
+  line-height: var(--font-line-height-22);
+  background-image: linear-gradient(to bottom, var(--text-primary), var(--text-secondary));
+}
+body.ver-3.v2-2.v3 .delta3 .delta3-body > .ai-actions {
+  flex: none;
+  gap: var(--space-8);
+  margin: var(--space-8) var(--space-12) var(--space-8);
+}
+/* 조치 버튼이 없을 때(정상)는 글 아래 여백 8 을 글 쪽이 맡는다. */
+body.ver-3.v2-2.v3 .delta3.is-open .delta3-body > .ai-actions[hidden] + .ai-input { margin-top: calc(var(--space-8) + var(--space-4)); }
+:root[data-theme] body.ver-3.v2-2.v3 .delta3 .delta3-body .ai-input,
+:root[data-theme] body.ver-3.v2-2.v3 .delta3 .delta3-body .ai-input:focus-within {
+  flex: none;
+  margin: var(--space-4) 0 0;
+  padding: var(--space-8) var(--space-12);
+  border: 0;
+  border-radius: var(--radius-4);
+  background-color: var(--bg-map-chip);
+}
+
+/* 보내기 — Icon Button · Secondary 24, 네모(radius/control). 글을 쓸 때만 나타난다 — v2.2 와 같은 동작(10/21 디자이너). */
+:root[data-theme] body.ver-3.v2-2.v3 .delta3 .delta3-body .ai-send {
+  width: 24px;
+  height: 24px;
+  border: var(--border-width-thin) solid var(--comp-button-secondary-border-default);
+  border-radius: var(--radius-control);
+  background-color: var(--comp-button-secondary-bg-default);
+  color: var(--comp-button-secondary-text-default);
+}
+:root[data-theme] body.ver-3.v2-2.v3 .delta3 .delta3-body .ai-send:hover { background-color: var(--comp-button-secondary-bg-hover); }
+body.ver-3.v2-2.v3 .delta3 .ai-send .i { background-color: currentColor; }
+
+/* 닫기 — Icon Button · Ghost 24(radius/control · 면 없음), close 16 fg/primary. */
+body.ver-3.v2-2.v3 .delta3 .delta3-close {
+  width: 24px;
+  height: 24px;
+  border: 0;
+  border-radius: var(--radius-control);
+  background: transparent;
+  color: var(--text-primary);
+}
+body.ver-3.v2-2.v3 .delta3 .delta3-close:hover { background-color: var(--state-hover); }
+body.ver-3.v2-2.v3 .delta3 .delta3-close .i { background-color: currentColor; }
+
+/* ==================================================================
+ * 관제 프레임 모서리 — 깎지 않는다 (10/21 디자이너). 톤 실험실 B 안(lab-delta-round.css)의 프레임 규칙을 그대로 옮겼다.
+ * Delta 표식이 위젯 카드 안으로 들어가 삼각판이 빈 자리라, 네 모서리를 같은 라운드로 둔다.
+ * ================================================================== */
+/* ---------- 1 모서리 ---------- */
+.v2-2.v3.ver-3 .two-col { border-top-left-radius: var(--radius-container); }
+.v2-2.v3.ver-3 .two-col.is-warning,
+.v2-2.v3.ver-3 .two-col.is-critical { clip-path: none; }
+
+.v2-2.v3.ver-3 .corner-tab,
+.v2-2.v3.ver-3 .delta3:not(.is-open) .delta3-name::before { display: none; }
+
+/* 위험 테 — 사선을 뺀 링 한 겹. 굵기 2 · 모서리 밝음은 v2.2 그대로다. */
+.v2-2.v3.ver-3 .two-col.is-critical::after {
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  mask-composite: exclude;
+}
+
+/* 안으로 뛰는 맥박도 모서리를 잘라 내지 않는다. */
+.v2-2.v3.ver-3 .two-col.is-warning > .edge-light,
+.v2-2.v3.ver-3 .two-col.is-critical > .edge-light {
+  -webkit-mask: none;
+  mask: none;
+}
+
+/* ---------- 3 주의 — 둥근 모서리에서 퍼지는 선 ---------- */
+.v2-2.v3.ver-3 .two-col.is-warning > .edge-corner {
+  width: 200px;
+  height: 200px;
+  overflow: hidden;
+  border-top-left-radius: var(--radius-container);
+}
+.v2-2.v3.ver-3 .two-col.is-warning > .edge-corner::before { display: none; }
+/* 400 짜리 링의 왼쪽 위 모서리만 200 칸에 들어온다 — 빛이 200 에서 다 사라지니 나머지 두 변은 안 보인다. */
+.v2-2.v3.ver-3 .two-col.is-warning > .edge-corner::after {
+  inset: 0 auto auto 0;
+  width: 400px;
+  height: 400px;
+  padding: 1px;
+  border-top-left-radius: var(--radius-container);
+  /* v2.2 와 같은 세기 — 모서리 62 까지는 온전한 색, 200 에서 사라진다. */
+  background: radial-gradient(circle 200px at 0 0, var(--glow-color) 62px, transparent 100%);
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  mask-composite: exclude;
+}
+
+
+/*
+ * 대화 뒤 접힌 위젯 — 대화 내역은 펼친 창에서만 본다(10/21 디자이너).
+ * v2.2 미니창은 마지막 말 몇 줄을 남겼는데, 위젯에서는 늘 요약(.ai-line-2)으로 돌아간다. 대화는 펼치면 그대로 이어진다.
+ */
+body.ver-3.v2-2.v3 .delta3.is-chat:not(.is-open) .dc-thread { display: none; }
+body.ver-3.v2-2.v3 .delta3.is-chat:not(.is-open) .delta3-body > .ai-line-2 { display: -webkit-box; }
+
+/* ==================================================================
+ * Delta 위젯 · 위험 (10/21 디자이너, Figma DS 1324:14819 Card Type=Default · expand)
+ *   면     접힘 — 오른쪽 아래(유리) → 왼쪽 위(status/critical/bg)로 번지는 원형 그라데이션(반지름 ≈ 270), 채움 100%
+ *          펼침 — 아래(유리) → 위(status/critical/bg) 세로 그라데이션, 채움 100% (10/21 디자이너 — Figma 55% 에서 올림)
+ *   안쪽 빛 inset 0 0 8 -3 glow-core · inset 0 0 20 glow-halo · 윗변 반사(inset 0 2 3 -1 glass-edge)
+ *   접힘 요약 글은 절반부터 흰 40% 로 옅어지고, 근거 줄은 80% 로 한 단 물러난다.
+ * 주의 · 안전은 아직 디자인 전 — 기본 면 그대로다.
+ * ================================================================== */
+:root[data-theme][data-delta][data-glow] body.ver-3.v2-2.v3 .delta3.is-critical:not(.is-open) .delta3-card {
+  background-image: radial-gradient(circle 270px at 100% 100%,
+    var(--bg-glass),
+    var(--status-critical-bg));
+}
+:root[data-theme][data-delta][data-glow] body.ver-3.v2-2.v3 .delta3.is-critical.is-open {
+  background-image: linear-gradient(to top,
+    var(--bg-glass),
+    var(--status-critical-bg));
+}
+:root[data-theme][data-delta][data-glow] body.ver-3.v2-2.v3 .delta3.is-critical:not(.is-open) .delta3-card,
+:root[data-theme][data-delta][data-glow] body.ver-3.v2-2.v3 .delta3.is-critical.is-open {
+  box-shadow:
+    inset 0 0 8px -3px var(--comp-alert-critical-glow-core),
+    inset 0 0 20px 0 var(--comp-alert-critical-glow-halo),
+    inset 0 2px 3px -1px var(--effect-glass-edge);
+}
+body.ver-3.v2-2.v3 .delta3.is-critical:not(.is-open) .delta3-body > .ai-line-2 {
+  background-image: linear-gradient(to bottom, var(--text-primary) 50%, color-mix(in srgb, var(--text-primary) 40%, transparent));
+}
+body.ver-3.v2-2.v3 .delta3.is-critical .delta3-clue { opacity: 0.8; }
+
+/*
+ * 대화 중 — 대화 칸이 남는 높이를 다 갖고 묻기 칸은 맨 아래에 붙는다(10/21 디자이너).
+ * v2.2 는 대화 칸이 60vh 안팎에서 멈추고 묻기 칸이 그 바로 밑을 따라 올라왔다. 창이 지도 높이 가득이라 바닥에 고정한다.
+ */
+body.ver-3.v2-2.v3 .delta3.is-open.is-chat .dc-thread {
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: none;
+}
+
+/* ==================================================================
+ * 상태바 — 미션(라벨) [미션 ▾] (10/21 디자이너)
+ * 상단은 미션만 고른다. 층은 지도 층 판에서만 — "전체 건물 ›" 링크가 층 판 [전체]와 겹쳤다.
+ * 라벨은 한 단 물러난 글색(fg/tertiary), 미션 칩과 사이 8.
+ * ================================================================== */
+/*
+ * [통합 순회 현황] › [미션 ▾] — 탭 모양 (10/21 디자이너)
+ * 두 칸이 늘 면을 든다 — 간격(화살표 양옆 8)을 면과 면 사이로 재므로, 올렸을 때 면이 생겨 간격이 흔들리는 일이 없다.
+ * 지금 보는 쪽: 면 bg/cell · fg/primary. 다른 쪽: 옅은 면(bg/cell 40%) · fg/secondary, 올리면 bg/cell 로 차오른다.
+ * 안쪽 여백은 미션 칩과 같다(위아래 4 · 글 쪽 12).
+ */
+.ver-3 .sb-overview {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--space-4) var(--space-12);
+  border-radius: var(--radius-control);
+  background-color: color-mix(in srgb, var(--bg-cell) 40%, transparent);
+  color: var(--text-secondary);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.ver-3 a.sb-overview:hover { background-color: var(--bg-cell); color: var(--text-primary); }
+.ver-3 a.sb-overview:focus-visible { outline: var(--border-width-strong) solid var(--border-focus); outline-offset: 2px; }
+.ver-3 .sb-overview.is-on { background-color: var(--bg-cell); color: var(--text-primary); }
+.ver-3 .sb-overview.is-on ~ .scope-menu-box .scope-trigger:not([aria-expanded="true"]):not(:hover) {
+  background-color: color-mix(in srgb, var(--bg-cell) 40%, transparent);
+  color: var(--text-secondary);
+}
+
+
+/* ==================================================================
+ * 통합 순회 현황 · 층 펼치기 (10/21 디자이너) — building.js openFloor
+ * 요약 판이 그 층을 지나는 미션 목록이 된다. 줄 하나가 미션으로 들어가는 단추다(이 층 그대로 연다).
+ * ================================================================== */
+.ver-3 .bld-sum-mission { display: block; }
+.ver-3 .bld-sum-go {
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
+  width: 100%;
+  margin: 0;
+  padding: var(--space-4) var(--space-8);
+  border: 0;
+  border-radius: var(--radius-control);
+  background: transparent;
+  color: var(--text-primary);
+  text-align: left;
+  cursor: pointer;
+}
+.ver-3 .bld-sum-go:hover { background-color: var(--state-hover); }
+.ver-3 .bld-sum-go .i { flex: none; width: 16px; height: 16px; color: var(--text-tertiary); }
+.ver-3 .bld-sum-go-name { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ver-3 .bld-sum-go .bld-sev { flex: none; color: var(--text-secondary); }
+.ver-3 .bld-fleet-filter[hidden] { display: none; }
+
+/* 미션 범위 요약 줄의 층 이름표 · 메뉴 맨 위 전체 미션 줄 (10/21) */
+.ver-3 .bld-sum-go-floor { flex: none; color: var(--text-secondary); font-family: var(--font-family-mono); font-size: var(--font-size-12); }
+
+/* 로봇 현황 층 거르기 단추 — v3 에서는 뺀다. 층은 지도 층 판에서만 고른다(10/21 디자이너). */
+.ver-3 .bld-fleet-filter { display: none; }
+
+
+/*
+ * 미션이 지나지 않는 층 안내 (10/21 디자이너) — 지도 위 가운데 위, 지도 유리면과 같은 판.
+ * 상태가 아니라 안내라 무채색이다(info 아이콘도 fg/secondary). 단추는 Secondary — 지금 할 단 하나의 행동은 아니다.
+ */
+.ver-3 .floor-note {
+  position: absolute;
+  top: var(--space-20);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
+  padding: var(--space-8) var(--space-8) var(--space-8) var(--space-12);
+  border-radius: var(--radius-container);
+  background-color: var(--map-glass-bg);
+  -webkit-backdrop-filter: var(--map-glass-blur);
+  backdrop-filter: var(--map-glass-blur);
+  box-shadow: var(--map-glass-edge), var(--map-glass-shadow);
+  color: var(--text-primary);
+  white-space: nowrap;
+  cursor: default;
+}
+.ver-3 .floor-note[hidden] { display: none; }
+.ver-3 .floor-note > .i { color: var(--text-secondary); }
+
+/*
+ * 통합 순회 현황 · 로봇 위 미션 이름 말풍선 (10/21 디자이너)
+ * 층을 펼쳤을 때(한 층이라 겹치지 않는다) · 미션 범위일 때 보인다. 쌓인 건물에서는 로봇이 몰려 겹치므로
+ * 로봇 현황 · 운행 흐름 줄에 손을 얹은 로봇(.is-marked)만 띄운다. 면은 지도 유리면, 꼬리는 아래로.
+ */
+.ver-3 .bld-bot-say {
+  position: absolute;
+  left: 0;
+  bottom: 12px;
+  transform: translateX(-50%);
+  display: none;
+  padding: 2px var(--space-8);
+  border-radius: var(--radius-control);
+  background-color: var(--map-glass-bg);
+  -webkit-backdrop-filter: var(--map-glass-blur);
+  backdrop-filter: var(--map-glass-blur);
+  box-shadow: var(--map-glass-edge), var(--map-glass-shadow);
+  border: 0;
+  margin: 0;
+  font-family: var(--font-family-sans);
+  color: var(--text-primary);
+  white-space: nowrap;
+  pointer-events: auto;
+  cursor: pointer;
+}
+.ver-3 .bld-bot-say:hover { background-color: var(--bg-raised); }
+.ver-3 .bld-bot-say:hover::after { border-top-color: var(--bg-raised); }
+.ver-3 .bld-bot-say:focus-visible { outline: var(--border-width-strong) solid var(--border-focus); outline-offset: 2px; }
+.ver-3 .bld-bot-say::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 100%;
+  margin-left: -4px;
+  border: 4px solid transparent;
+  border-top-color: var(--map-glass-bg);
+}
+.ver-3.is-floor-view .bld-bot-say,
+.ver-3.is-mission-scope .bld-bot-say,
+.ver-3 .bld-bot.is-marked .bld-bot-say { display: block; }
+.ver-3 .bld-bot.is-marked { z-index: 2; }
+.ver-3 .bld-bot.is-gone .bld-bot-say { display: none; }
+
+/* ==================================================================
+ * 근거 줄 — "지금 하고 있다" 모션 (10/21 디자이너)
+ *   글   빛이 왼쪽에서 오른쪽으로 훑고 지나간다(shimmer). 바탕은 fg/secondary, 지나가는 빛만 fg/primary.
+ *   아이콘 감지 칩이 하나씩 차례로 살짝 떠올랐다 가라앉는다 — 근거를 하나씩 들여다보는 셈이다.
+ * 한 바퀴 2.4초로 둘이 같은 박자다(위험 표식의 느린 숨과 같은 길이). 흔들림 없이 크기 · 밝기만 바뀐다.
+ * 움직임 줄이기 설정이면 멈춘다 — 글은 fg/primary, 칩은 제자리.
+ * ================================================================== */
+body.ver-3.v2-2.v3 .delta3-clue-txt {
+  background-image: linear-gradient(90deg,
+    var(--text-secondary) 0%, var(--text-secondary) 35%,
+    var(--text-primary) 50%,
+    var(--text-secondary) 65%, var(--text-secondary) 100%);
+  background-size: 250% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: clue-shimmer 2.4s linear infinite;
+}
+@keyframes clue-shimmer {
+  from { background-position: 100% 0; }
+  to { background-position: 0% 0; }
+}
+
+body.ver-3.v2-2.v3 .delta3-clue-ics .i {
+  animation: clue-look 2.4s cubic-bezier(.3, 0, .2, 1) infinite;
+}
+body.ver-3.v2-2.v3 .delta3-clue-ics .i:nth-child(2) { animation-delay: 0.4s; }
+body.ver-3.v2-2.v3 .delta3-clue-ics .i:nth-child(3) { animation-delay: 0.8s; }
+@keyframes clue-look {
+  0%, 40%, 100% { transform: scale(1); background-color: var(--clue-bg); }
+  15% { transform: scale(1.12); background-color: var(--clue-bg-on); z-index: 1; }   /* 칩이 24 로 커져 1.18 은 옆 칩을 덮었다 */
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body.ver-3.v2-2.v3 .delta3-clue-txt { animation: none; background-image: none; color: var(--text-primary); }
+  body.ver-3.v2-2.v3 .delta3-clue-ics .i { animation: none; }
+}
+
+/*
+ * 관제 패널 구분선 — 양끝까지 (10/21 디자이너).
+ * v2.2 는 지도 깎인 모서리 앞에서 "잘린 선"으로 읽혀 12 안쪽에서 시작 · 끝냈다. v3 는 모서리가 둥글어 그 까닭이 없다.
+ * 머리줄(관제) 아래 선 · 최신 알림 / 오늘 확인 완료 사이 선 둘 다.
+ */
+body.ver-3.v2-2 .panel-head::after { left: 0; right: 0; }
+/* 칸 사이 선은 칸 자신의 윗변(1px 자리 그대로)으로 긋는다 — ::before 는 윗변 밖(-1)에 앉아 있어,
+ * 오늘 확인 완료를 접으면(overflow: hidden) 잘려 사라졌다(10/21 디자이너). */
+.ver-3.v2-2 .ah-sec + .ah-sec { border-top-color: var(--border-default); }
+.ver-3.v2-2 .ah-sec + .ah-sec::before { display: none; }
+
+/*
+ * 위험 — 접힌 Delta 뒤 모서리 빛도 붉게 (10/21 디자이너).
+ * 판(260) 왼쪽 위에서 번지는 회색 빛(delta-v3.css gray/600)이 붉은 카드 옆에서 흰 조명처럼 떴다.
+ * 위험이면 같은 자리 · 같은 반지름에 glow-halo(붉은 빛)를 쓴다. 라이트는 한 단 옅게.
+ */
+:root[data-theme][data-delta][data-glow] body.ver-3.v2-2.v3 .delta3.is-critical:not(.is-open) {
+  background-image: radial-gradient(circle 226px at 0 0,
+    color-mix(in srgb, var(--comp-alert-critical-glow-halo) 60%, transparent) 0%,
+    color-mix(in srgb, var(--comp-alert-critical-glow-halo) 22%, transparent) 50%,
+    transparent 100%);
+}
+:root[data-theme="light"][data-delta][data-glow] body.ver-3.v2-2.v3 .delta3.is-critical:not(.is-open) {
+  background-image: radial-gradient(circle 226px at 0 0,
+    color-mix(in srgb, var(--comp-alert-critical-glow-halo) 35%, transparent) 0%,
+    color-mix(in srgb, var(--comp-alert-critical-glow-halo) 12%, transparent) 50%,
+    transparent 100%);
+}
+/* 주의 — 같은 자리에 노란 빛(glow-halo warning). 위험보다 한 단 옅게 둔다 — 강약(10/06 회의 "주의는 덜어내기"). */
+:root[data-theme][data-delta][data-glow] body.ver-3.v2-2.v3 .delta3.is-warning:not(.is-open) {
+  background-image: radial-gradient(circle 226px at 0 0,
+    color-mix(in srgb, var(--comp-alert-warning-glow-halo) 45%, transparent) 0%,
+    color-mix(in srgb, var(--comp-alert-warning-glow-halo) 15%, transparent) 50%,
+    transparent 100%);
+}
+:root[data-theme="light"][data-delta][data-glow] body.ver-3.v2-2.v3 .delta3.is-warning:not(.is-open) {
+  background-image: radial-gradient(circle 226px at 0 0,
+    color-mix(in srgb, var(--comp-alert-warning-glow-halo) 35%, transparent) 0%,
+    color-mix(in srgb, var(--comp-alert-warning-glow-halo) 12%, transparent) 50%,
+    transparent 100%);
+}
+
+/* ==================================================================
+ * Delta 가로형 (10/21 디자이너, Figma DS 1335:21707 Delta-horizon) — body.d3-bar(delta-form.js, ?form=bar)
+ *   Default 1335:21706  526×140 — 머리 줄(위아래 8 · 좌우 12 · 표식 16 + "Delta" 14/20 ExtraBold)이 카드 밖 위에 선다.
+ *                                  카드 bg/glass · radius/container — 요약(위아래 8 · 좌우 12 · Body/2 16/24 두 줄, 넘치면 …)
+ *                                  + 아래 40 줄(근거 아이콘 · 하는 일 글 · 오른쪽 끝 [+] Ghost 24 pill — 누르면 펼친다)
+ *   expand  1335:21705  526×296 — 같은 자리에서 아래로 자란다. 카드에 선(border/divider)이 서고, 요약이 남는 높이를 갖고,
+ *                                  맨 아래 묻기 칸(위 선 · 위아래 8 · 좌우 12). 머리 줄 오른쪽 끝에 닫기.
+ * 위젯형에서 만든 것은 그대로 쓴다 — 근거 아이콘 · 행동 글 · 모션, 보내기(네모 · 쓸 때만), 대화 중 묻기 칸 바닥 고정,
+ * 위험 면(오른쪽 아래 유리 → 위험 빛) · 안쪽 빛. Figma 가로형은 기본 면만 그려져 있다.
+ * 위젯 판 뒤 모서리 빛(회색 · 위험 빨강 · 주의 노랑)은 뺀다 — 머리 줄이 지도 위에 바로 앉아 빛이 글 뒤로 번진다.
+ * ================================================================== */
+:root[data-theme][data-delta][data-glow] body.ver-3.v2-2.v3.d3-bar .delta3 {
+  background: none;
+  box-shadow: none;
+  border-radius: 0;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+:root[data-theme][data-delta][data-glow] body.ver-3.v2-2.v3.d3-bar .delta3:not(.is-open) {
+  left: var(--space-20);
+  top: var(--space-20);
+  width: 526px;
+  height: auto;
+  padding: 0;
+  pointer-events: auto;
+}
+body.ver-3.v2-2.v3.d3-bar .delta3 .delta3-light { display: none; }
+
+/* 머리 줄 — 카드 밖 위 36(8 + 20 + 8). 펼침에서는 닫기 24 가 오른쪽 끝에 서서 위아래 6 · 오른쪽 8. */
+:root[data-theme][data-delta][data-glow] body.ver-3.v2-2.v3.d3-bar .delta3 .delta3-name {
+  position: relative;
+  left: auto;
+  top: auto;
+  order: -1;
+  width: 100%;
+  height: 36px;
+  padding: var(--space-8) var(--space-12);
+  align-items: center;
+}
+:root[data-theme][data-delta][data-glow] body.ver-3.v2-2.v3.d3-bar .delta3.is-open .delta3-name {
+  padding: 6px var(--space-8) 6px var(--space-12);
+}
+
+/* 카드 — bg/glass. 지도 위라 뒤를 흐린다(위젯과 같은 10). */
+:root[data-theme][data-delta][data-glow] body.ver-3.v2-2.v3.d3-bar .delta3 .delta3-card {
+  width: 100%;
+  height: auto;
+  padding: 0;
+  overflow: hidden;
+  border-radius: var(--radius-container);
+  background-color: var(--bg-glass);
+  background-image: none;
+  box-shadow: none;
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+}
+:root[data-theme][data-delta][data-glow] body.ver-3.v2-2.v3.d3-bar .delta3.is-open .delta3-card {
+  flex: 1 1 auto;
+  min-height: 0;
+  border: var(--border-width-thin) solid var(--border-divider);
+}
+body.ver-3.v2-2.v3.d3-bar .delta3.is-dragging .delta3-card { -webkit-backdrop-filter: none; backdrop-filter: none; }
+
+/* 요약 — 두 줄(48). 글은 한 색으로 또렷하게(위젯형의 아래로 옅어지기는 두 줄이라 뺀다). */
+:root[data-theme][data-delta][data-glow] body.ver-3.v2-2.v3.d3-bar .delta3 .delta3-body {
+  order: 1;
+  flex: none;
+  min-height: 0;
+  padding: var(--space-8) var(--space-12);
+}
+:root[data-theme][data-delta][data-glow] body.ver-3.v2-2.v3.d3-bar .delta3 .delta3-body > .ai-line-2 {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  margin: 0;
+  font-size: var(--font-size-16);
+  line-height: var(--font-line-height-24);
+  background-image: none;
+  color: var(--text-primary);
+}
+/* 기본형은 요약 두 줄만 — 조치 버튼 · 묻기 칸은 펼쳐서 본다. */
+body.ver-3.v2-2.v3.d3-bar .delta3:not(.is-open) .delta3-body > .ai-actions,
+body.ver-3.v2-2.v3.d3-bar .delta3:not(.is-open) .delta3-body > .ai-input { display: none; }
+
+/* 아래 40 줄 — 근거 줄 오른쪽 끝에 [+] 자리(8 + 24 + 8)를 비운다. 올려도 단추 줄로 바뀌지 않는다(가로형은 [+] 가 늘 있다). */
+:root[data-theme][data-delta][data-glow] body.ver-3.v2-2.v3.d3-bar .delta3:not(.is-open) .delta3-clue,
+:root[data-theme][data-delta][data-glow] body.ver-3.v2-2.v3.d3-bar .delta3:not(.is-open):is(:hover, :focus-within) .delta3-clue {
+  display: flex;
+  height: 40px;
+  padding: var(--space-8) calc(var(--space-8) * 2 + 24px) var(--space-8) var(--space-8);
+}
+:root[data-theme][data-delta][data-glow] body.ver-3.v2-2.v3.d3-bar .delta3:not(.is-open) .delta3-head,
+:root[data-theme][data-delta][data-glow] body.ver-3.v2-2.v3.d3-bar .delta3:not(.is-open):is(:hover, :focus-within) .delta3-head {
+  position: absolute;
+  right: var(--space-8);
+  bottom: var(--space-8);
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  overflow: visible;
+  opacity: 1;
+  /* 위험 · 주의에서는 근거 줄이 opacity 0.8 로 쌓임 맥락이 생겨 DOM 뒤쪽인 이 칸을 덮었다 — [+] 가 안 눌렸다(10/21 버그). */
+  z-index: 1;
+}
+
+/* [+] — Icon Button · Ghost 24 pill, plus 16 fg/primary. */
+:root[data-theme][data-delta][data-glow] body.ver-3.v2-2.v3.d3-bar .delta3 .delta3-plus {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background-color: transparent;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+:root[data-theme][data-delta][data-glow] body.ver-3.v2-2.v3.d3-bar .delta3 .delta3-plus:hover { background-color: var(--state-hover); }
+body.ver-3.v2-2.v3.d3-bar .delta3 .delta3-plus .i { display: block; width: 16px; height: 16px; background-color: var(--text-primary); }
+body.ver-3.v2-2.v3.d3-bar .delta3 .delta3-plus-label { display: none; }
+
+/* ---------- 펼침 526 × 296 ---------- */
+:root[data-theme][data-delta][data-glow] body.ver-3.v2-2.v3.d3-bar .delta3.is-open {
+  width: var(--d3-w, 526px);
+  height: 296px;
+  min-height: 0;
+  padding: 0;
+}
+:root[data-theme][data-delta][data-glow] body.ver-3.v2-2.v3.d3-bar .delta3.is-open .delta3-body {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  overflow: hidden;
+}
+body.ver-3.v2-2.v3.d3-bar .delta3.is-open .delta3-body::before { display: none; }
+:root[data-theme][data-delta][data-glow] body.ver-3.v2-2.v3.d3-bar .delta3.is-open .delta3-body > .ai-line-2 {
+  display: block;
+  flex: 1 1 auto;
+  min-height: 0;
+  margin: 0;
+  padding: var(--space-8) var(--space-12);
+  overflow-y: auto;
+}
+:root[data-theme][data-delta][data-glow] body.ver-3.v2-2.v3.d3-bar .delta3.is-open .delta3-body > .ai-actions {
+  margin: 0 var(--space-12) var(--space-8);
+}
+/* 묻기 칸 — 카드 맨 아래, 위 선 border/divider. 면은 따로 깔지 않는다(카드 유리 그대로). */
+:root[data-theme][data-delta][data-glow] body.ver-3.v2-2.v3.d3-bar .delta3.is-open .delta3-body .ai-input,
+:root[data-theme][data-delta][data-glow] body.ver-3.v2-2.v3.d3-bar .delta3.is-open .delta3-body .ai-input:focus-within,
+:root[data-theme][data-delta][data-glow] body.ver-3.v2-2.v3.d3-bar .delta3.is-open .delta3-body > .ai-actions[hidden] + .ai-input {
+  flex: none;
+  margin: 0;
+  padding: var(--space-8) var(--space-12);
+  border: 0;
+  border-top: var(--border-width-thin) solid var(--border-divider);
+  border-radius: 0;
+  background-color: transparent;
+}
+
+/* ---------- 위험 — 위젯형 면을 카드에(창 · 판은 비운다) ---------- */
+:root[data-theme][data-delta][data-glow] body.ver-3.v2-2.v3.d3-bar .delta3.is-critical:not(.is-open),
+:root[data-theme][data-delta][data-glow] body.ver-3.v2-2.v3.d3-bar .delta3.is-warning:not(.is-open),
+:root[data-theme][data-delta][data-glow] body.ver-3.v2-2.v3.d3-bar .delta3.is-critical.is-open {
+  background-image: none;
+  box-shadow: none;
+}
+/* 가로로 길어 원을 키운다 — 220 위젯의 270 으로는 526 카드의 왼쪽만 붉다. */
+:root[data-theme][data-delta][data-glow] body.ver-3.v2-2.v3.d3-bar .delta3.is-critical:not(.is-open) .delta3-card {
+  background-image: radial-gradient(circle 560px at 100% 100%,
+    var(--bg-glass),
+    var(--status-critical-bg));
+}
+:root[data-theme][data-delta][data-glow] body.ver-3.v2-2.v3.d3-bar .delta3.is-critical.is-open .delta3-card {
+  background-image: linear-gradient(to top,
+    var(--bg-glass),
+    var(--status-critical-bg));
+}
+:root[data-theme][data-delta][data-glow] body.ver-3.v2-2.v3.d3-bar .delta3.is-critical .delta3-card {
+  box-shadow:
+    inset 0 0 8px -3px var(--comp-alert-critical-glow-core),
+    inset 0 0 20px 0 var(--comp-alert-critical-glow-halo),
+    inset 0 2px 3px -1px var(--effect-glass-edge);
+}
+/* 대화 중 — 요약은 대화 첫 말로 들어가 있어 글 칸을 걷고, 대화 칸이 남는 높이를 갖는다(위젯형과 같다). */
+:root[data-theme][data-delta][data-glow] body.ver-3.v2-2.v3.d3-bar .delta3.is-open.is-chat .delta3-body > .ai-line-2 { display: none; }
+:root[data-theme][data-delta][data-glow] body.ver-3.v2-2.v3.d3-bar .delta3.is-open.is-chat .dc-thread { padding: var(--space-8) var(--space-12); }
+/* 가로형은 [돋보기] 조치 줄을 쓰지 않는다 — 묻기 칸은 펼치면 늘 있고 [+] 가 그 입구다. */
+body.ver-3.v2-2.v3.d3-bar .delta3 .delta3-suggest { display: none; }
+
+/*
+ * Delta 표식 — Prism Orb (10/21 디자이너, 1-B 시안 sian-2 의 오브). 이름 줄 20 칸에 오브 지름 16(ORB_FILL 0.8)으로
+ * 앉아 아이콘 16 자리와 글줄이 그대로 맞는다. 위젯형 · 가로형 · 펼침 모두 같은 크기.
+ */
+body.ver-3 .delta3 .delta3-name .ai-delta-mark { width: 20px; height: 20px; margin: 0 -2px; }
+body.ver-3 .delta3 .delta3-name .ai-delta-mark i { width: 14px; height: 14px; border-width: var(--border-width-thin); }
+
+/*
+ * 알림 목록 왼쪽 줄 = 위험도 아이콘 색 (10/21 클라이언트 의견 — 줄과 아이콘 색이 달라 하나로).
+ * 줄은 comp/alert/*-edge(다크 red · yellow 300, 라이트 500)라 아이콘(status/*-icon — 다크 500, 라이트 주의 yellow 600)보다 옅었다.
+ * 단계 기호는 아이콘이 기준이라 줄이 아이콘을 따른다. 토큰 값은 그대로 두고 v3 에서만 바꿔 쓴다(v2.2 는 멈춤).
+ */
+body.ver-3 .ah-item { border-left-color: var(--status-warning-icon); }
+body.ver-3 .ah-item.is-critical { border-left-color: var(--status-critical-icon); }
+
+/*
+ * Delta 이름 줄 키우기 (10/21 디자이너 — 오브가 잘 보이게). 위젯형 · 가로형 · 펼침 모두.
+ *   오브 칸 28(오브 지름 ≈ 22) · 위아래 -2 로 글줄 24 안에 앉힌다. "Delta" 16/24 ExtraBold.
+ *   머리 줄 높이는 그대로 36 — 위젯 접힘 12 + 20 + 4 → 10 + 24 + 2, 가로형 8 + 20 + 8 → 6 + 24 + 6.
+ *   아래 카드(요약 6 줄 · 근거 줄)는 자리 그대로다.
+ */
+body.ver-3 .delta3 .delta3-name .ai-delta-mark { width: 28px; height: 28px; margin: -2px; }
+body.ver-3 .delta3 .delta3-name .ai-delta-mark i { width: 20px; height: 20px; }
+body.ver-3 .delta3 .delta3-name .delta3-name-in { gap: 6px; }
+body.ver-3.v2-2.v3 .delta3 .delta3-name b {
+  font-size: var(--font-size-16);
+  line-height: var(--font-line-height-24);
+}
+body.ver-3.v2-2.v3 .delta3:not(.is-open) .delta3-name { padding: 10px var(--space-12) 2px; }
+body.ver-3.v2-2.v3 .delta3.is-open .delta3-name { padding: 10px var(--space-8) 2px var(--space-12); }
+:root[data-theme][data-delta][data-glow] body.ver-3.v2-2.v3.d3-bar .delta3 .delta3-name { padding: 6px var(--space-12); }
+:root[data-theme][data-delta][data-glow] body.ver-3.v2-2.v3.d3-bar .delta3.is-open .delta3-name { padding: 6px var(--space-8) 6px var(--space-12); }
+
+/* ==================================================================
+ * 통합 순회 현황 · 로봇 현황 카드 (10/21 디자이너, Figma DS 1260:15802 4차) — building.js fleetCard
+ * 운행 흐름 · 다음 일정 카드는 뺐다 — 로봇 현황이 패널 높이를 다 쓴다.
+ *   카드     bg/cell · 선 border/default 1 · radius 4
+ *   머리     bg/raised · 위아래 4 · 왼쪽 8 · 오른쪽 4 — 이름 14/20 ExtraBold · 미션 꼬리표 bg/panel · r2 · 좌우 4 · 12/18 Medium
+ *   왼쪽     웨이포인트(높이 136) — 줄 칸 28(선 4 · 위 18) + 글(위 14 · 아래 8 · 오른쪽 8)
+ *   오른쪽 133  왼쪽 선 border/divider — 진행률(안쪽 8, 숫자 오른쪽 정렬 + 막대 4 bg/inverse) · 아래 세 줄(줄 사이 border/divider)
+ * ================================================================== */
+.ver-3 .bld-fleet { gap: var(--space-8); }
+.ver-3 .bld-robot.bld-rc {
+  border: var(--border-width-thin) solid var(--border-default);
+  border-radius: var(--radius-4);
+  background-color: var(--bg-cell);
+}
+.ver-3 .bld-robot.bld-rc:hover { background-color: var(--bg-cell); border-color: var(--border-strong); }
+
+/* 머리 */
+.ver-3 .bld-rc-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
+  min-width: 0;
+  padding: var(--space-4) var(--space-4) var(--space-4) var(--space-8);
+  background-color: var(--bg-raised);
+}
+.ver-3 .bld-rc-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: var(--font-size-14);
+  line-height: var(--font-line-height-20);
+  font-weight: 800;
+  letter-spacing: -0.15px;
+  color: var(--text-primary);
+}
+.ver-3 .bld-rc.is-off .bld-rc-name { color: var(--text-tertiary); }
+.ver-3 .bld-rc-mission {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 0 var(--space-4);
+  border-radius: var(--radius-2);
+  background-color: var(--bg-panel);
+  font-size: var(--font-size-12);
+  line-height: var(--font-line-height-18);
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.ver-3 .bld-rc-main { display: flex; align-items: stretch; }
+
+/* 왼쪽 — 지금 · 다음 */
+.ver-3 .bld-rc-steps { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; min-height: 136px; }
+.ver-3 .bld-rc-step { flex: 1 1 0; display: flex; align-items: stretch; min-height: 68px; min-width: 0; }
+.ver-3 .bld-rc-rail { flex: none; width: 28px; display: flex; flex-direction: column; align-items: center; }
+.ver-3 .bld-rc-line { display: block; width: 4px; height: 18px; flex: none; background-color: var(--comp-chart-track); }
+.ver-3 .bld-rc-line.is-tail { height: auto; flex: 1 1 auto; }
+.ver-3 .bld-rc-mark { flex: none; display: grid; place-items: center; width: 16px; height: 16px; }
+.ver-3 .bld-rc-mark .i { transform: rotate(90deg); color: var(--text-tertiary); background-color: currentColor; }
+.ver-3 .bld-rc-step.is-now .bld-rc-mark {
+  width: 12px;
+  height: 12px;
+  border-radius: var(--radius-pill);
+  background-color: var(--bg-inverse);
+}
+.ver-3 .bld-rc-step.is-now .bld-rc-mark .i { width: 12px; height: 12px; color: var(--bg-cell); }
+.ver-3 .bld-rc.is-off .bld-rc-step.is-now .bld-rc-mark { background-color: var(--status-critical-icon); }
+.ver-3 .bld-rc-step-txt {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: 14px var(--space-8) var(--space-8) 0;
+  white-space: nowrap;
+}
+.ver-3 .bld-rc-step-name,
+.ver-3 .bld-rc-step-wp { overflow: hidden; text-overflow: ellipsis; }
+.ver-3 .bld-rc-step-name { font-size: var(--font-size-14); line-height: var(--font-line-height-24); font-weight: 700; color: var(--text-primary); }
+.ver-3 .bld-rc-step-wp { font-size: var(--font-size-12); line-height: var(--font-line-height-18); color: var(--text-tertiary); }
+.ver-3 .bld-rc.is-off .bld-rc-step.is-now .bld-rc-step-name { color: var(--status-critical-text); }
+/* 다음 — 한 단 낮춘다(13/18 Medium fg/tertiary · 번호 Mono 13 fg/disabled). */
+.ver-3 .bld-rc-step:not(.is-now) .bld-rc-step-name { font-size: var(--font-size-13); line-height: var(--font-line-height-18); font-weight: 500; color: var(--text-tertiary); }
+.ver-3 .bld-rc-step:not(.is-now) .bld-rc-step-txt { padding-top: 17px; }
+.ver-3 .bld-rc-step-wp.is-no { font-family: var(--font-family-mono); font-size: var(--font-size-13); color: var(--text-disabled); }
+
+/* 오른쪽 — 진행률 · 상태 */
+.ver-3 .bld-rc-side {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  width: 133px;
+  border-left: var(--border-width-thin) solid var(--border-divider);
+}
+.ver-3 .bld-rc-prog {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-8);
+  border-bottom: var(--border-width-thin) solid var(--border-divider);
+}
+/* 진행률 — Figma Mono/Metric 20/28 을 16/24 로 한 단 낮췄다(숫자가 작업보다 먼저 읽혀서, 10/21). */
+.ver-3 .bld-rc-pct {
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-16);
+  line-height: var(--font-line-height-24);
+  font-weight: 500;
+  text-align: right;
+  color: var(--text-primary);
+}
+.ver-3 .bld-rc:not(.is-run) .bld-rc-pct { color: var(--text-tertiary); }
+.ver-3 .bld-rc-track { display: block; height: 4px; overflow: hidden; border-radius: var(--radius-chart); background-color: var(--comp-chart-track); }
+.ver-3 .bld-rc-track > i { display: block; height: 100%; border-radius: inherit; background-color: var(--bg-inverse); }
+.ver-3 .bld-rc:not(.is-run) .bld-rc-track > i { background-color: var(--text-tertiary); }
+.ver-3 .bld-rc-state {
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
+  padding: var(--space-4) var(--space-8);
+  white-space: nowrap;
+}
+.ver-3 .bld-rc-state + .bld-rc-state { border-top: var(--border-width-thin) solid var(--border-divider); }
+.ver-3 .bld-rc-prog + .bld-rc-state { padding: 0 var(--space-4) 0 var(--space-8); }
+.ver-3 .bld-rc-label {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: var(--font-size-13);
+  line-height: var(--font-line-height-18);
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+/* 상태 — Badge(점 6 + Caption 12/18), 면 없음. 수행중 info · 완료 safe · 대기 fg/tertiary · 끊김 critical. */
+.ver-3 .bld-rc-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-4);
+  font-size: var(--font-size-12);
+  line-height: var(--font-line-height-18);
+  --tone-dot: var(--text-tertiary);
+  --tone-text: var(--text-tertiary);
+  color: var(--tone-text);
+}
+.ver-3 .bld-rc-badge > i { width: 6px; height: 6px; border-radius: var(--radius-pill); background-color: var(--tone-dot); }
+.ver-3 .bld-rc-badge.is-info { --tone-dot: var(--status-info-icon); --tone-text: var(--status-info-text); }
+.ver-3 .bld-rc-badge.is-normal { --tone-dot: var(--status-safe-icon); --tone-text: var(--status-safe-text); }
+.ver-3 .bld-rc-badge.is-critical { --tone-dot: var(--status-critical-icon); --tone-text: var(--status-critical-text); }
+.ver-3 .bld-rc-state .battery { gap: var(--space-8); font-size: var(--font-size-12); line-height: var(--font-line-height-18); }
+
+/*
+ * 로봇 배터리 · 신호 — 정상은 무채색, 임계를 넘을 때만 주의 · 위험 색 (10/21 디자이너, v3 모든 화면).
+ * DS Battery Gauge · Signal Bars 규칙("정상 구간에 Safe 녹색을 쓰지 않는다")대로. 같은 로봇 값이 미션 관제(초록)와
+ * 통합 순회 현황(무채색)에서 달라 보였다 — 하나로 맞춘다. 게이지 · 막대는 fg/primary, 글은 fg/secondary.
+ * 주의 · 위험(.is-warning · .is-critical)은 app-shell.css 그대로. Figma 화면은 아직 정상에도 초록이다.
+ */
+.ver-3 .battery:not(.is-warning):not(.is-critical) { color: var(--text-secondary); }
+.ver-3 .battery:not(.is-warning):not(.is-critical) .battery-fill,
+.ver-3 .battery:not(.is-warning):not(.is-critical) .signal-bars { background-color: transparent; }
+.ver-3 .battery:not(.is-warning):not(.is-critical) .battery-fill { background-color: var(--text-primary); }
+.ver-3 .battery:not(.is-warning):not(.is-critical) .signal-bars { color: var(--text-primary); }
+
+/* 로봇 현황 · 미션 단계 거르기 (10/21 디자이너) — 최신 알림 거르기(.ah-caps)와 같은 단추. 머리 줄 아래 · 목록 위. */
+.ver-3 .bld-st-filter { flex: none; gap: var(--space-4); }   /* 다섯 개가 한 줄에 들도록 사이 4(최신 알림은 셋이라 8) */
+.ver-3 .bld-fleet-empty { margin: 0; padding: var(--space-16) var(--space-8); color: var(--text-tertiary); text-align: center; }
+
+/*
+ * 로봇 카드 강약 (10/21 디자이너 — "뭐부터 읽어야 할지 안 들어온다").
+ * 읽는 차례를 셋으로 나눈다. 밝은 글(fg/primary)은 1단 둘뿐이다.
+ *   1단  이름 · 지금 작업                      fg/primary · Bold
+ *   2단  진행률 숫자 · 상태 값(수행중 등)       fg/secondary — 수는 13 Mono 로 낮추고 막대도 fg/secondary
+ *   3단  웨이포인트 · 다음 · 라벨 · 미션 꼬리표  fg/tertiary 이하
+ * 오른쪽 칸 줄 사이 선(border/divider)은 Figma 대로 둔다 — 한 번 걷었다가 디자이너가 되살렸다(10/21).
+ */
+.ver-3 .bld-rc-mission { background-color: transparent; padding: 0; color: var(--text-tertiary); font-weight: 400; }
+.ver-3 .bld-rc-pct { font-size: var(--font-size-13); line-height: var(--font-line-height-18); color: var(--text-secondary); }
+.ver-3 .bld-rc-track > i { background-color: var(--text-secondary); }
+.ver-3 .bld-rc-prog { justify-content: center; gap: var(--space-4); }
+.ver-3 .bld-rc-label { font-size: var(--font-size-12); font-weight: 400; color: var(--text-tertiary); }
+.ver-3 .bld-rc-badge { padding: 0; }
+.ver-3 .bld-rc-state .battery:not(.is-warning):not(.is-critical) .battery-fill { background-color: var(--text-secondary); }
+.ver-3 .bld-rc-state .battery:not(.is-warning):not(.is-critical) .signal-bars { color: var(--text-secondary); }
+.ver-3 .bld-rc-step:not(.is-now) .bld-rc-step-name { color: var(--text-tertiary); font-weight: 400; }
+/* 상태 세 줄 높이 하나로 — 26(Figma 아래 두 줄). Mission 줄만 배지 여백에 기대 위아래 0 이라, 배지 여백을 걷은 뒤 18 로 줄었다(10/21). */
+.ver-3 .bld-rc-state,
+.ver-3 .bld-rc-prog + .bld-rc-state { height: 26px; padding: 0 var(--space-8); }
+
+/*
+ * 완료 · 대기 카드의 지금 칸 — 톤다운 (10/21 디자이너). 일을 하고 있지 않으니 수행중보다 한 단 물러난다.
+ *   표식  면(bg/inverse 원) 없이 상태 아이콘 16 fg/tertiary — 완료 check-circle · 충전 bolt · 대기 clock · 복귀 중 way
+ *   글    14/24 Bold fg/primary → 14/24 Medium fg/secondary. 아래 줄은 흐린 선 그대로(그라데이션 없음).
+ */
+.ver-3 .bld-rc-step.is-now.is-rest .bld-rc-mark { width: 16px; height: 16px; border-radius: 0; background-color: transparent; }
+.ver-3 .bld-rc-step.is-now.is-rest .bld-rc-mark .i { width: 16px; height: 16px; transform: none; color: var(--text-tertiary); }
+.ver-3 .bld-rc-step.is-now.is-rest .bld-rc-step-txt { padding-top: 16px; }
+.ver-3 .bld-rc-step.is-now.is-rest .bld-rc-step-name { font-weight: 500; color: var(--text-secondary); }
+.ver-3 .bld-rc.is-done .bld-rc-name,
+.ver-3 .bld-rc.is-idle .bld-rc-name { color: var(--text-secondary); }
+.ver-3 .bld-rc:not(.is-run) .bld-rc-pct { color: var(--text-tertiary); }
+.ver-3 .bld-rc:not(.is-run) .bld-rc-track > i { background-color: var(--text-tertiary); }
+
+/*
+ * 통합 순회 현황 · 층 정보는 한 곳에 (10/21 디자이너).
+ *   층 정보   지도 옆 층 이름표(.bld-ftag) — 층 이름 · 로봇 수 · 알림 건수. 눌러도 그 층이 펼쳐진다.
+ *   이동      오른쪽 층 단추(전체 · B3 · B4, 단계 점) — 미션 관제 층 단추와 같은 꼴
+ *   왼쪽 아래 요약(.bld-sum)  전체 보기에서는 뺀다 — 로봇 수는 로봇 현황 머리, 층별 알림은 이름표와 겹쳤다.
+ *            층을 펼쳤을 때(그 층을 지나는 미션 목록) · 미션 범위일 때만 선다.
+ */
+body.ver-3:not(.is-floor-view):not(.is-mission-scope) .bld-sum { display: none; }
+/* 층을 펼친 뒤에는 "층을 누르면 펼쳐 보여요" 가 맞지 않아 걷는다 — 왼쪽 아래 미션 목록이 다음 행동을 말한다. */
+body.ver-3.is-floor-view .bld-hint { display: none; }
+
+/*
+ * 통합 순회 현황 최신 알림 — 위험도 아이콘에서 미션 · 장소로 이어지는 가지 선 (10/21 디자이너).
+ * 무슨 일(알림명) 아래로 어느 미션 · 어디서가 딸려 있음을 선으로 보인다. 둘째 · 셋째 줄은 알림명 글자 자리(20)로 들인다.
+ *   세로 선  아이콘 아래 끝(줄 위 9)에서 시작 — 미션 줄은 다음 줄까지 내려가고, 장소 줄에서 멈춘다(└)
+ *   꺾임     각 줄 가운데에서 오른쪽으로 7
+ * 선은 border/default 1 — 글보다 한참 옅게. 줄 사이는 8(.ah-item gap).
+ */
+body.ver-3.is-building .ah-item .ah-scope,
+body.ver-3.is-building .ah-item .ah-where { position: relative; padding-left: 20px; }
+body.ver-3.is-building .ah-item .ah-scope::before,
+body.ver-3.is-building .ah-item .ah-where::before,
+body.ver-3.is-building .ah-item .ah-scope::after,
+body.ver-3.is-building .ah-item .ah-where::after {
+  content: "";
+  position: absolute;
+  left: 7px;
+  background-color: var(--border-default);
+  pointer-events: none;
+}
+body.ver-3.is-building .ah-item .ah-scope::before { top: -9px; bottom: -8px; width: 1px; }
+body.ver-3.is-building .ah-item .ah-where::before { top: -8px; height: calc(8px + 50%); width: 1px; }
+body.ver-3.is-building .ah-item .ah-scope::after,
+body.ver-3.is-building .ah-item .ah-where::after { top: 50%; width: 7px; height: 1px; }
+
+/*
+ * 시안 — 한 칸짜리 로봇 카드 (10/21 디자이너, Robot 01 만 · building.js fleetCardSlim). 라벨 · 칸 선 없이 여백으로 가른다.
+ *   카드   bg/cell · 선 border/default · radius 4 · 안쪽 12
+ *   머리   이름 14/20 ExtraBold · 미션 Caption fg/tertiary · 배터리 · 신호(무채색, 임계만 색)
+ *   지금   14/20 Bold fg/primary · 웨이포인트 Caption fg/tertiary — 머리와 사이 12
+ *   진행   막대 4(fg/secondary) + 수 Caption fg/secondary — 사이 10
+ *   다음   Caption fg/tertiary — 사이 6
+ */
+.ver-3 .bld-robot.bld-rc2 {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-12);
+  padding: var(--space-12);
+  border: var(--border-width-thin) solid var(--border-default);
+  border-radius: var(--radius-4);
+  background-color: var(--bg-cell);
+}
+.ver-3 .bld-robot.bld-rc2:hover { background-color: var(--bg-cell); border-color: var(--border-strong); }
+.ver-3 .bld-rc2-head { display: flex; align-items: center; gap: var(--space-8); min-width: 0; }
+.ver-3 .bld-rc2-name { flex: none; font-size: var(--font-size-14); line-height: var(--font-line-height-20); font-weight: 800; color: var(--text-primary); }
+.ver-3 .bld-rc2-mission { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-tertiary); }
+/* 상태 세 칸 — 높이 28 · 선 border/divider · radius 4, 칸은 폭을 셋으로 나누고 사이를 선으로 가른다. 라벨 없이 값만(미션 관제와 같은 부품). */
+.ver-3 .bld-rc2-vitals {
+  display: flex;
+  height: 28px;
+  margin-top: calc(var(--space-4) * -1);
+  border: var(--border-width-thin) solid var(--border-divider);
+  border-radius: var(--radius-4);
+}
+.ver-3 .bld-rc2-vitals .bld-rc2-cell {
+  flex: 1 1 0;
+  min-width: 0;
+  justify-content: center;
+  gap: var(--space-8);
+  padding: 0 var(--space-4);
+  font-size: var(--font-size-12);
+  line-height: var(--font-line-height-18);
+  white-space: nowrap;
+}
+.ver-3 .bld-rc2-vitals .bld-rc2-cell + .bld-rc2-cell { border-left: var(--border-width-thin) solid var(--border-divider); }
+.ver-3 .bld-rc2-vitals .bld-rc-badge { padding: 0 var(--space-4); gap: var(--space-4); }
+.ver-3 .bld-rc2-vitals .battery:not(.is-warning):not(.is-critical) .battery-fill { background-color: var(--text-secondary); }
+.ver-3 .bld-rc2-vitals .battery:not(.is-warning):not(.is-critical) .signal-bars { color: var(--text-secondary); }
+.ver-3 .bld-rc2-body { position: relative; display: flex; flex-direction: column; gap: var(--space-12); min-width: 0; }
+/* 지금 → 다음 세로 선 — 두 기호 가운데를 잇는다(지금 가운데 10 · 다음 가운데 9). 선 2, 지금 쪽이 진하다. */
+.ver-3 .bld-rc2-body.has-next::before {
+  content: "";
+  position: absolute;
+  left: 7px;
+  top: 10px;
+  bottom: 9px;
+  width: 2px;
+  border-radius: var(--radius-pill);
+  background-image: linear-gradient(to bottom, var(--text-secondary), var(--comp-chart-track));
+}
+.ver-3 .bld-rc2-step { position: relative; display: flex; align-items: flex-start; gap: var(--space-8); min-width: 0; }
+.ver-3 .bld-rc2-mark { position: relative; flex: none; display: grid; place-items: center; width: 16px; height: 20px; }
+.ver-3 .bld-rc2-step.is-next .bld-rc2-mark { height: 18px; }
+/* 기호 밑에 카드 면 원(16)을 깔아 선을 가린다. 기호는 둘 다 target 16 — 지금 fg/primary · 다음 fg/tertiary(10/21 디자이너). */
+.ver-3 .bld-rc2-mark::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  border-radius: var(--radius-pill);
+  transform: translate(-50%, -50%);
+}
+.ver-3 .bld-rc2-mark::before { width: 16px; height: 16px; background-color: var(--bg-cell); }
+.ver-3 .bld-rc2-mark .i { position: relative; background-color: currentColor; }
+.ver-3 .bld-rc2-step.is-now .bld-rc2-mark .i { color: var(--text-primary); }
+.ver-3 .bld-rc2-step.is-next .bld-rc2-mark .i { color: var(--text-tertiary); }
+/* 진행 막대 — 미션 관제 .progress-track 그대로, 바탕만 카드 면 위에서 보이게 chart/track. */
+.ver-3 .bld-rc2-prog .progress-track { flex: 1 1 auto; background-color: var(--comp-chart-track); }
+.ver-3 .bld-rc2-prog .progress-knob .i { background-color: currentColor; }
+.ver-3 .bld-rc2-txt { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; }
+.ver-3 .bld-rc2-now { font-size: var(--font-size-14); line-height: var(--font-line-height-20); font-weight: 700; color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ver-3 .bld-rc2-wp { margin-top: 2px; color: var(--text-tertiary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ver-3 .bld-rc2-next { display: block; color: var(--text-tertiary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ver-3 .bld-rc2-prog { display: flex; align-items: center; gap: var(--space-8); color: var(--text-secondary); }
+
+/* 한 칸짜리 카드 — 수행중이 아닌 로봇(10/21 디자이너). 지금 칸만 남고 한 단 물러난다. 끊김은 위험 색. 완료 진행 막대도 옅게. */
+.ver-3 .bld-rc2-step.is-rest .bld-rc2-mark .i { color: var(--text-tertiary); }
+.ver-3 .bld-rc2-step.is-rest .bld-rc2-now { font-weight: 500; color: var(--text-secondary); }
+.ver-3 .bld-rc2-step.is-off .bld-rc2-mark .i { color: var(--status-critical-icon); }
+.ver-3 .bld-rc2-step.is-off .bld-rc2-now { color: var(--status-critical-text); }
+.ver-3 .bld-rc2:not(.is-run) .bld-rc2-name { color: var(--text-secondary); }
+.ver-3 .bld-rc2.is-off .bld-rc2-name { color: var(--text-tertiary); }
+.ver-3 .bld-rc2:not(.is-run) .bld-rc2-prog { color: var(--text-tertiary); }
+.ver-3 .bld-rc2:not(.is-run) .progress-fill { background-color: var(--text-tertiary); }
+.ver-3 .bld-rc2:not(.is-run) .progress-knob { display: none; }
+/*
+ * 상태 세 칸과 본문(지금 · 다음) 사이 구분선 — 카드 양끝까지 (10/21 디자이너). 머리(누구 · 상태)와 하는 일을 가른다.
+ * 본문을 카드 안쪽 여백(12)만큼 밖으로 내보내고 위 선을 긋는다. 지금 → 다음 세로 선은 그만큼 옮긴다.
+ */
+.ver-3 .bld-rc2-body {
+  margin: 0 calc(var(--space-12) * -1);
+  padding: var(--space-12) var(--space-12) 0;
+  border-top: var(--border-width-thin) solid var(--border-divider);
+}
+.ver-3 .bld-rc2-body.has-next::before { left: calc(var(--space-12) + 7px); top: calc(var(--space-12) + 10px); }
+/*
+ * 로봇 카드 hover — 테두리를 한 단 밝게 · 두께 2 (10/22 디자이너, 더 포커스되어 보이게).
+ * 두께는 border 1 + 안쪽 그림자 1 로 낸다 — border 를 2 로 바꾸면 카드가 1 씩 밀려 목록이 흔들린다.
+ * 색은 무채색(fg/secondary) — 파랑은 상태 · 주요 행동 몫이라 hover 에 쓰지 않는다. 키보드 초점은 기존 focus 테 그대로.
+ */
+.ver-3 .bld-robot.bld-rc2:hover {
+  border-color: var(--text-secondary);
+  box-shadow: inset 0 0 0 1px var(--text-secondary);
+}
+
+/*
+ * Delta 위젯형 · 작은 창 요약 — 넘치면 스크롤 (10/23 디자이너, 레퍼런스 subtle text scale effect).
+ * 6 줄에서 자르던(…) 것을 칸 안 스크롤로 바꾼다. 스크롤 막대는 숨긴다(작은 카드라 막대가 글보다 시끄럽다).
+ * 아래 끝은 가림 그라데이션(20)으로 "더 있다"를 알리고, 위로 빠지는 줄은 v3-panel.js 가 줄이고(0.86) 흐린다.
+ * 글은 한 색(fg/primary) — 예전 "절반부터 옅어지기"는 스크롤하면 자리가 안 맞아 뺐다.
+ */
+body.ver-3.v2-2.v3:not(.d3-bar) .delta3:not(.is-open) .delta3-body {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+  padding-bottom: var(--space-8);
+  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 20px), transparent);
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 20px), transparent);
+}
+body.ver-3.v2-2.v3:not(.d3-bar) .delta3:not(.is-open) .delta3-body::-webkit-scrollbar { display: none; }
+body.ver-3.v2-2.v3:not(.d3-bar) .delta3:not(.is-open) .delta3-body > .ai-line-2 {
+  display: block;
+  -webkit-line-clamp: unset;
+  overflow: visible;
+  background-image: none;
+  color: var(--text-primary);
+}
+.ver-3 .delta3 .ai-line-2 .d3-w { display: inline-block; transform-origin: 50% 100%; }
+@media (prefers-reduced-motion: reduce) {
+  .ver-3 .delta3 .ai-line-2 .d3-w { transform: none !important; }
+}
+/* 내려 읽는 동안(.is-scrolled)은 위 끝 16 도 흐려, 빠져나가는 줄이 칼로 자른 듯 끊기지 않는다. 쉬는 자리의 첫 줄은 또렷하다. */
+body.ver-3.v2-2.v3:not(.d3-bar) .delta3:not(.is-open) .delta3-body.is-scrolled {
+  -webkit-mask-image: linear-gradient(to bottom, transparent, #000 16px, #000 calc(100% - 20px), transparent);
+  mask-image: linear-gradient(to bottom, transparent, #000 16px, #000 calc(100% - 20px), transparent);
+}

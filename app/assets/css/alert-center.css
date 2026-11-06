@@ -1,0 +1,1350 @@
+/* ============================================================
+ * 알림 센터 (SD-08) — Figma 1177:15915 "SD-08 알림 센터 · B안 · 미확인 선택 상세"
+ *
+ * v2.2 통합 관제 메인의 [전체보기] 가 여는 화면이다. 듀얼 모니터면 다른 모니터에 뜬다.
+ * 셸(Status Bar · GNB Rail)과 Badge · Button · Field · Check 는 app-shell.css 를 그대로 쓴다.
+ * 여기에는 이 화면에만 있는 짜임만 둔다. 값은 모두 Semantic 토큰이다.
+ *
+ * ---- Figma 에서 고친 것 (위계) -------------------------------
+ * 1. 면 단계가 뒤집혀 있었다. 목록 바닥이 bg/map-chip(지도 전용 토큰)이고 열 머리가
+ *    gray/700(= border/divider, 테두리 토큰)이었다. 면에 테두리 토큰을 쓰면 이름이 거짓말을 한다.
+ *    -> 목록 bg/inset < 열 머리 bg/frame < 고른 줄 bg/raised 로 다시 세웠다.
+ * 2. 고른 줄이 bg/selected(gray/600) 였다. 어두운 화면에서 가장 밝은 면이라
+ *    위험 줄(status/critical/bg)보다 세게 튀었다 — 관제 화면에서 "고름"이 "위험"을 이긴다.
+ *    -> 한 단 낮춰 bg/raised 로 내렸다. 단계는 왼쪽 띠가 그대로 지킨다.
+ * 3. 보드 바깥 테두리가 border/default 인데 안쪽 칸 나누는 선이 border/strong 이었다.
+ *    안이 밖보다 셌다. -> 둘 다 border/default, 줄 사이만 border/divider.
+ * 4. 꺼진 탭("조치 완료")이 gray/600 = text/disabled 였다. 누를 수 있는 탭을 비활성 색으로
+ *    칠한 것이다. -> text/secondary, 손이 닿으면 text/primary.
+ * 5. 켜진 탭 밑줄이 blue/700(= border/focus) 이었다. 다크에서 gray/750 위에 blue/700 은
+ *    거의 붙어 보인다. -> border/brand(blue/500).
+ * 6. 제목 옆 "미확인 11건" 배지 면이 gray/750 — Body 면과 같은 색이라 알약이 사라졌다.
+ *    -> bg/inset.
+ * 7. 감지 칩이 bg/panel(gray/800) 이라 DELTA 카드와 같은 단계였다. 칩이 카드처럼 보인다.
+ *    -> bg/inset.
+ * 8. [조치 완료](주 동작)가 32 인데 [보고서 내보내기](보조)가 36 이었다. 주 동작이 더 작았다.
+ *    -> 둘 다 36(size/control/md).
+ * 9. "임시저장된 상태" 가 Ghost 버튼이었다(레이어 이름은 "초기화"). 누를 수 없는 상태 문구를
+ *    주 동작 옆에 버튼으로 세우면 버튼 위계가 무너진다. -> 점 + 글자 상태 표시로 바꿨다.
+ * 10. DELTA 가 추천한 조치 캡슐이 나머지와 똑같고 6px 점만 달랐다 — 추천이 보이지 않았다.
+ *     -> 추천 캡슐은 border/brand + fg/link.
+ * 11. 등급 필터 세 개(전체 · 위험 · 주의)가 모두 체크돼 있었다. 전체는 나머지의 부모라
+ *     동시에 켜질 수 없다. -> 전체만 켠 상태로 시작한다.
+ * 12. 오탐 가능성 막대에 채움이 없었다(12% 인데 빈 막대). -> 12% 를 실제로 채운다.
+ * 13. 빈 Action Slot(64x28)이 줄마다 있고 열 머리에도 빈 칸이 있었다.
+ *     v2.2 는 알림마다 [안전진단](예전 [보고서])이 있다 — 그 자리로 채웠다.
+ *
+ * ---- 조치 완료 탭 (Figma 1202:16151) -------------------------
+ * 그 프레임은 조치 완료 탭만이 아니라 화면 껍데기까지 손본 판이었다 —
+ * Body 를 gray/800 에 padding 24 로, 보드를 카드 두 장(gap 16)으로 갈라 놨다.
+ * 껍데기는 따르지 않았다. 두 탭은 같은 화면이라 탭을 오갈 때 보드가 바뀌면 안 되고,
+ * 뼈대는 미확인 탭 판(위 1~13)이 기준이다. 1202 에서는 "내용"만 가져왔다 —
+ * 줄 모양(조치 시각 · 조치 내용 · 원 등급 · 담당), 날짜 묶음, 조치 기록 상세,
+ * DELTA 인수인계 요약, 그리고 등급별 건수 분할이다.
+ * ============================================================ */
+
+/* ---------- 브라우저 기본 여백 ---------- */
+/*
+ * 화면 쪽 <style> 의 리셋이 h1~h3 · p 만 덮는다. 이 화면은 <figure> 와 <dl> · <dd> 도 쓰는데
+ * 그쪽 UA 기본값이 살아 있어 스냅숏이 왼쪽에서 40 들어가고(figure margin: 1em 40px)
+ * 메타 칸이 그만큼 더 밀렸다(dl margin: 1em 0, dd margin-inline-start: 40px).
+ * 낱개 클래스마다 margin:0 을 다는 대신 이 화면 안에서 한 번에 지운다 —
+ * 나중에 <dl> 이나 <figure> 를 더 써도 같은 일이 되풀이되지 않는다.
+ */
+.ac-body figure,
+.ac-body dl,
+.ac-body dd { margin: 0; }
+
+/* ---------- Body — GNB 오른쪽 전체 면 ---------- */
+/*
+ * Figma: padding 20, gap 12, bg/frame, 위 두 모서리만 radius/container.
+ * 화면 바닥에 닿는 변이라 아래는 깎지 않는다(.content-surface 와 같은 규칙).
+ */
+.ac-body {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-12);
+  padding: var(--space-20);
+  border-radius: var(--radius-container) var(--radius-container) 0 0;
+  background-color: var(--bg-frame);
+  overflow: hidden;
+}
+
+/* ---------- Breadcrumb ---------- */
+/* Figma 68:439. 조상은 Body/4 text/secondary, 지금 자리는 Label/2 text/primary. */
+.ac-crumb {
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
+}
+
+.ac-crumb a {
+  color: var(--text-secondary);
+  text-decoration: none;
+}
+
+.ac-crumb a:hover { color: var(--text-primary); }
+.ac-crumb .i { color: var(--text-secondary); }
+.ac-crumb [aria-current="page"] { color: var(--text-primary); }
+
+/* ---------- 제목 줄 ---------- */
+.ac-title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-16);
+}
+
+.ac-title-left {
+  display: flex;
+  align-items: center;
+  gap: var(--space-12);
+}
+
+.ac-title-row h1 { margin: 0; }
+
+/* Figma Controls — gap 16. */
+.ac-title-controls {
+  display: flex;
+  align-items: center;
+  gap: var(--space-16);
+}
+
+/*
+ * Figma Badge Dot=true — padding 4/12/4/8, gap 4, radius/pill.
+ * 면은 bg/inset 으로 올렸다(Figma 는 gray/750 이라 Body 면과 같았다).
+ */
+.ac-count-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-4) var(--space-12) var(--space-4) var(--space-8);
+  border-radius: var(--radius-pill);
+  background-color: var(--bg-inset);
+  color: var(--status-info-text);
+}
+
+.ac-count-badge .badge-dot { background-color: var(--status-info-icon); }
+
+/* ---------- Filter Bar ---------- */
+.ac-filter {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: var(--space-12);
+}
+
+.ac-filter-label {
+  flex: none;
+  color: var(--text-tertiary);
+}
+
+.ac-filter .field-select { flex: none; }
+.ac-filter .ac-f-mission { width: 260px; }
+.ac-filter .ac-f-period { width: 160px; }
+.ac-filter .ac-f-sort { width: 150px; }
+
+/* Figma Filter Divider — 1x24, border/default. */
+.ac-filter-divider {
+  flex: none;
+  width: var(--border-width-thin);
+  height: 24px;
+  background-color: var(--border-default);
+}
+
+.ac-filter-spacer { flex: 1 1 auto; }
+
+/*
+ * 등급 필터 — Figma 51:46(Check 한 줄). .check-list 안이 아니라 낱개로 서므로
+ * 아래 구분선 없이 Box 만 가져다 쓴다(.check-box).
+ */
+.ac-check {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-8);
+  padding: var(--space-8);
+  border: 0;
+  border-radius: var(--radius-control);
+  background: none;
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: var(--font-size-14);
+  line-height: var(--font-line-height-22);
+  cursor: pointer;
+}
+
+.ac-check:hover { background-color: var(--state-hover); }
+
+/* .check-box 의 On 은 app-shell.css 에서 .check-row[aria-checked] 에 걸려 있다 —
+   여기서는 줄이 .ac-check 라 같은 모습을 다시 건다. */
+.ac-check[aria-checked="true"] .check-box {
+  border-color: var(--color-blue-700);
+  background-color: var(--color-blue-700);
+  color: var(--color-gray-0);
+}
+
+.ac-check:focus-visible {
+  outline: var(--border-width-strong) solid var(--border-focus);
+  outline-offset: 1px;
+}
+
+/* ---------- Board — 두 칸(미확인 목록 / 선택 상세) ---------- */
+/*
+ * Figma 는 바깥 테두리 border/default, 안쪽 칸 나누는 선 border/strong 이었다.
+ * 안이 밖보다 세서 보드가 두 쪽으로 갈라져 보였다 — 둘을 같은 단계로 맞췄다.
+ */
+/*
+ * Board — 한 상자다. 안쪽을 1px 로 두 칸(목록 / 상세)으로 가른다.
+ *
+ * 1202 판 프레임은 이것을 카드 두 장(gap 16, 각자 테두리)으로 갈라 놨지만 따르지 않았다 —
+ * 조치 완료 탭은 "내용"만 가져오고 뼈대는 미확인 탭과 같아야 한다. 탭을 오갈 때마다
+ * 보드 껍데기가 바뀌면 같은 화면으로 읽히지 않는다.
+ */
+.ac-board {
+  /*
+   * 두 카드의 머리 높이를 한 값으로 묶는다. 안 묶으면 왼쪽은 탭 높이,
+   * 오른쪽은 이전·다음 버튼 높이로 따로 자라서 어긋난다.
+   * 안쪽 요소는 패딩이 아니라 가운데 정렬로 자리를 잡는다 — 그래야 탭 글자(20)와
+   * 버튼(28)처럼 높이가 다른 것이 같은 띠 안에 함께 선다.
+   */
+  --ac-head-h: 48px;
+
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  align-items: stretch;
+  border: var(--border-width-thin) solid var(--border-default);
+  border-radius: var(--radius-container);
+  overflow: hidden;
+}
+
+/*
+ * 바깥 테두리와 안쪽 칸 나누는 선을 같은 단계로 둔다 — Figma 는 안쪽이 border/strong 이라
+ * 밖보다 세서 보드가 두 쪽으로 갈라져 보였다.
+ */
+.ac-open {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  border-right: var(--border-width-thin) solid var(--border-default);
+}
+
+/* ---------- 미확인 / 조치 완료 탭 ---------- */
+.ac-panel-head {
+  flex: none;
+  display: flex;
+  align-items: stretch;
+  gap: var(--space-8);
+  height: var(--ac-head-h);
+  padding-right: var(--space-12);
+  border-bottom: var(--border-width-thin) solid var(--border-divider);
+}
+
+/* 탭은 머리 높이를 꽉 채운다 — 밑줄이 머리 아래 선에 붙어야 하기 때문이다. */
+.ac-tabs {
+  display: flex;
+  align-items: stretch;
+}
+
+/*
+ * Figma: padding 12/16, gap 10, 켜진 탭만 아래 3px 선.
+ * 밑줄은 border/brand 다 — Figma 의 blue/700 은 다크에서 면과 거의 붙는다.
+ */
+.ac-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 var(--space-16);
+  border: 0;
+  border-bottom: 3px solid transparent;
+  background: none;
+  color: var(--text-secondary);
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.ac-tab:hover { color: var(--text-primary); }
+
+.ac-tab:focus-visible {
+  outline: var(--border-width-strong) solid var(--border-focus);
+  outline-offset: -2px;
+}
+
+.ac-tab .ac-tab-count { color: inherit; }
+
+.ac-tab[aria-selected="true"] {
+  border-bottom-color: var(--border-brand);
+  color: var(--text-primary);
+}
+
+.ac-tab[aria-selected="true"] .ac-tab-count { color: var(--text-tertiary); }
+
+.ac-head-spacer { flex: 1 1 auto; }
+
+.ac-head-badges {
+  display: flex;
+  align-items: center;
+  gap: var(--space-12);
+}
+
+/* Figma Badge(면 없음) — padding 4, gap 4. */
+.ac-head-badges .badge { padding: var(--space-4); }
+
+/* .badge-warning 은 app-shell.css 의 배지 묶음으로 옮겼다 — 미션 설정도 같은 배지를 쓴다. */
+
+/* ---------- 목록 ---------- */
+/*
+ * 면 단계 — 줄이 깔리는 바닥은 bg/inset(가장 어둡다), 열 머리는 bg/frame 으로
+ * 한 단 올라가고, 고른 줄은 bg/raised 로 한 단 더 올라간다.
+ * Figma 는 바닥에 bg/map-chip(지도 칩 전용), 머리에 gray/700(테두리 토큰)을 썼다.
+ */
+.ac-list-wrap {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--bg-inset);
+}
+
+.ac-col-head {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: var(--space-12);
+  padding: 6px var(--space-12) 6px 19px;
+  background-color: var(--bg-frame);
+  border-bottom: var(--border-width-thin) solid var(--border-divider);
+  color: var(--text-secondary);
+}
+
+.ac-list {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+/* 조건에 맞는 알림이 없을 때 · 고른 알림이 없을 때. */
+.ac-empty {
+  display: block;
+  padding: var(--space-20);
+  color: var(--text-tertiary);
+}
+
+.ac-memo-empty { color: var(--text-tertiary); }
+
+/* 화면에는 안 보이고 보조기기만 읽는 글자(단계 이름 — 줄에서는 아이콘뿐이다). */
+.ac-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/*
+ * Typography/Mono/Data/2 · Mono/Label — app-shell.css 에는 모노 공용 클래스가 없고
+ * 쓰는 자리마다 직접 적는 짜임이다. 그 관례를 따라 이 화면 안에만 둔다.
+ */
+.ac-mono {
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-13);
+  line-height: var(--font-line-height-18);
+  font-weight: var(--font-weight-regular);
+  font-variant-numeric: tabular-nums;
+}
+
+.ac-mono-label {
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-12);
+  line-height: var(--font-line-height-18);
+  font-weight: var(--font-weight-medium);
+  letter-spacing: 0.09em;
+}
+
+/* 열 폭 — 열 머리와 줄이 같은 값을 쓴다. */
+.ac-c-sev   { flex: none; width: var(--size-icon-16); }
+.ac-c-time  { flex: none; width: 100px; }
+.ac-c-title { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ac-c-place { flex: none; width: 224px; display: flex; align-items: center; gap: 6px; }
+.ac-c-mission { flex: none; width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ac-c-act   { flex: none; width: 64px; height: 28px; display: flex; justify-content: flex-end; align-items: center; }
+
+/*
+ * Alert Row / Compact — Figma 1177:16749. 높이 40, padding 0/12/0/19, gap 12.
+ * 왼쪽 19 는 3px 띠(0~3) + 16 여백이다.
+ */
+.ac-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--space-12);
+  height: 40px;
+  padding: 0 var(--space-12) 0 19px;
+  border-bottom: var(--border-width-thin) solid var(--border-divider);
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.ac-row:last-child { border-bottom: 0; }
+
+.ac-row:focus-visible {
+  outline: var(--border-width-strong) solid var(--border-focus);
+  outline-offset: -2px;
+}
+
+/* Severity Stripe — 왼쪽 3px. 단계는 줄을 골라도 이 띠가 계속 지킨다. */
+.ac-stripe {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 3px;
+  height: 100%;
+}
+
+.ac-row .ac-c-time { color: var(--text-secondary); }
+.ac-row .ac-c-mission { color: var(--text-tertiary); }
+.ac-row .ac-wp { color: var(--text-primary); }
+.ac-row .ac-place { color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/*
+ * 단계 — 위험만 면을 깐다(status/critical/bg). 주의는 띠와 아이콘만이다.
+ * Figma 가 정한 방향이고, 면을 두 단계에 다 깔면 목록이 온통 색이 된다.
+ */
+.ac-row[data-sev="critical"] { background-color: var(--status-critical-bg); }
+.ac-row[data-sev="critical"] .ac-stripe { background-color: var(--status-critical-icon); }
+.ac-row[data-sev="critical"] .ac-c-sev { color: var(--status-critical-icon); }
+.ac-row[data-sev="warning"] .ac-stripe { background-color: var(--status-warning-icon); }
+.ac-row[data-sev="warning"] .ac-c-sev { color: var(--status-warning-icon); }
+
+.ac-row:hover { background-color: var(--state-hover); }
+
+/* 고른 줄 — bg/raised. Figma 의 bg/selected(gray/600)보다 한 단 낮다(위 주석 2번). */
+.ac-row[aria-selected="true"],
+.ac-row[aria-selected="true"]:hover { background-color: var(--bg-raised); }
+
+/* 줄의 [안전진단](10/19 · 예전 [보고서]) — 고르거나 손이 닿을 때만 나온다. 40 높이 줄에 늘 떠 있으면 목록이 시끄럽다. */
+.ac-row .ac-c-act .btn { visibility: hidden; }
+.ac-row:hover .ac-c-act .btn,
+.ac-row:focus-within .ac-c-act .btn,
+.ac-row[aria-selected="true"] .ac-c-act .btn { visibility: visible; }
+/* 보조 행동이라 무채색 — 메인 v2.2 목록의 [안전진단] 과 같다(색 위계: 파랑은 상태 또는 지금 할 단 하나). */
+.ac-row .ac-c-act .btn { color: var(--text-secondary); }
+.ac-row .ac-c-act .btn:hover,
+.ac-row .ac-c-act .btn:focus-visible { color: var(--text-primary); }
+
+/* ==========================================================
+ * 조치 완료 탭 — Figma 1202:16151 "SD-08 알림 센터 · B안 · 조치 완료 기록 상세"
+ *
+ * 미확인 탭과 줄 모양이 다르다. 미확인은 "무엇이 났나"(단계 · 발생 · 위치)를 보여 주고,
+ * 조치 완료는 "무엇을 했나"(조치 시각 · 조치 내용 · 원 등급 · 담당)를 보여 준다.
+ * 날짜가 바뀌는 자리에 날짜 머리가 들어간다.
+ * ========================================================== */
+
+/* ── 오늘 조치 요약 만들기 · DELTA 인수인계 요약 ───────────── */
+/*
+ * 버튼은 Button Secondary · Size=xSmall 을 그대로 쓴다(.btn.btn-secondary.is-xs).
+ * Figma 는 파란 면(status/info/bg + border/brand)이었는데 바꿨다 —
+ *   · status/info/bg 는 상태 면 토큰이지 버튼 토큰이 아니다. 버튼 사다리는
+ *     inverse(흰 면) > accent(blue/700) > secondary > ghost 이고 파랗게 꽉 찬 칸은 없다.
+ *   · 그 자리는 탭 · 건수 · 단계 배지가 있는 머리 띠다. 거기서 가장 센 것은 단계(위험 · 주의)여야
+ *     하는데, 파란 면 버튼이 빨간 배지를 눌렀다. 요약 만들기는 거들어 주는 일이지 다급한 일이 아니다.
+ *   · 같은 성격의 이웃인 [보고서 내보내기] 도 secondary 다. 둘 다 "문서를 만들어 내는" 일이다.
+ * DELTA 와의 연결은 면이 아니라 마크가 맡는다 — 카드에서 쓴 방법과 같다.
+ */
+/*
+ * 머리 띠는 align-items: stretch 다(탭이 밑줄 때문에 높이를 꽉 채워야 한다).
+ * 이 버튼은 높이가 24 로 못 박혀 있어 늘어나지 못하고 띠 위쪽에 붙는다 — 가운데로 내린다.
+ * 옆의 단계 배지는 높이가 auto 라 늘어난 뒤 제 안에서 가운데 정렬되므로 손댈 것이 없다.
+ */
+.ac-summary-btn { align-self: center; }
+
+.ac-summary-btn .i { color: var(--fg-link); }
+
+/* inline-flex 가 UA 의 hidden 처리를 덮으므로 다시 눌러 준다(.ac-draft · .dropdown-menu 와 같다). */
+.ac-summary-btn[hidden] { display: none; }
+
+/* 여백 없이 목록 폭을 꽉 채운다 — 아래 선은 카드가 들고 있다. */
+.ac-handover-slot {
+  flex: none;
+}
+
+.ac-handover-slot[hidden] { display: none; }
+
+/*
+ * DELTA 조치 제안(.ac-delta)과 같은 면이다 — 둘 다 DELTA 가 쓴 글이라 같은 꼴이어야 한다.
+ * Figma 1202 는 이 카드만 파란 면(status/info/bg + border/brand)으로 그렸는데,
+ * 그러면 한 제품 안에서 DELTA 카드가 두 가지 꼴이 된다. 조치 제안 쪽으로 맞췄다 —
+ * 파랑은 머리의 DELTA 표시(fg/link)가 맡고, 면은 조용히 둔다.
+ *
+ * 떠 있는 카드가 아니라 목록 맨 위에 깔리는 띠다. 둥근 모와 좌우 테두리를 걷고
+ * 아래 선만 남긴다 — 목록 줄과 같은 선이라 요약이 목록의 머리처럼 읽힌다.
+ * 왼쪽 여백 19 는 줄(.ac-row)과 같다. DELTA 표시가 체크 표시와 세로로 맞는다.
+ */
+.ac-handover {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+  padding: var(--space-12) var(--space-12) var(--space-12) 19px;
+  border-bottom: var(--border-width-thin) solid var(--border-divider);
+  background-color: var(--bg-panel);
+}
+
+.ac-handover-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
+}
+
+.ac-handover-mark {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--fg-link);
+}
+
+.ac-handover-when { color: var(--text-tertiary); }
+
+/*
+ * Ghost 기본 글자색은 blue/500 인데, 이 카드에서 파랑은 머리의 DELTA 표시가 맡는다 —
+ * [닫기] 까지 파랗면 둘이 같은 무게로 읽힌다. 조용히 물러나는 동작이라 text/secondary 다
+ * (Figma 도 여기만 gray/400 이다). 카드 안에서만 되돌린다.
+ */
+.ac-handover .btn-ghost { color: var(--text-secondary); }
+.ac-handover .btn-ghost:hover { color: var(--text-primary); }
+
+.ac-handover-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+}
+
+.ac-handover-row {
+  display: flex;
+  gap: var(--space-12);
+}
+
+.ac-handover-row > dt {
+  flex: none;
+  width: 64px;
+  margin: 0;
+  color: var(--text-primary);
+}
+
+.ac-handover-row > dd {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+  color: var(--text-secondary);
+}
+
+.ac-handover-actions {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: var(--space-8);
+}
+
+/* ── 날짜 머리 ───────────────────────────────────────────── */
+/* Figma Date 1202:16048 — 높이 28, padding 5/16, 면 gray/750. */
+.ac-date-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
+  height: 28px;
+  padding: 5px var(--space-16);
+  background-color: var(--bg-frame);
+  border-bottom: var(--border-width-thin) solid var(--border-divider);
+}
+
+.ac-date-row .ac-date-count { color: var(--text-tertiary); }
+
+/* ── 조치 완료 줄 ────────────────────────────────────────── */
+/* Figma Done 1202:16057 — 높이 40, padding 0/16, gap 12. 왼쪽 띠가 없다. */
+.ac-done-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-12);
+  height: 40px;
+  padding: 0 var(--space-16);
+  border-bottom: var(--border-width-thin) solid var(--border-divider);
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.ac-done-row:last-child { border-bottom: 0; }
+.ac-done-row:hover { background-color: var(--state-hover); }
+
+.ac-done-row[aria-selected="true"],
+.ac-done-row[aria-selected="true"]:hover { background-color: var(--bg-raised); }
+
+.ac-done-row:focus-visible {
+  outline: var(--border-width-strong) solid var(--border-focus);
+  outline-offset: -2px;
+}
+
+/* 열 폭 — 열 머리와 줄이 같은 값을 쓴다. */
+.ac-dc-check { flex: none; width: var(--size-icon-16); color: var(--status-safe-icon); }
+.ac-dc-time  { flex: none; width: 44px; color: var(--text-secondary); }
+.ac-dc-body  { flex: 1 1 auto; min-width: 0; display: flex; align-items: center; gap: var(--space-8); }
+/* Figma 는 96 인데 가장 긴 값("위험 어제 23:51")이 들어가지 않는다 — 들어갈 만큼만 넓혔다. */
+.ac-dc-sev   { flex: none; width: 112px; display: flex; align-items: center; gap: 6px; }
+.ac-dc-who   { flex: none; width: 48px; color: var(--text-secondary); }
+
+/* 제목과 조치 내용이 한 줄에 나란히 선다 — 조치가 남는 폭을 가진다. */
+.ac-dc-body > .ac-dc-title { flex: none; max-width: 55%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ac-dc-body > .ac-dc-act { flex: 1 1 auto; min-width: 0; color: var(--text-tertiary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.ac-dc-sev > .ac-sev-dot {
+  flex: none;
+  width: 6px;
+  height: 6px;
+  border-radius: var(--radius-pill);
+}
+
+.ac-dc-sev > span:last-child { color: var(--text-tertiary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ac-done-row[data-sev="critical"] .ac-sev-dot { background-color: var(--status-critical-icon); }
+.ac-done-row[data-sev="warning"] .ac-sev-dot { background-color: var(--status-warning-icon); }
+.ac-dc-who { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* ── 조치 기록(오른쪽 칸) ────────────────────────────────── */
+/*
+ * 입력이 없는 판이다 — 캡슐도 메모도 읽기만 한다. 그래서 아래 동작 줄이 없고
+ * 본문이 위에서부터 쌓인다(Figma Detail Body vertical: hug).
+ */
+.ac-record {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-16);
+  /* 흐름 · 스크롤은 .ac-detail-contents 와 함께 위에서 받는다. */
+}
+
+.ac-record-title {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ac-record-title-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.ac-record-title-row h2 { margin: 0; }
+
+.ac-record-age {
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
+}
+
+/* 조치 시각은 safe 색이다 — 끝난 일이라는 표시다(Figma 1202:16224). */
+.ac-record-at { color: var(--status-safe-text); }
+.ac-record-by { color: var(--text-tertiary); }
+
+.ac-record-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+}
+
+.ac-record-section > h3 {
+  margin: 0;
+  color: var(--text-tertiary);
+  font-weight: var(--font-weight-regular);
+}
+
+/* 끝난 조치는 고를 수 없다 — 면 bg/selected + border/brand 로 굳은 모습이다. */
+.ac-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.ac-chip-done {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px var(--space-12);
+  border: var(--border-width-thin) solid var(--border-brand);
+  border-radius: var(--radius-pill);
+  background-color: var(--bg-selected);
+  color: var(--text-primary);
+}
+
+.ac-memo-box {
+  padding: 10px var(--space-12);
+  border: var(--border-width-thin) solid var(--border-divider);
+  border-radius: var(--radius-6);
+  background-color: var(--bg-inset);
+  color: var(--text-secondary);
+}
+
+.ac-info {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+}
+
+.ac-info-row {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-12);
+}
+
+.ac-info-row > dt {
+  flex: none;
+  width: 40px;
+  margin: 0;
+  color: var(--text-tertiary);
+}
+
+.ac-info-row > dd { min-width: 0; margin: 0; }
+.ac-info-delta { color: var(--fg-link); }
+
+/* ---------- 선택 상세 ---------- */
+.ac-detail {
+  flex: none;
+  width: 700px;
+  display: flex;
+  flex-direction: column;
+}
+
+/*
+ * Figma 는 머리에 "1/4" 숫자만 있고 선도 없었다 — 숫자만으로는 앞뒤로 갈 길이 없다.
+ * 이전/다음을 붙이고 아래 구분선을 그어 본문과 가른다.
+ */
+.ac-detail-head {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: var(--ac-head-h);
+  padding: 0 var(--space-20);
+  border-bottom: var(--border-width-thin) solid var(--border-divider);
+}
+
+.ac-detail-head .ac-head-spacer { flex: 1 1 auto; }
+.ac-detail-head .ac-nth { color: var(--text-tertiary); }
+
+.ac-nav {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-control);
+  background: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.ac-nav:hover { background-color: var(--state-hover); color: var(--text-primary); }
+.ac-nav:disabled { color: var(--text-disabled); cursor: default; background: none; }
+
+.ac-nav:focus-visible {
+  outline: var(--border-width-strong) solid var(--border-focus);
+  outline-offset: 1px;
+}
+
+/*
+ * 위 · 오른쪽 여백은 여기 두지 않는다. 둘 다 스크롤 상자 안쪽으로 넘긴다.
+ *   위   — 바깥에 두면 글이 머리 밑선에서 20 떨어진 자리에서 잘려 올라가 빈 띠가 남는다.
+ *   오른쪽 — 바깥에 두면 스크롤 막대가 그 여백만큼 안쪽에 떠서 선다. 막대는 칸 오른쪽 변에 붙어야 한다.
+ * 왼쪽 · 아래는 스크롤과 상관없으므로 여기 그대로 둔다.
+ */
+.ac-detail-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-20);
+  padding: 0 0 var(--space-20) var(--space-20);
+  overflow: hidden;
+}
+
+/*
+ * 스크롤은 본문만 한다 — 미확인 탭의 아래 동작 줄([조치 완료])은 늘 보인다.
+ * Figma 는 Detail Body 가 Contents(fill) + Actions 로 짜여 있어 같은 뜻이다.
+ * 조치 완료 탭의 기록(.ac-record)도 같은 상자다 — 길면 여기서 스크롤한다.
+ *
+ * 막대 자리(12)는 scrollbar-gutter 로 늘 잡아 둔다. 안 잡으면 막대가 뜰 때만 글이 12 밀려
+ * 왼쪽 20 · 오른쪽 32 로 어긋난다. 자리를 늘 비워 두고 오른쪽 여백을 8 로 줄이면
+ * 막대가 있든 없든 글은 칸 변에서 20(8 + 막대 자리 12)에 선다 — 왼쪽과 같다.
+ */
+.ac-detail-contents,
+.ac-record {
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: var(--space-20) var(--space-8) 0 0;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+}
+
+.ac-detail-contents {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-20);
+}
+
+/*
+ * 라벨 뒤에 붙는 괄호 설명 — "조치 내용 (여러 개 선택 가능)" · "메모 (선택)".
+ * 이름과 규칙은 무게가 다르다. 라벨은 800 인데 괄호는 규칙을 덧붙이는 말이라
+ * 같은 굵기로 두면 둘 다 제목처럼 읽힌다. 타입 스케일에서 가장 가벼운 400 으로 내린다.
+ */
+.ac-label-note { font-weight: 400; }
+
+/* ── 스크롤 칸 아래쪽 흐림 ───────────────────────────────── */
+/*
+ * 아래에 더 있다는 표시다. 스크롤 상자 안에 sticky 로 붙어 칸 바닥에 늘 머물고,
+ * 끝까지 내려가면(.is-end) 사라진다 — 바닥에서도 떠 있으면 마지막 줄을 가리는 얼룩이 된다.
+ *
+ * margin-top 이 제 높이와 앞 간격(flex gap)을 함께 되돌린다. 안 그러면 이 칸만큼
+ * 스크롤 길이가 늘어 끝에 빈 자리가 생긴다. 상자마다 gap 이 달라 값이 둘이다.
+ *
+ * 경계가 보이던 진짜 까닭: backdrop-filter 를 가진 칸에는 제 mask 가 먹지 않는다
+ * (Chromium. 재 보면 mask 를 떼어 낸 것과 픽셀이 똑같다). 그래서 흐림은 띠 위쪽
+ * 끝에서 뚝 끊겼고, 눈에 보이던 가로줄이 그 자리다. 예전엔 면이 gradient 라
+ * 색만 부드러웠지 흐림은 늘 칼로 자른 모양이었다.
+ *
+ * 그래서 두 겹으로 나눈다 — 바깥(이 칸)은 mask 만 들고, 면과 흐림은 ::before 가
+ * 진다. 자식은 부모 mask 에 제대로 깎이므로 색과 흐림이 같이 옅어진다.
+ *
+ * 곡선도 하나로 모은다. 전에는 면 25% · mask 45% 로 구간이 달라 둘을 곱한 실제
+ * 투명도에 꺾임이 생겼다. 이제 mask 하나가 다 맡는다. 직선 ramp 는 시작·끝이 띠로
+ * 보여서(마하 밴드) 가운데가 가파르고 양끝이 완만한 S 자로 끊어 적는다. 높이는
+ * 48 — 72 는 너무 길어 메모칸 한 덩이를 통째로 덮었다. S 자라 48 에서도 안 끊긴다.
+ */
+:root {
+  --ac-fade-mask: linear-gradient(
+    to top,
+    rgb(0 0 0 / 100%) 0%,
+    rgb(0 0 0 / 99%) 14%,
+    rgb(0 0 0 / 96%) 24%,
+    rgb(0 0 0 / 90%) 33%,
+    rgb(0 0 0 / 81%) 41%,
+    rgb(0 0 0 / 70%) 49%,
+    rgb(0 0 0 / 57%) 57%,
+    rgb(0 0 0 / 44%) 64%,
+    rgb(0 0 0 / 31%) 71%,
+    rgb(0 0 0 / 20%) 79%,
+    rgb(0 0 0 / 11%) 86%,
+    rgb(0 0 0 / 5%) 93%,
+    rgb(0 0 0 / 0%) 100%
+  );
+}
+
+.ac-scroll-fade {
+  --ac-fade-h: 48px;
+  position: sticky;
+  bottom: 0;
+  z-index: 1;
+  flex: none;
+  height: var(--ac-fade-h);
+  pointer-events: none;
+  -webkit-mask-image: var(--ac-fade-mask);
+  mask-image: var(--ac-fade-mask);
+  transition: opacity 140ms ease;
+}
+
+.ac-scroll-fade::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-color: var(--bg-frame);
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+}
+
+
+.ac-detail-contents > .ac-scroll-fade { margin-top: calc(-1 * var(--ac-fade-h) - var(--space-20)); }
+.ac-record > .ac-scroll-fade { margin-top: calc(-1 * var(--ac-fade-h) - var(--space-16)); }
+
+.is-end > .ac-scroll-fade { opacity: 0; }
+
+/* ── 제목 덩이 ───────────────────────────────────────────── */
+.ac-d-title-block { display: flex; flex-direction: column; gap: var(--space-8); }
+.ac-d-age { color: var(--text-tertiary); }
+
+.ac-d-title-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
+}
+
+.ac-d-title-row h2 { margin: 0; }
+
+/* Figma Badge 48:48 — 면 status/critical/bg, 테두리 status/critical/border. */
+.ac-sev-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-4);
+  flex: none;
+  padding: var(--space-4) var(--space-12) var(--space-4) var(--space-8);
+  border: var(--border-width-thin) solid var(--status-critical-border);
+  border-radius: var(--radius-pill);
+  background-color: var(--status-critical-bg);
+  color: var(--status-critical-text);
+}
+
+.ac-sev-badge .badge-dot { background-color: var(--status-critical-icon); }
+
+.ac-sev-badge.is-warning {
+  border-color: var(--status-warning-border);
+  background-color: var(--status-warning-bg);
+  color: var(--status-warning-text);
+}
+
+.ac-sev-badge.is-warning .badge-dot { background-color: var(--status-warning-icon); }
+
+/* 기호 — 지도 알림 팝오버 .ma-badge-ic 와 같은 14 · 위험은 글자와 한 톤인 icon-subtle(10/20) */
+.ac-sev-badge .ac-sev-ic { --i: var(--ic-error); width: 14px; height: 14px; color: var(--status-critical-icon-subtle); }
+.ac-sev-badge.is-warning .ac-sev-ic { --i: var(--ic-warning); color: var(--status-warning-icon); }
+
+/* ── 스냅숏 + 메타 ───────────────────────────────────────── */
+.ac-d-snap-meta {
+  display: flex;
+  gap: var(--space-16);
+}
+
+.ac-d-snap {
+  flex: none;
+  width: 300px;
+  height: 170px;
+  border: var(--border-width-thin) solid var(--border-default);
+  border-radius: var(--radius-6);
+  background-color: var(--bg-frame);
+  overflow: hidden;
+}
+
+.ac-d-snap img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.ac-d-meta {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+}
+
+.ac-d-meta-row {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-12);
+}
+
+.ac-d-meta-row > dt {
+  flex: none;
+  width: 32px;
+  margin: 0;
+  color: var(--text-tertiary);
+}
+
+/*
+ * 위치 줄은 WP · 위치 이름 · [지도에서 보기] 세 조각이다. 상세 칸이 700 이고
+ * 스냅숏이 300 을 가져가므로 메타는 344 밖에 안 남는다 — Figma 처럼 한 줄에 두면
+ * "WP-07" 이 글자 단위로 끊긴다. 조각마다 줄바꿈을 막고, 모자라면 조각째 다음 줄로 넘긴다.
+ */
+.ac-d-meta-row > dd {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 6px;
+  min-width: 0;
+  margin: 0;
+}
+
+.ac-d-meta-row > dd > * { white-space: nowrap; }
+
+.ac-d-meta-row a { color: var(--fg-link); text-decoration: none; }
+.ac-d-meta-row a:hover { text-decoration: underline; }
+.ac-d-robot { color: var(--text-secondary); }
+
+/* 감지 칩 — Figma 는 bg/panel 이라 DELTA 카드와 같은 단계였다. bg/inset 으로 내렸다. */
+.ac-d-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--space-2) var(--space-8);
+  border: var(--border-width-thin) solid var(--border-default);
+  border-radius: var(--radius-control);
+  background-color: var(--bg-inset);
+  color: var(--text-primary);
+}
+
+/* ── DELTA 조치 제안 ─────────────────────────────────────── */
+.ac-delta {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+  padding: var(--space-16) var(--space-12) var(--space-12);
+  border: var(--border-width-thin) solid var(--border-default);
+  border-radius: var(--radius-container);
+  background-color: var(--bg-panel);
+}
+
+.ac-delta-mark {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--fg-link);
+}
+
+.ac-delta h3 { margin: 0; }
+
+.ac-delta-reasons {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ac-delta-reasons li {
+  display: flex;
+  gap: var(--space-8);
+  color: var(--text-secondary);
+}
+
+/* Figma Bullet — 4px 원, 위로 8 밀어 첫 줄 가운데에 선다. */
+.ac-delta-reasons li::before {
+  content: "";
+  flex: none;
+  width: 4px;
+  height: 4px;
+  margin-top: 8px;
+  border-radius: var(--radius-pill);
+  background-color: var(--text-tertiary);
+}
+
+.ac-fp {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.ac-fp-label { flex: none; color: var(--text-secondary); }
+
+/* Figma 는 빈 막대였다 — 값(12%)을 실제로 채운다. */
+.ac-fp-meter {
+  flex: 1 1 auto;
+  height: 6px;
+  border-radius: 3px;
+  background-color: var(--comp-chart-track);
+  overflow: hidden;
+}
+
+.ac-fp-meter > i {
+  display: block;
+  width: var(--ac-fp, 0%);
+  height: 100%;
+  border-radius: 3px;
+  background-color: var(--comp-chart-positive);
+}
+
+.ac-fp-value {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.ac-fp-value b { color: var(--status-safe-text); font-weight: var(--font-weight-medium); }
+.ac-fp-value span { color: var(--text-secondary); }
+
+/* ── 조치 내용 ───────────────────────────────────────────── */
+.ac-acts { display: flex; flex-direction: column; gap: var(--space-8); }
+
+.ac-acts-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-8);
+}
+
+.ac-acts-head .badge { padding: var(--space-4); color: var(--status-info-text); }
+.ac-acts-head .badge .badge-dot { background-color: var(--status-info-icon); }
+
+.ac-presets {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+/*
+ * 조치 칩은 공용 .preset-chip 이다(app-shell.css). 지도 쪽지도 같은 것을 쓴다 —
+ * 같은 알림을 두 화면에서 보는데 칩 생김새가 다르면 같은 것으로 읽히지 않는다.
+ */
+
+/* ── 메모 ────────────────────────────────────────────────── */
+.ac-memo textarea {
+  display: block;
+  width: 100%;
+  height: 96px;
+  padding: var(--space-12);
+  border: var(--border-width-thin) solid var(--border-default);
+  border-radius: var(--radius-container);
+  background-color: var(--bg-panel);
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: var(--font-size-14);
+  line-height: var(--font-line-height-22);
+  resize: none;
+}
+
+.ac-memo textarea::placeholder { color: var(--text-tertiary); }
+
+.ac-memo textarea:focus-visible {
+  outline: var(--border-width-strong) solid var(--border-focus);
+  outline-offset: -1px;
+  border-color: var(--border-brand);
+}
+
+/* ── 아래 동작 줄 ────────────────────────────────────────── */
+/* 스크롤 상자 밖이라 Detail Body 가 내준 오른쪽 여백이 없다 — 여기서 직접 받는다. */
+.ac-actions {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
+  padding-right: var(--space-20);
+}
+
+.ac-actions .ac-head-spacer { flex: 1 1 auto; }
+
+/*
+ * "임시저장된 상태" — Figma 는 Ghost 버튼이었다(레이어 이름 "초기화").
+ * 누를 수 없는 상태 문구라 버튼에서 뺐다. 점 + 글자다.
+ */
+.ac-draft {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-4);
+  margin: 0;
+  color: var(--text-tertiary);
+}
+
+/* inline-flex 가 UA 의 hidden 처리를 덮으므로 다시 눌러 준다(.dropdown-menu 와 같은 사정). */
+.ac-draft[hidden] { display: none; }
+
+.ac-draft::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: var(--radius-pill);
+  background-color: var(--text-tertiary);
+}
+
+/* ---------- 스크롤바 ---------- */
+/*
+ * app-shell.css 와 같은 막대다 — 막대는 border/default, 손이 닿으면 border/strong.
+ * 방식을 둘로 가르는 까닭도 같다(Chrome 은 ::-webkit-, Firefox 는 표준 속성).
+ */
+.ac-list::-webkit-scrollbar,
+.ac-detail-contents::-webkit-scrollbar,
+.ac-record::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+
+.ac-list::-webkit-scrollbar-track,
+.ac-detail-contents::-webkit-scrollbar-track,
+.ac-record::-webkit-scrollbar-track { background: transparent; }
+
+.ac-list::-webkit-scrollbar-thumb,
+.ac-detail-contents::-webkit-scrollbar-thumb,
+.ac-record::-webkit-scrollbar-thumb {
+  border: 4px solid transparent;
+  border-radius: var(--radius-pill);
+  background-clip: padding-box;
+  background-color: var(--border-default);
+}
+
+.ac-list::-webkit-scrollbar-thumb:hover,
+.ac-detail-contents::-webkit-scrollbar-thumb:hover,
+.ac-record::-webkit-scrollbar-thumb:hover { background-color: var(--border-strong); }
+
+@supports not selector(::-webkit-scrollbar) {
+  .ac-list,
+  .ac-detail-contents,
+  .ac-record {
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-default) transparent;
+  }
+}
+
+/* ---------- Icon / download ---------- */
+/*
+ * Figma Icon / download(28:12). [보고서 내보내기] 의 앞 아이콘이다.
+ * assets/icons/ 세트에 아직 없는 아이콘이라 이 화면 안에서만 쓴다 —
+ * 아이콘 세트에 넣을 때는 assets/icons/outline/icon-download.svg 로 옮기고
+ * tools/make-icons-small.py + tools/inline-icons-outline.py 를 돌린 뒤 여기를 지운다.
+ */
+.ac-page {
+  --ic-download: url("data:image/svg+xml,%3Csvg width=%2220%22 height=%2220%22 viewBox=%220 0 20 20%22 fill=%22none%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cpath d=%22M15.833 15.8333C16.2932 15.8333 16.6663 16.2064 16.6663 16.6667C16.6663 17.1269 16.2932 17.5 15.833 17.5H4.16634C3.7061 17.5 3.33301 17.1269 3.33301 16.6667C3.33301 16.2064 3.7061 15.8333 4.16634 15.8333H15.833ZM9.99967 2.5C10.4599 2.5 10.833 2.8731 10.833 3.33333V11.3216L13.5771 8.57747C13.9026 8.25204 14.4301 8.25204 14.7555 8.57747C15.081 8.90291 15.081 9.43042 14.7555 9.75586L10.5889 13.9225C10.549 13.9624 10.5051 13.998 10.4578 14.0291C10.4264 14.0499 10.3936 14.0676 10.3602 14.0837C10.3225 14.1018 10.2836 14.1177 10.243 14.13C10.2261 14.1352 10.2089 14.139 10.1917 14.1431C10.1823 14.1453 10.1728 14.1477 10.1632 14.1496C10.1546 14.1513 10.1459 14.1522 10.1372 14.1536C10.0924 14.1611 10.0466 14.1667 9.99967 14.1667C9.95245 14.1667 9.90641 14.1612 9.86133 14.1536C9.85266 14.1522 9.84391 14.1513 9.83529 14.1496C9.8257 14.1477 9.81627 14.1453 9.8068 14.1431C9.78966 14.139 9.77244 14.1352 9.75553 14.13C9.71499 14.1176 9.676 14.1018 9.63835 14.0837C9.60519 14.0677 9.57274 14.0498 9.5415 14.0291C9.49429 13.998 9.45032 13.9624 9.41048 13.9225L5.24382 9.75586C4.91838 9.43042 4.91838 8.90291 5.24382 8.57747C5.56925 8.25204 6.09676 8.25204 6.4222 8.57747L9.16634 11.3216V3.33333C9.16634 2.8731 9.53944 2.5 9.99967 2.5Z%22 fill=%22%23000%22/%3E%3C/svg%3E");
+}
+
+/* 탭 옆 단계별 건수 — 점 대신 12 기호(10/20). 위험은 status/critical/icon, 주의는 status/warning/icon. */
+.ac-head-badges .ac-count-ic { width: 12px; height: 12px; }
+.ac-head-badges .badge-danger .ac-count-ic { color: var(--status-critical-icon); }
+.ac-head-badges .badge-warning .ac-count-ic { color: var(--status-warning-icon); }
+
+/* ==================================================================
+ * [11/02 v6] 알림 센터를 v6 관제 · 안전진단과 같은 말 · 같은 판으로(alert-center.js V6 · alert-center-data-v6.js).
+ * v6 화면(body.ver-6)에서만 — 예전 판은 위 규칙 그대로다.
+ *   1. 위치 = 층 꼬리표 + WP + 설비 이름(관제 최신 알림과 같다), 측정 채널(CH1)은 끝에 흐리게
+ *   2. 줄 버튼 [진단 상세] — 방패 + 글자라 칸을 넓힌다
+ *   3. 상세 머리 = [단계 배지] 감지 이름 → 측정 항목 + 값(값만 단계색) → 발생 일시(관제 팝오버 .ma-top · 안전진단 판정 카드와 같은 위계)
+ *   4. DELTA 조치 제안 = 관제 팝오버(monitor.css .ma-v3 .ma-delta)와 같은 반대색 판 · 체크리스트 · AI 추천 꼬리표 · 메모 칸.
+ *      이 화면은 monitor.css 를 싣지 않아 필요한 규칙만 옮겨 적었다. 팝오버는 바탕에 묻히는 아래 끝 그라데이션이 있지만 여기는 판이 칸 위에 놓여 한 면이다.
+ *   5. [진단 상세] 모핑 짝 — 머리(dx-head) · 사진(dx-shot) · DELTA 판(dx-act), 이름은 v6.css 안전진단 쪽과 같다
+ * ================================================================== */
+body.ver-6 .ac-c-place { width: 272px; }
+body.ver-6 .ac-c-act { width: 104px; }
+
+body.ver-6 .floor-tag {
+  flex: none;
+  padding: 0 var(--space-4);
+  border-radius: var(--radius-4);
+  background-color: var(--bg-raised);
+  color: var(--text-secondary);
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-12);
+  line-height: var(--font-line-height-18);
+}
+/* 고른 줄은 면이 bg/raised 라 꼬리표가 묻힌다 — 안쪽 면(bg/inset)으로 */
+body.ver-6 .ac-row[aria-selected="true"] .floor-tag { background-color: var(--bg-inset); }
+body.ver-6 .ac-ch { flex: none; color: var(--text-tertiary); white-space: nowrap; }
+body.ver-6 .ac-d-place { color: var(--text-secondary); }
+
+body.ver-6 .ac-row .ac-report { gap: var(--space-4); text-decoration: none; }
+
+/* 3. 상세 머리 */
+body.ver-6 .ac-d6-head { gap: var(--space-8); }
+body.ver-6 .ac-d6-top { display: flex; align-items: center; gap: var(--space-8); }
+body.ver-6 .ac-d6-kind { color: var(--text-secondary); font-weight: 500; }
+body.ver-6 .ac-d6-title { margin: 0; }
+body.ver-6 .ac-d6-val { font-weight: inherit; color: var(--status-warning-text); }
+body.ver-6 .ac-d6-head.is-critical .ac-d6-val { color: var(--status-critical-text); }
+body.ver-6 .ac-d6-head .ac-record-age { margin: 0; }
+
+/* 4. DELTA 조치 제안 — 반대색 판(다크 화면에선 흰 판 .is-light-scope, 라이트 화면에선 짙은 판 .is-dark-scope) */
+body.ver-6 .ac-dl {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-12);
+  padding: var(--space-12);
+  border-radius: 12px;
+  background-color: var(--bg-raised);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 18%), 0 10px 24px -10px rgb(0 0 0 / 45%);
+  color: var(--text-primary);
+}
+body.ver-6 .ac-dl-head { display: flex; justify-content: space-between; align-items: center; gap: var(--space-8); }
+/* 파랑은 체크 상자 하나만 — 제목 글은 회색, 앞 표식만 파랑(팝오버와 같다) */
+body.ver-6 .ac-dl-mark { display: inline-flex; align-items: center; gap: var(--space-4); color: var(--text-secondary); }
+body.ver-6 .ac-dl-mark .i { color: var(--comp-gnb-text-brand); }
+body.ver-6 .ac-dl-fp { color: var(--text-secondary); }
+body.ver-6 .ac-dl-fpv { color: var(--status-safe-text); }
+body.ver-6 .ac-dl-fpv.is-mid { color: var(--status-warning-text); }
+body.ver-6 .ac-dl-fpv.is-high { color: var(--status-critical-text); }
+body.ver-6 .ac-dl-lead {
+  margin: calc(var(--space-4) * -1) 0 0;
+  font-size: var(--font-size-14);
+  line-height: var(--font-line-height-22);
+  font-weight: 700;
+  word-break: keep-all;
+}
+body.ver-6 .ac-dl .ma-checks {
+  display: flex;
+  flex-direction: column;
+  border-radius: var(--radius-6);
+  background-color: var(--bg-map-chip);
+  overflow: hidden;
+}
+body.ver-6 .ac-dl .ma-check {
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
+  width: 100%;
+  min-height: 32px;
+  padding: var(--space-4) 6px var(--space-4) 10px;
+  border: 0;
+  border-bottom: var(--border-width-thin) solid var(--border-divider);
+  background: transparent;
+  color: var(--text-primary);
+  font: inherit;
+  font-size: var(--font-size-14);
+  line-height: var(--font-line-height-22);
+  text-align: left;
+  cursor: pointer;
+}
+body.ver-6 .ac-dl .ma-check:last-child { border-bottom: 0; }
+body.ver-6 .ac-dl .ma-check:focus-visible { outline: var(--border-width-strong) solid var(--border-focus); outline-offset: -2px; }
+body.ver-6 .ac-dl .ma-check-box {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  box-sizing: border-box;
+  border: var(--border-width-thin) solid var(--border-default);
+  border-radius: var(--radius-4);
+  background-color: var(--bg-panel);
+  color: var(--color-gray-0);
+}
+body.ver-6 .ac-dl .ma-check-box .i { width: 14px; height: 14px; opacity: 0; }
+body.ver-6 .ac-dl .ma-check[aria-checked="true"] .ma-check-box { border-color: transparent; background-color: var(--comp-gnb-brand); }
+body.ver-6 .ac-dl .ma-check[aria-checked="true"] .ma-check-box .i { opacity: 1; }
+body.ver-6 .ac-dl .ma-check-label { flex: 1 1 auto; min-width: 0; }
+body.ver-6 .ac-dl .ma-check-tag {
+  flex: none;
+  padding: var(--space-2) var(--space-8);
+  border-radius: var(--radius-4);
+  background-color: var(--comp-gnb-brand);
+  color: var(--color-gray-0);
+  font-size: var(--font-size-13);
+  line-height: var(--font-line-height-18);
+  font-weight: 500;
+}
+body.ver-6 .ac-dl-memo { display: flex; flex-direction: column; gap: var(--space-8); }
+body.ver-6 .ac-dl-memo > label { color: var(--text-tertiary); }
+body.ver-6 .ac-dl .ma-memo-field {
+  display: block;
+  width: 100%;
+  min-height: 68px;
+  box-sizing: border-box;
+  padding: var(--space-12);
+  border: 0;
+  border-radius: var(--radius-4);
+  background-color: color-mix(in srgb, var(--bg-map-chip) 50%, transparent);
+  color: var(--text-primary);
+  font: inherit;
+  font-size: var(--font-size-14);
+  line-height: var(--font-line-height-22);
+  resize: vertical;
+}
+body.ver-6 .ac-dl .ma-memo-field::placeholder { color: var(--text-tertiary); }
+body.ver-6 .ac-dl .ma-memo-field:focus-visible { outline: var(--border-width-thin) solid var(--border-focus); }
+
+/* 5. [진단 상세] 모핑 짝 — 상세 칸에는 늘 알림 하나만 그려져 이름이 겹치지 않는다 */
+body.ver-6 .ac-d6-head { view-transition-name: dx-head; }
+body.ver-6 .ac-detail-contents .ac-d-snap { view-transition-name: dx-shot; }
+body.ver-6 .ac-dl { view-transition-name: dx-act; }
+
+/* [11/02 v6] DELTA 판 근거 줄 — 제안 바로 아래, 글은 secondary · 앞 점 4(예전 .ac-delta-reasons 와 같은 짜임). 판이 반대색이라 토큰이 따라 뒤집힌다 */
+body.ver-6 .ac-dl-why { display: flex; flex-direction: column; gap: var(--space-4); margin: calc(var(--space-4) * -1) 0 0; padding: 0; list-style: none; }
+body.ver-6 .ac-dl-why li { display: flex; gap: var(--space-8); color: var(--text-secondary); }
+body.ver-6 .ac-dl-why li::before { content: ""; flex: none; width: 4px; height: 4px; margin-top: 9px; border-radius: var(--radius-pill); background-color: var(--text-tertiary); }

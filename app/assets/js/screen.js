@@ -1,0 +1,1804 @@
+/*
+ * 가운뎃점(·)으로 잇던 문구는 화면에 점을 찍지 않는다. 조각마다 따로 된 텍스트(span.t-part)로 싣고
+ * 사이는 간격이 가른다(assets/css/text-parts.css). 데이터는 "A · B" 그대로 둬도 된다 —
+ * 그리는 자리에서 APRISM_TEXT.fill() 이 나눈다. 배열을 넘기면 배열 그대로 조각이 된다.
+ *
+ *   fill(node, text)   text 를 조각으로 나눠 node 에 싣는다. 조각이 하나면 textContent 와 같다.
+ *   parts(text)        "A · B" -> ["A", "B"]
+ *   plain(text, glue)  속성(title · alt)처럼 요소를 못 넣는 곳 — 조각을 glue(기본 줄바꿈)로 잇는다.
+ */
+window.APRISM_TEXT = (function () {
+  "use strict";
+  var DOT = /\s+\u00b7\s+/;
+  function parts(text) {
+    if (Array.isArray(text)) { return text.filter(function (p) { return p !== "" && p != null; }).map(String); }
+    return String(text == null ? "" : text).split(DOT).filter(function (p) { return p !== ""; });
+  }
+  function fill(node, text) {
+    if (!node) { return node; }
+    var list = parts(text);
+    node.classList.toggle("t-split", list.length > 1);
+    if (list.length < 2) { node.textContent = list[0] || ""; return node; }
+    node.textContent = "";
+    list.forEach(function (p) {
+      var span = document.createElement("span");
+      span.className = "t-part";
+      span.textContent = p;
+      node.appendChild(span);
+    });
+    return node;
+  }
+  function plain(text, glue) { return parts(text).join(glue == null ? "\n" : glue); }
+  return { fill: fill, parts: parts, plain: plain };
+})();
+
+// 화면 안의 동작. 셋이다 — AI 요약 여닫기, 사이트 패널 접기, 로봇 선택.
+//
+// 데이터는 이 파일 안에 있다. 서버가 없는 퍼블리싱이라 검토용 값만 들고 있으면 된다.
+
+(function () {
+  "use strict";
+
+  // ------------------------------------------------------------------
+  // Delta 요약 패널 여닫기
+  // Figma AI Assist Panel 의 Emphasis(closed / opened) 를 우측 토글로 전환한다.
+  // 기본값은 closed 다.
+  // ------------------------------------------------------------------
+  (function () {
+    var panel = document.querySelector("[data-ai-panel]");
+    var button = document.querySelector("[data-ai-toggle]");
+    if (!panel || !button) {
+      return;
+    }
+
+    // 접힌 판은 opacity 0 + overflow hidden 이라 눈에는 안 보이지만 DOM 에는 남는다.
+    // inert 를 걸어 탭 순서와 스크린리더에서도 빼 준다 — 안 그러면 안 보이는 입력칸에
+    // 초점이 들어가 글자를 치게 된다(캡슐·보내기 버튼도 같은 문제였다).
+    var foldClosed = panel.querySelector(".ai-fold-closed");
+    var foldOpen = panel.querySelector(".ai-fold-open");
+
+    function apply(open) {
+      panel.classList.toggle("is-open", open);
+      button.setAttribute("aria-expanded", open ? "true" : "false");
+      button.setAttribute("aria-label", open ? "요약 접기" : "요약 펼치기");
+      if (foldClosed) { foldClosed.inert = open; }
+      if (foldOpen) { foldOpen.inert = !open; }
+    }
+
+    apply(false);
+
+    button.addEventListener("click", function () {
+      apply(!panel.classList.contains("is-open"));
+    });
+
+    // Delta 얼굴 — Prism Orb 를 그래픽 자리에 붙인다. 색은 패널의 심각도를 따라간다.
+    // WebGL2 를 못 쓰면 mount 가 null 을 주고, 자리표시자 원이 그대로 남는다.
+    function severity() {
+      if (panel.classList.contains("is-critical")) { return "critical"; }
+      if (panel.classList.contains("is-warning")) { return "warning"; }
+      if (panel.classList.contains("is-safe")) { return "safe"; }
+      return "info";
+    }
+
+    var mark = panel.querySelector(".ai-delta-mark");
+    var orb = (mark && window.PrismOrb) ? window.PrismOrb.mount(mark, { palette: severity() }) : null;
+
+    // 화면 전체(엣지 글로우)도 같이 물들어야 해서 바깥 .two-col 을 잡아 둔다.
+    var twoCol = panel.closest(".two-col");
+
+    // 첫 줄은 인사·상황, 둘째 줄이 본문이다(닫힘 16/24, 펼침 20/32 — 크기는 CSS 가 정한다).
+    // 닫힘·펼침 두 판에 같은 클래스가 하나씩 있어서 넷을 다 바꾼다.
+    function setLines(one, two) {
+      Array.prototype.slice.call(panel.querySelectorAll(".ai-line-1"))
+        .forEach(function (el) { el.textContent = one; });
+      Array.prototype.slice.call(panel.querySelectorAll(".ai-line-2"))
+        .forEach(function (el) { el.textContent = two; });
+    }
+
+    function setTag(text) {
+      var tag = panel.querySelector("[data-ai-tag-text]");
+      if (tag) { tag.textContent = text; }
+    }
+
+    // 심각도를 한 자리에서 갈아 끼운다 — 패널·화면(엣지 글로우)·오브 셋이 같이 간다.
+    function setSeverity(level) {
+      ["is-warning", "is-critical", "is-safe"].forEach(function (cls) {
+        panel.classList.remove(cls);
+        if (twoCol) { twoCol.classList.remove(cls); }
+      });
+      if (level) {
+        panel.classList.add("is-" + level);
+        if (twoCol) { twoCol.classList.add("is-" + level); }
+      }
+      if (orb) { orb.setPalette(severity()); }
+    }
+
+    // closed 상태의 [확인] — 알림을 받았다는 응답. 주의(warning)·위험(critical) 둘 다에서
+    // 같은 자리에 나오고, 누르면 화면·패널을 일반(파란) 상태로 되돌리며 두 줄을 일반 멘트로
+    // 바꾼다. 심각도마다 다르게 굴 이유가 없다 — 어느 쪽이든 "봤다" 는 한 가지 뜻이다.
+    var ack = panel.querySelector("[data-ai-ack]");
+    if (ack) {
+      var NORMAL_LINE_1 = "안녕하세요, 홍길동 님.";
+      var NORMAL_LINE_2 = "인계된 알림 3건과 진행 예정인 미션 1건이 있어요. 먼저 살펴볼까요?";
+      // 태그도 같이 바꾼다 — 주의 상태 문구가 그대로 남으면 새 멘트와 안 맞는다.
+      var NORMAL_TAG = "인계 알림 3건 · 예정 미션 1건";
+
+      ack.addEventListener("click", function () {
+        setSeverity(null);
+        setLines(NORMAL_LINE_1, NORMAL_LINE_2);
+        setTag(NORMAL_TAG);
+      });
+    }
+
+    // E-STOP 모달에서 [중지하기] 를 누르면 위험(critical) 로 간다.
+    // 모달 쪽과 직접 엮히지 않고 문서 이벤트로 받는다 — 둘은 다른 닫힘이고,
+    // 앞으로 다른 자리에서도 같은 상태를 불러야 할 수 있다.
+    document.addEventListener("aprism:estop", function () {
+      setSeverity("critical");
+      setLines("비상정지 발동 — 로봇 구동이 차단되었습니다",
+               "현장 안전을 확인한 뒤 해제 절차를 진행하세요.");
+      setTag("비상정지 발동 · 해제 절차 필요");
+    });
+
+    // 다른 화면 스크립트(monitor.js · 시안 페이지)가 심각도를 바꿀 때 쓴다.
+    // detail = { level: null | "warning" | "critical", glow, line1, line2, tag } — 빈 값은 건너뛴다.
+    // glow 를 주면 화면 테두리(엣지 글로우)만 그 단계로 둔다 — 목록에서 주의 알림을 골라
+    // 패널이 노랑이 되어도, 위험이 남아 있으면 테두리는 빨강이어야 한다.
+    document.addEventListener("aprism:severity", function (event) {
+      var d = event.detail || {};
+      setSeverity(d.level || null);
+      if (d.glow !== undefined && twoCol) {
+        ["is-warning", "is-critical", "is-safe"].forEach(function (cls) { twoCol.classList.remove(cls); });
+        if (d.glow) { twoCol.classList.add("is-" + d.glow); }
+      }
+      if (d.line1 || d.line2) { setLines(d.line1 || "", d.line2 || ""); }
+      if (d.tag) { setTag(d.tag); }
+    });
+
+    // 펼친 상태에서 Esc 로 닫는다. 닫은 뒤 초점은 버튼에 남긴다.
+    panel.addEventListener("keydown", function (event) {
+      if (event.key === "Escape" && panel.classList.contains("is-open")) {
+        apply(false);
+        button.focus();
+      }
+    });
+  })();
+
+  /* ------------------------------------------------------------------
+   * 관제사 교대 (UI_99 작업화면 1319:89664)
+   *
+   * 수행 중인 로봇이 있으면 로그아웃을 잠그고 [관제사 교대] 를 연다 —
+   * 관제 자리를 비우는 것과 사람이 바뀌는 것은 다른 일이다. 로봇은 계속 돈다.
+   * 교대자가 모달에서 로그인하면 화면은 그대로 두고 이름만 바뀐다.
+   * ------------------------------------------------------------------ */
+  function runningRobots() {
+    return document.querySelectorAll(".robot-strip .robot-card .badge-info").length;
+  }
+
+  function handOver(scrim) {
+    var id = scrim.querySelector("[data-shift-id]");
+    var name = (id && id.value.trim()) || "김현대";
+
+    // 상태바 — 누가 앉아 있는지가 여기서 바뀐다.
+    var chip = document.querySelector(".account-chip");
+    if (chip) {
+      var slots = chip.querySelectorAll(".t-label-2");
+      if (slots[0]) { slots[0].textContent = name; }
+    }
+    // 로그아웃 모달 문구의 이름도 같이 간다.
+    var who = document.querySelector("[data-modal-user]");
+    if (who) { window.APRISM_TEXT.fill(who, name + " · 관제운영"); }
+
+    if (id) { id.value = ""; }
+    var pw = scrim.querySelector("[data-shift-pw]");
+    if (pw) { pw.value = ""; }
+
+    // Delta 가 새 관제사에게 인계 상황을 말한다(monitor.js 가 듣는다).
+    document.dispatchEvent(new CustomEvent("aprism:shift", { detail: { name: name } }));
+  }
+
+  (function () {
+    var logout = document.querySelector("[data-logout-item]");
+    var shift = document.querySelector("[data-shift-item]");
+    if (!logout || !shift) { return; }
+
+    // 수행 중인 로봇 수를 모달 문구에도 적는다.
+    var count = runningRobots();
+    var slot = document.querySelector("[data-shift-count]");
+    if (slot) { slot.textContent = count; }
+
+    var busy = count > 0;
+    logout.disabled = busy;
+    logout.title = busy ? "수행 중인 로봇이 있어 로그아웃할 수 없습니다 — 관제사 교대를 쓰세요" : "";
+    shift.hidden = !busy;
+
+    // 비밀번호 보기 — 모달 안에서만 쓴다.
+    var eye = document.querySelector("[data-shift-eye]");
+    var pw = document.querySelector("[data-shift-pw]");
+    if (eye && pw) {
+      eye.addEventListener("click", function () {
+        var shown = pw.type === "text";
+        pw.type = shown ? "password" : "text";
+        eye.querySelector(".i").style.setProperty("--i", shown ? "var(--ic-eye-off)" : "var(--ic-eye)");
+        eye.setAttribute("aria-label", shown ? "비밀번호 보기" : "비밀번호 숨기기");
+      });
+    }
+  })();
+
+  // ------------------------------------------------------------------
+  // 사이트 컨텍스트 패널 접기
+  // 접힌 모습은 Figma 에 없다. 버튼만 남는 44 폭으로 줄인다(app-shell.css).
+  // ------------------------------------------------------------------
+  (function () {
+    var panel = document.getElementById("site-panel");
+    var button = document.querySelector("[data-panel-toggle]");
+    if (!panel || !button) {
+      return;
+    }
+
+    button.addEventListener("click", function () {
+      var collapsed = panel.classList.toggle("is-collapsed");
+      button.setAttribute("aria-expanded", collapsed ? "false" : "true");
+      button.setAttribute("aria-label", collapsed ? "사이트 패널 펼치기" : "사이트 패널 접기");
+    });
+  })();
+
+  // ------------------------------------------------------------------
+  // Status Bar 드롭다운 — Account · Signal
+  // Figma Account / Signal 컴포넌트의 Closed <-> Opened 를 클릭으로 전환한다.
+  // 한 번에 하나만 열리고, 바깥 클릭이나 Esc 로 닫힌다.
+  // ------------------------------------------------------------------
+  (function () {
+    var menus = Array.prototype.slice.call(document.querySelectorAll("[data-status-menu]"));
+    if (!menus.length) {
+      return;
+    }
+
+    function set(menu, open) {
+      var trigger = menu.querySelector("[data-menu-trigger]");
+      var dropdown = menu.querySelector(".dropdown-menu");
+      trigger.setAttribute("aria-expanded", open ? "true" : "false");
+      dropdown.hidden = !open;
+    }
+
+    function closeAll(except) {
+      menus.forEach(function (menu) {
+        if (menu !== except) {
+          set(menu, false);
+        }
+      });
+    }
+
+    menus.forEach(function (menu) {
+      var trigger = menu.querySelector("[data-menu-trigger]");
+
+      trigger.addEventListener("click", function (event) {
+        event.stopPropagation();
+        var open = trigger.getAttribute("aria-expanded") === "true";
+        closeAll(menu);
+        set(menu, !open);
+      });
+
+      menu.addEventListener("keydown", function (event) {
+        if (event.key === "Escape" && trigger.getAttribute("aria-expanded") === "true") {
+          set(menu, false);
+          trigger.focus();
+        }
+      });
+    });
+
+    document.addEventListener("click", function (event) {
+      var inside = menus.some(function (menu) {
+        return menu.contains(event.target);
+      });
+      if (!inside) {
+        closeAll(null);
+      }
+    });
+  })();
+
+  // ------------------------------------------------------------------
+  // 로봇 선택 모달 안쪽 — 카드 고르기 · 이름 거르기 (Figma 734:8981)
+  //
+  // 카드에 data-robot 을 안 쓴다. 그 이름은 우측 패널의 로봇 띠가 이미 쓰고 있어서
+  // 같이 붙이면 띠 선택이 모달 카드까지 집는다.
+  // ------------------------------------------------------------------
+  (function () {
+    var box = document.querySelector("[data-modal='robots']");
+    if (!box) {
+      return;
+    }
+
+    var picks = Array.prototype.slice.call(box.querySelectorAll("[data-robot-pick]"));
+
+    picks.forEach(function (card) {
+      card.addEventListener("click", function () {
+        if (card.hasAttribute("data-robot-offline")) { return; }
+        picks.forEach(function (other) {
+          other.setAttribute("aria-pressed", other === card ? "true" : "false");
+        });
+      });
+    });
+
+    // 모달과 우측 띠는 같은 열두 대를 본다 — 순번(0..11)이 같은 카드끼리 짝이다.
+    // 띠 카드는 data-robot, 모달 카드는 data-robot-pick 으로 이름만 다르다.
+    function panelCard(index) {
+      return document.querySelector(".robot-strip .robot-card[data-robot='" + index + "']");
+    }
+
+    // 열 때 띠에서 고른 것을 모달로 가져온다 — 안 그러면 늘 첫 장이 골라진 채로 열린다.
+    function syncFromPanel() {
+      var current = document.querySelector(".robot-strip .robot-card[aria-pressed='true']");
+      if (!current) { return; }
+      var index = current.getAttribute("data-robot");
+      picks.forEach(function (card) {
+        card.setAttribute("aria-pressed", card.getAttribute("data-robot-pick") === index ? "true" : "false");
+      });
+    }
+
+    var opener = document.querySelector("[data-robot-more]");
+    if (opener) {
+      opener.addEventListener("click", syncFromPanel);
+    }
+
+    // [선택] — 모달에서 고른 것을 띠에 그대로 옮긴다.
+    // 띠 카드를 직접 누른다. 선택 표시와 아래 타임라인 갱신을 그쪽이 이미 하고 있어서,
+    // 같은 일을 여기서 다시 짜면 두 곳이 갈라진다.
+    var confirmButton = box.querySelector("[data-modal-confirm]");
+    if (confirmButton) {
+      confirmButton.addEventListener("click", function () {
+        var picked = picks.filter(function (card) {
+          return card.getAttribute("aria-pressed") === "true";
+        })[0];
+        if (!picked) { return; }
+        var target = panelCard(picked.getAttribute("data-robot-pick"));
+        if (!target) { return; }
+        target.click();
+        // 고른 카드가 띠 밖에 있으면 보이는 자리로 끌어온다(셋만 보인다).
+        if (target.scrollIntoView) {
+          target.scrollIntoView({ block: "nearest", inline: "center" });
+        }
+      });
+    }
+
+    // 이름으로 거르기. 지금은 카드 이름이 모두 자리표시자("로봇명")라
+    // 다 남거나 다 사라지지만, 진짜 이름이 들어오면 그대로 걸린다.
+    var search = box.querySelector("[data-robot-search]");
+    var empty = box.querySelector("[data-robot-empty]");
+
+    if (search) {
+      search.addEventListener("input", function () {
+        var q = search.value.trim().toLowerCase();
+        var shown = 0;
+        picks.forEach(function (card) {
+          var name = card.querySelector(".robot-id");
+          var text = (name ? name.textContent : "").toLowerCase();
+          var hit = !q || text.indexOf(q) >= 0;
+          card.hidden = !hit;
+          if (hit) { shown += 1; }
+        });
+        if (empty) { empty.hidden = shown > 0; }
+      });
+    }
+  })();
+
+  // ------------------------------------------------------------------
+  // 모달 — Figma "Modal" 71:492
+  //
+  // 두 자리에서 뜬다. 문구만 다르고 짜임은 같다.
+  //   logout  계정 메뉴의 [로그아웃] — 타이머 있음(35s), 0 이 되면 그대로 나간다
+  //   estop   우측 패널의 [E-STOP]  — 타이머 없음
+  //
+  // 초점은 .app 에 inert 를 걸어 가둔다. 모달이 떠 있는 동안 뒤 화면은
+  // 탭으로도 스크린리더로도 닿지 않는다 — 직접 짠 탭 트랩보다 새는 구멍이 없다.
+  // ------------------------------------------------------------------
+  (function () {
+    var scrims = Array.prototype.slice.call(document.querySelectorAll("[data-modal]"));
+    if (!scrims.length) {
+      return;
+    }
+
+    var app = document.querySelector(".app");
+    var open = null;
+    var lastFocus = null;
+    var tick = null;
+
+    function stopTimer() {
+      if (tick) {
+        window.clearInterval(tick);
+        tick = null;
+      }
+    }
+
+    function close() {
+      if (!open) {
+        return;
+      }
+      stopTimer();
+      open.hidden = true;
+      open = null;
+      if (app) {
+        app.inert = false;
+      }
+      // 초점을 부른 자리로 돌린다. 계정 메뉴 항목처럼 그 사이 닫혀서 사라진
+      // 자리면 그 메뉴를 여는 칩으로 보낸다 — 안 보이는 곳에 초점을 두면
+      // 다음 탭이 화면 맨 앞에서 다시 시작한다.
+      var back = lastFocus;
+      if (back && back.offsetParent === null) {
+        var owner = back.closest ? back.closest("[data-status-menu]") : null;
+        back = owner ? owner.querySelector("[data-menu-trigger]") : null;
+      }
+      if (back && back.focus) {
+        back.focus();
+      }
+      lastFocus = null;
+    }
+
+    function confirm(scrim) {
+      var button = scrim.querySelector("[data-modal-confirm]");
+      var to = button ? button.getAttribute("data-modal-confirm") : "";
+      var then = button ? button.getAttribute("data-modal-then") : null;
+      close();
+
+      // 자동복귀는 모달 문구가 그대로 약속한 일을 한다 —
+      // "복귀 중에는 자동복귀 버튼이 비활성화됩니다".
+      if (then === "recall") {
+        var recall = document.querySelector("[data-recall-button]");
+        if (recall) { recall.disabled = true; }
+        document.dispatchEvent(new CustomEvent("aprism:recall"));
+      }
+
+      // 비상정지는 Delta 를 위험(critical)으로 넘긴다. 패널 쪽이 듣는다.
+      if (then === "estop") {
+        document.dispatchEvent(new CustomEvent("aprism:estop"));
+      }
+
+      /*
+       * 로그아웃 — 나가기 전에 로봇이 돌고 있었는지 적어 둔다.
+       * 다시 들어왔을 때 미션 설정부터 보여 주면 "내가 띄워 둔 미션은 어디 갔나" 가 된다.
+       * 로봇이 돌고 있었으면 로그인 뒤 바로 모니터링으로 돌아간다(auth.js 가 읽는다).
+       */
+      if (then === "logout" || /login\.html$/.test(to || "")) {
+        try { window.sessionStorage.setItem("aprism.running", runningRobots() > 0 ? "1" : "0"); }
+        catch (e) { /* 사파리 프라이빗 모드처럼 막힌 곳 — 기본 흐름으로 간다 */ }
+      }
+
+      // 관제사 교대 — 화면을 떠나지 않는다. 로봇 임무가 돌고 있기 때문이다.
+      // 상태바의 이름만 교대자로 바꾸고, Delta 가 인계 인사를 하게 알린다.
+      if (then === "shift") { handOver(scrim); }
+
+      // 갈 곳이 적혀 있으면 간다. E-STOP 처럼 비어 있으면 닫기만 한다 —
+      // 서버가 없는 퍼블리싱이라 "정지됨" 화면이 아직 없다.
+      if (to) {
+        window.location.href = to;
+      }
+    }
+
+    // 타이머 — Figma 는 "00s" 한 칸이다. 여기서는 실제로 줄어들게 두었다.
+    // 멈춘 숫자는 고장으로 읽힌다.
+    function startTimer(scrim) {
+      var el = scrim.querySelector("[data-modal-timer]");
+      if (!el) {
+        return;
+      }
+      var left = Number(el.getAttribute("data-modal-timer")) || 0;
+      el.textContent = left + "s";
+      tick = window.setInterval(function () {
+        left -= 1;
+        el.textContent = (left > 0 ? left : 0) + "s";
+        if (left <= 0) {
+          confirm(scrim);
+        }
+      }, 1000);
+    }
+
+    // 로그아웃 문구의 이름은 상태바 계정 칩에서 가져온다 —
+    // 같은 화면에 두 이름이 뜨면 누구의 세션인지가 흐려진다.
+    function fillUser(scrim) {
+      var slot = scrim.querySelector("[data-modal-user]");
+      var chip = document.querySelector(".account-chip");
+      if (!slot || !chip) {
+        return;
+      }
+      var parts = Array.prototype.slice.call(chip.querySelectorAll(".t-label-2"))
+        .map(function (el) { return el.textContent.trim(); })
+        .filter(function (t) { return t && t !== "|"; });
+      if (parts.length) {
+        slot.textContent = parts.join(" · ");
+      }
+    }
+
+    // E-STOP 모달 제목의 로봇 이름 — 지금 고른 로봇을 그대로 부른다.
+    // 이름이 카드에만 있어서(자리표시자다) 모달에 따로 적어 두지 않는다.
+    function fillRobot(scrim) {
+      var slot = scrim.querySelector("[data-modal-robot]");
+      var chosen = document.querySelector(".robot-strip .robot-card[aria-pressed='true']");
+      var label = chosen && chosen.querySelector(".robot-id");
+      if (!slot || !label) {
+        return;
+      }
+      var name = label.textContent.trim();
+      slot.textContent = name;
+
+      // 조사도 같이 바꾼다 — 이름이 숫자로 끝나서 읽는 소리에 받침이 있을 때가 있다.
+      // 01(일) · 03(삼) · 06(육) · 07(칠) · 08(팔) · 00(영) 은 받침이 있어 "을",
+      // 02(이) · 04(사) · 05(오) · 09(구) 는 없어서 "를" 이다.
+      var particle = scrim.querySelector("[data-modal-particle]");
+      if (particle) {
+        var last = name.slice(-1);
+        particle.textContent = "2459".indexOf(last) >= 0 ? "를" : "을";
+      }
+    }
+
+    function show(name) {
+      var scrim = scrims.filter(function (s) { return s.getAttribute("data-modal") === name; })[0];
+      if (!scrim || open) {
+        return;
+      }
+      lastFocus = document.activeElement;
+      // 계정 메뉴에서 부른 경우 그 메뉴를 접는다 — scrim 뒤에 열린 채로 남으면
+      // 모달을 닫았을 때 메뉴가 다시 나타난다.
+      Array.prototype.slice.call(document.querySelectorAll("[data-menu-trigger]"))
+        .forEach(function (trigger) {
+          if (trigger.getAttribute("aria-expanded") !== "true") { return; }
+          trigger.setAttribute("aria-expanded", "false");
+          var owner = trigger.closest("[data-status-menu]");
+          var dropdown = owner && owner.querySelector(".dropdown-menu");
+          if (dropdown) { dropdown.hidden = true; }
+        });
+      fillUser(scrim);
+      fillRobot(scrim);
+      scrim.hidden = false;
+      open = scrim;
+      if (app) {
+        app.inert = true;
+      }
+      var first = scrim.querySelector("[data-modal-dismiss]:not(.modal-close)") ||
+                  scrim.querySelector("[data-modal-dismiss]");
+      if (first) {
+        first.focus();
+      }
+      startTimer(scrim);
+    }
+
+    Array.prototype.slice.call(document.querySelectorAll("[data-modal-open]"))
+      .forEach(function (trigger) {
+        trigger.addEventListener("click", function (event) {
+          event.preventDefault();
+          show(trigger.getAttribute("data-modal-open"));
+        });
+      });
+
+    scrims.forEach(function (scrim) {
+      Array.prototype.slice.call(scrim.querySelectorAll("[data-modal-dismiss]"))
+        .forEach(function (b) { b.addEventListener("click", close); });
+
+      var go = scrim.querySelector("[data-modal-confirm]");
+      if (go) {
+        go.addEventListener("click", function () { confirm(scrim); });
+      }
+
+      // 바탕을 누르면 닫는다. 카드 안쪽 클릭은 여기까지 안 온다.
+      scrim.addEventListener("click", function (event) {
+        if (event.target === scrim) {
+          close();
+        }
+      });
+    });
+
+    document.addEventListener("keydown", function (event) {
+      if (event.key === "Escape" && open) {
+        close();
+      }
+    });
+  })();
+
+  // ------------------------------------------------------------------
+  // 로봇 선택 -> 아래 waypoint 목록이 바뀐다
+  //
+  // Figma 에는 타임라인이 하나뿐이라 나머지 두 대의 내용은 여기서 지었다.
+  // 문구는 Figma 와 같은 자리표시자(waypoint name)를 그대로 쓴다.
+  // 진행률은 steps 에서 계산한다 — Figma 의 "3 / 5"·"00%" 는 서로 맞지 않는 값이었다.
+  // ------------------------------------------------------------------
+  // v4 지도 경로 표현(body[data-route-rules] — main-v3.html 만) — Robot 11 의 웨이포인트 20칸 더미 데이터를 쓴다
+  var V4_RR = document.body.hasAttribute("data-route-rules");
+  var ROBOTS = [
+    {
+      // State=Running · 78% · Strong
+      // 진행 막대 제목 — 임시 문구다(Figma 는 자리표시자 "현재 수행명"). 지금 도는 칸(WP-04)의 일이다.
+      // 전체 미션명(패널 머리)과 지금 하는 일(current) 은 다른 말이다.
+      mission: "지하 4층 정기 순회 점검",
+      current: "N₂ 배관 압력 점검",
+      steps: [
+        {
+          title: "FFU-01 토출구", state: "done", time: "09:12 – 09:31", duration: "19분",
+          result: "safe", read: "온도 61.8℃ · 진동 1.9 mm/s"
+        },
+        {
+          title: "HEPA Filter 차압계", state: "done", time: "09:31 – 09:52", duration: "21분",
+          result: "caution", read: "온도 74.2℃ · 진동 3.4 mm/s"
+        },
+        {
+          title: "냉각수 배관 밸브", state: "done", time: "09:52 – 10:08", duration: "16분",
+          result: "safe", read: "온도 63.1℃ · 진동 2.0 mm/s"
+        },
+        {
+          title: "N₂ 배관 압력계",
+          // act — 진행 막대에 뜨는 "지금 하는 일". 칸 이름(설비명)과는 다른 말이다.
+          act: "N₂ 배관 압력계 판독",
+          state: "running",
+          time: "10:08 – 10:24",
+          duration: "16분",
+          // 지도 쪽지 본문 — 제목이 압력계로 바뀌어 냉각수 · 베어링 문구와 맞지 않게 됐다.
+          measuring: "압력 · 정상 범위 대비 편차",
+          desc: "압력계 표시값을 자동 판독하고, 정상 운전범위 대비 압력 편차와 변화 추이를 확인합니다."
+        },
+        { title: "waypoint name", state: "pending" },
+        { title: "waypoint name", state: "pending" },
+        { title: "waypoint name", state: "pending" }
+      ]
+    },
+    {
+      // State=Returning · 18% · Weak — 미션을 마치고 복귀 중이다
+      // 10/20 디자이너 — 미션 하나에 로봇 한 대. 정기 순회 점검은 Robot 01 만 남기고 Robot 02 는 배정 없음.
+      mission: "배정된 미션 없음",
+      current: "복귀 중",
+      steps: [
+        { title: "waypoint name", state: "done", time: "08:40 – 08:58", duration: "18분",
+          result: "safe", read: "온도 58.9℃ · 진동 1.4 mm/s" },
+        { title: "waypoint name", state: "done", time: "08:58 – 09:14", duration: "16분",
+          result: "danger", read: "온도 91.6℃ · 진동 6.8 mm/s" },
+        { title: "waypoint name", state: "done", time: "09:14 – 09:37", duration: "23분",
+          result: "caution", read: "온도 72.0℃ · 진동 3.1 mm/s" },
+        { title: "waypoint name", state: "done", time: "09:37 – 09:55", duration: "18분",
+          result: "safe", read: "온도 60.4℃ · 진동 1.7 mm/s" },
+        { title: "waypoint name", state: "done", time: "09:55 – 10:11", duration: "16분",
+          result: "safe", read: "온도 59.2℃ · 진동 1.5 mm/s" }
+      ]
+    },
+    {
+      // State=Idle · 35% · Good — 아직 시작하지 않았다
+      mission: "배정된 미션 없음",
+      current: "대기 중",
+      steps: [
+        { title: "waypoint name", state: "pending" },
+        { title: "waypoint name", state: "pending" },
+        { title: "waypoint name", state: "pending" },
+        { title: "waypoint name", state: "pending" }
+      ]
+    },
+    {
+      // 4 · 완료 · 92% · Strong — 끝까지 돌고 돌아왔다
+      mission: "지하 4층 야간 순회 점검",
+      current: "순회 완료",
+      steps: [
+        { title: "waypoint name", state: "done", time: "07:20 – 07:38", duration: "18분" },
+        { title: "waypoint name", state: "done", time: "07:38 – 07:59", duration: "21분" },
+        { title: "waypoint name", state: "done", time: "07:59 – 08:14", duration: "15분" },
+        { title: "waypoint name", state: "done", time: "08:14 – 08:33", duration: "19분" },
+        { title: "waypoint name", state: "done", time: "08:33 – 08:47", duration: "14분" },
+        { title: "waypoint name", state: "done", time: "08:47 – 09:06", duration: "19분" }
+      ]
+    },
+    {
+      // 5 · 수행중 · 64% · Good — B3(WP-01~12)를 돌고 계단으로 내려와 B4 를 도는 중(14/20, 10/20 디자이너).
+      //   B3 · B4 를 둘 다 지나는 경로 예시 — 예전 정기 순회 점검 Robot 02 의 길(map.js crossLane)을 넘겨받았다.
+      mission: "지하 3층 발전기실 설비 점검",
+      current: "발전기 베어링 진동 측정",
+      steps: [
+        { title: "waypoint name", state: "done", time: "07:28 – 07:41", duration: "13분" },
+        { title: "waypoint name", state: "done", time: "07:41 – 07:55", duration: "14분",
+          result: "caution", read: "온도 68.4℃ · 진동 2.1 mm/s" },
+        { title: "waypoint name", state: "done", time: "07:55 – 08:09", duration: "14분" },
+        { title: "waypoint name", state: "done", time: "08:09 – 08:22", duration: "13분" },
+        { title: "waypoint name", state: "done", time: "08:22 – 08:37", duration: "15분" },
+        { title: "waypoint name", state: "done", time: "08:37 – 08:50", duration: "13분",
+          result: "caution", read: "이상 점수 9.41 · PRPD 코로나" },
+        { title: "waypoint name", state: "done", time: "08:50 – 09:03", duration: "13분" },
+        { title: "waypoint name", state: "done", time: "09:03 – 09:17", duration: "14분" },
+        { title: "waypoint name", state: "done", time: "09:17 – 09:30", duration: "13분" },
+        { title: "waypoint name", state: "done", time: "09:30 – 09:44", duration: "14분" },
+        { title: "waypoint name", state: "done", time: "09:44 – 09:57", duration: "13분" },
+        { title: "waypoint name", state: "done", time: "09:57 – 10:10", duration: "13분",
+          result: "caution", read: "진동 4.8 mm/s · 상승 추세" },
+        { title: "waypoint name", state: "done", time: "10:10 – 10:22", duration: "12분",
+          result: "caution", read: "토출 7.9 bar · 정상 8.2~8.8" },
+        {
+          title: "Generator Bearing Vibration",
+          act: "발전기 베어링 진동 측정",
+          state: "running",
+          time: "10:22 – 10:36",
+          duration: "14분",
+          desc: "진동 스펙트럼을 모으는 중. 기준 대비 과대치를 찾습니다."
+        }
+      ]
+    },
+    {
+      // 6 · 대기 · 8% 충전 · Weak — 배터리가 바닥이라 못 나간다
+      mission: "배정된 미션 없음",
+      current: "충전 중",
+      steps: [
+        { title: "waypoint name", state: "pending" },
+        { title: "waypoint name", state: "pending" },
+        { title: "waypoint name", state: "pending" }
+      ]
+    },
+    {
+      // 7 · 완료 · 96% 충전 · Strong — 도킹에서 다음 미션을 기다린다
+      mission: "지하 3층 공조 설비 순회",
+      current: "순회 완료",
+      steps: [
+        { title: "waypoint name", state: "done", time: "06:05 – 06:24", duration: "19분" },
+        { title: "waypoint name", state: "done", time: "06:24 – 06:41", duration: "17분" },
+        { title: "waypoint name", state: "done", time: "06:41 – 07:02", duration: "21분" },
+        { title: "waypoint name", state: "done", time: "07:02 – 07:16", duration: "14분" }
+      ]
+    },
+    {
+      // 8 · 대기 · 47% · Good — 불러온 미션이 있고 시작 전이다
+      mission: "배정된 미션 없음",
+      current: "대기 중",
+      steps: [
+        { title: "waypoint name", state: "pending" },
+        { title: "waypoint name", state: "pending" },
+        { title: "waypoint name", state: "pending" },
+        { title: "waypoint name", state: "pending" },
+        { title: "waypoint name", state: "pending" }
+      ]
+    },
+    {
+      // 9 · 완료 · 88% · Strong
+      mission: "지하 4층 유틸리티 순회",
+      current: "순회 완료",
+      steps: [
+        { title: "waypoint name", state: "done", time: "05:10 – 05:29", duration: "19분" },
+        { title: "waypoint name", state: "done", time: "05:29 – 05:46", duration: "17분" },
+        { title: "waypoint name", state: "done", time: "05:46 – 06:03", duration: "17분" },
+        { title: "waypoint name", state: "done", time: "06:03 – 06:20", duration: "17분" },
+        { title: "waypoint name", state: "done", time: "06:20 – 06:41", duration: "21분" }
+      ]
+    },
+    {
+      // 10 · 대기 · 29% · Weak — 신호가 약해 보내지 못한다
+      mission: "배정된 미션 없음",
+      current: "대기 중",
+      steps: [
+        { title: "waypoint name", state: "pending" },
+        { title: "waypoint name", state: "pending" },
+        { title: "waypoint name", state: "pending" },
+        { title: "waypoint name", state: "pending" },
+        { title: "waypoint name", state: "pending" },
+        { title: "waypoint name", state: "pending" }
+      ]
+    },
+    {
+      // 11 · 수행중 · 71% · Strong — 막바지에 가까워졌다
+      // 10/20 디자이너 — 걸어가는 로봇 예시. WP-03 을 마치고 WP-04 로 이동 중이라 붙든 칸이 없다(로봇 3D 는 걷기).
+      mission: "지하 3층 전기실 열화상 점검",
+      // v4 — 지도 경로 표현(10/22 전달서) 더미: 09:12 출발, 14:15 도킹 스테이션 복귀. 1~7 완료, 8 진행중, 9~20 진행전.
+      current: V4_RR ? "WP-08 케미컬 공급 캐비닛 CDS-02 판독" : "WP-04 로 이동 중",
+      steps: V4_RR ? [
+        { title: "FFU-01 토출구", state: "done", time: "09:12 – 09:31", duration: "19분", desc: "토출 풍속과 필터 표면 오염 여부를 확인한다." },
+        { title: "HEPA Filter 차압계", state: "done", time: "09:31 – 09:52", duration: "21분", desc: "차압계 표시값을 자동으로 판독하고, 교체 기준 대비 차압 상승을 확인한다." },
+        { title: "냉각수 배관 밸브", state: "done", time: "09:52 – 10:08", duration: "16분", desc: "밸브 개폐 상태와 연결부 누수 흔적을 확인한다." },
+        { title: "N₂ 배관 압력계", state: "done", time: "10:08 – 10:24", duration: "16분", desc: "압력계 표시값을 자동으로 판독하고, 정상 운전범위 대비 압력 편차와 변화 추이를 확인한다." },
+        { title: "CDA 메인 레귤레이터", state: "done", time: "10:24 – 10:37", duration: "13분", desc: "2차 압력 설정값과 실제 출력값의 차이를 확인한다." },
+        { title: "배기 덕트 댐퍼", state: "done", time: "10:37 – 10:55", duration: "18분", desc: "댐퍼 개도 위치와 덕트 연결부 이격 여부를 확인한다." },
+        { title: "PCW 공급 유량계", state: "done", time: "10:55 – 11:09", duration: "14분", desc: "유량계 표시값을 판독하고, 설정 유량 대비 편차를 확인한다." },
+        { title: "케미컬 공급 캐비닛 CDS-02", state: "running", time: "11:09 – 11:26", duration: "17분", desc: "누액 센서 상태와 배관 연결부 온도를 열화상으로 확인하고, 캐비닛 내부 온도 편차를 점검한다." },
+        { title: "FFU-02 토출구", state: "pending", time: "11:26 – 11:40", duration: "14분", desc: "토출 풍속과 필터 표면 오염 여부를 확인한다." },
+        { title: "클린룸 파티클 카운터", state: "pending", time: "11:40 – 11:55", duration: "15분", desc: "구역별 파티클 농도를 측정하고, 청정도 등급 기준 초과 여부를 확인한다." },
+        { title: "UPW 공급 밸브", state: "pending", time: "11:55 – 12:08", duration: "13분", desc: "밸브 개폐 상태와 비저항 표시값을 확인한다." },
+        { title: "스크러버 배기 압력계", state: "pending", time: "12:08 – 12:24", duration: "16분", desc: "배기 압력을 판독하고, 정상 범위 대비 음압 유지 여부를 확인한다." },
+        { title: "가스 캐비닛 GC-03", state: "pending", time: "12:24 – 12:41", duration: "17분", desc: "가스 누출 감지기 상태와 실린더 압력 잔량을 확인한다." },
+        { title: "항온항습기 AHU-01", state: "pending", time: "12:41 – 12:59", duration: "18분", desc: "공급 온도와 습도가 설정값을 유지하는지 확인한다." },
+        { title: "진공 펌프 VP-04", state: "pending", time: "12:59 – 13:13", duration: "14분", desc: "펌프 표면 온도와 이상 진동 여부를 확인한다." },
+        { title: "분전반 MCC-02", state: "pending", time: "13:13 – 13:30", duration: "17분", desc: "차단기 단자부 발열을 열화상으로 확인한다." },
+        { title: "비상 샤워기", state: "pending", time: "13:30 – 13:39", duration: "9분", desc: "주변 적치물과 접근 동선 확보 상태를 확인한다." },
+        { title: "소화 설비 감지기", state: "pending", time: "13:39 – 13:52", duration: "13분", desc: "감지기 표시등 상태와 외관 손상 여부를 확인한다." },
+        { title: "FFU-03 토출구", state: "pending", time: "13:52 – 14:06", duration: "14분", desc: "토출 풍속과 필터 표면 오염 여부를 확인한다." },
+        { title: "도킹 스테이션 복귀", state: "pending", time: "14:06 – 14:15", duration: "9분", desc: "충전 위치로 복귀하고 점검 결과를 업로드한다." }
+      ] : [
+        { title: "waypoint name", state: "done", time: "09:40 – 09:58", duration: "18분" },
+        { title: "waypoint name", state: "done", time: "09:58 – 10:12", duration: "14분" },
+        { title: "waypoint name", state: "done", time: "10:12 – 10:29", duration: "17분" },
+        {
+          title: "Switchgear Room Thermal Scan",
+          act: "배전반 발열 스캔",
+          state: "pending",
+          desc: "배전반 발열을 훑습니다. 기준보다 높은 지점을 표시합니다."
+        },
+        { title: "waypoint name", state: "pending" }
+      ]
+    },
+    {
+      // 12 · 대기 · 55% 충전 · Good
+      mission: "배정된 미션 없음",
+      current: "충전 중",
+      steps: [
+        { title: "waypoint name", state: "pending" },
+        { title: "waypoint name", state: "pending" },
+        { title: "waypoint name", state: "pending" },
+        { title: "waypoint name", state: "pending" }
+      ]
+    }
+  ];
+
+  /*
+   * v2.2 — 미션은 층에 속하지 않는다(10/19 디자이너). 미션 하나가 B3 를 돌고 B4 로 내려갈 수 있다.
+   * 그래서 v2.2 에서는 이름에서 "지하 N층" 을 떼고, 지나는 층을 차례대로 따로 든다.
+   * 예전 판(v2 · v2.1)은 클라이언트가 본 판이라 이름을 그대로 둔다 — 이 파일을 같이 쓴다.
+   *   APRISM_MISSION_FLOORS  미션 → 지나는 층(차례)
+   *   APRISM_ROBOT_FLOORS    로봇(data-robot) → 지금 선 층. 실데이터가 붙기 전 임시 값이다.
+   */
+  if (document.body.classList.contains("v2-2")) {
+    ROBOTS.forEach(function (r) { if (r.mission) { r.mission = r.mission.replace(/^지하\s*\d+층\s+/, ""); } });
+    window.APRISM_MISSION_FLOORS = {
+      "정기 순회 점검": ["B4"],
+      "야간 순회 점검": ["B4"],
+      "발전기실 설비 점검": ["B3", "B4"],
+      "공조 설비 순회": ["B3"],
+      "유틸리티 순회": ["B4"],
+      "전기실 열화상 점검": ["B3"]
+    };
+    // Robot 05 는 B3(WP-01~12)를 돌고 계단으로 내려와 B4(WP-13~20)를 도는 중이다(map.js crossLane, 10/20).
+    window.APRISM_ROBOT_FLOORS = ["B4", "B4", "B4", "B4", "B4", "B4", "B3", "B3", "B4", "B3", "B3", "B3"];
+  }
+
+  /*
+   * [11/03 v6] 대기 미션 — 미션은 다른 곳(스케줄러 · 미션 관리)에서 이미 만들어져 있고, 미션 설정은 "실행 전 미션"을 설정하는 화면이다(디자이너).
+   * 탭에서 대기 미션을 누르면 그 미션의 설정으로 간다(mission-done-v6.js). 데모용 대기 미션 둘 — 이름은 임시(11/03).
+   *   Robot 03(대기 · 35%) → 소방 설비 점검 · Robot 08(대기 · 47%, "불러온 미션이 있고 시작 전") → 주간 설비 점검
+   */
+  if (document.body.classList.contains("ver-6")) {
+    ROBOTS[2].mission = "소방 설비 점검";
+    ROBOTS[7].mission = "주간 설비 점검";
+    if (window.APRISM_MISSION_FLOORS) {
+      window.APRISM_MISSION_FLOORS["소방 설비 점검"] = ["B4"];
+      window.APRISM_MISSION_FLOORS["주간 설비 점검"] = ["B3"];
+    }
+  }
+
+  // 로봇마다 맡은 미션 이름(순번 = data-robot). 미션이 없으면 null.
+  // v2.2 의 미션 범위(mission-scope.js) · 알림 묶기(monitor.js)가 읽는다.
+  window.APRISM_ROBOT_MISSIONS = ROBOTS.map(function (r) {
+    return r.mission && r.mission !== "배정된 미션 없음" ? r.mission : null;
+  });
+
+  /*
+   * 목록을 스무 칸으로 채운다. Figma 의 "3 / 17" 언저리이고, 이만큼 있어야
+   * 목록 스크롤과 진행 막대의 칸 나눔이 실제 길이로 보인다.
+   *
+   * 지어낸 칸은 마지막 칸의 상태를 이어 간다 — 아직 도는 중이면 대기 칸을,
+   * 이미 다 돈 미션이면 완료 칸을 붙인다. "복귀 중"·"순회 완료" 로봇에 대기 칸을
+   * 붙이면 카드에 적힌 상태와 어긋나기 때문이다.
+   * 완료 칸의 시각은 앞 칸이 끝난 시각에서 이어 붙인다.
+   */
+  var WP_TOTAL = 20;
+  // v4 — 상태 시뮬레이션 막대(route-sim.js)의 [지점 60개] 시험
+  if (V4_RR) { try { if (localStorage.getItem("rr-wp-total") === "60") { WP_TOTAL = 60; } } catch (e) { } }
+  var WP_SPANS = [17, 14, 21, 16, 19, 15, 18, 22, 13, 20];
+
+  function clockAt(mins) {
+    mins = ((mins % 1440) + 1440) % 1440;
+    var h = Math.floor(mins / 60), m = mins % 60;
+    return (h < 10 ? "0" : "") + h + ":" + (m < 10 ? "0" : "") + m;
+  }
+
+  function padSteps(steps, total) {
+    var out = steps.slice();
+    var last = out[out.length - 1];
+    var grow = last && last.state === "done" ? "done" : "pending";
+
+    var clock = 0;
+    if (grow === "done" && last.time) {
+      var end = last.time.split("–")[1].trim().split(":");
+      clock = (+end[0]) * 60 + (+end[1]);
+    }
+
+    for (var i = 0; out.length < total; i += 1) {
+      if (grow === "pending") {
+        out.push({ title: "waypoint name", state: "pending" });
+        continue;
+      }
+      var span = WP_SPANS[i % WP_SPANS.length];
+      out.push({
+        title: "waypoint name", state: "done",
+        time: clockAt(clock) + " – " + clockAt(clock + span), duration: span + "분"
+      });
+      clock += span;
+    }
+    return out;
+  }
+
+  // v5(10/30) — 정기 순회 점검(Robot 01)은 관제 지도(route-sim)처럼 WP-01~07 을 마치고 WP-08 로 가는 중.
+  //   안전진단(safety.js) · 관제 알림(monitor.js) · 통합 순회 현황(building.js)이 이 이름 · 시각으로 맞춰져 있다(알림 시각이 그 칸 안에 든다).
+  if (document.body.classList.contains("ver-5")) {
+    var r01 = ROBOTS[0];
+    r01.current = "WP-08 로 이동 중";
+    r01.steps = r01.steps.slice(0, 3).concat([
+      { title: "N₂ 배관 압력계", state: "done", time: "10:11 – 10:13", duration: "2분", read: "압력 0.86 MPa" },
+      { title: "냉각 펌프 P-2", state: "done", time: "10:13 – 10:15", duration: "2분", read: "이상 점수 20.4 · 최고 48.6℃" },
+      { title: "수배전반 MCC-1", state: "done", time: "10:15 – 10:16", duration: "1분", read: "CH1 이상 점수 9.05" },
+      { title: "고소 작업 발판", state: "done", time: "10:16 – 10:18", duration: "2분", read: "안전벨트 미착용 1명" },
+      { title: "냉각수 열교환기 HX-1", act: "열교환기 출구 온도 측정", state: "running" }
+    ]);
+    r01.steps[2].time = "09:52 – 10:11"; r01.steps[2].duration = "19분";
+    // 지도 쪽지의 측정 요약 — 안전진단 표(E_ROWS0)의 값과 같게. 판정 색은 알림 목록이 덮는다(monitor.js markWaypoints)
+    r01.steps[0].read = "온도 29.8℃ · 이상음향 8.2"; r01.steps[0].result = "safe";
+    r01.steps[1].read = "온도 31.4℃ · 압력 0.71 MPa"; r01.steps[1].result = "safe";
+    r01.steps[2].read = "누출 의심도 62% · 온도 30.2℃"; r01.steps[2].result = "caution";
+  }
+
+  ROBOTS.forEach(function (robot) {
+    robot.steps = padSteps(robot.steps, WP_TOTAL).slice(0, WP_TOTAL);
+  });
+
+  /*
+   * 로봇 상세 Drawer 의 값 — Figma "Drawer / 로봇 상세" 778:11895.
+   *
+   * 여기 적은 것은 카드에서 읽을 수 없는 것들뿐이다.
+   * 상태 · 배터리 · 신호는 카드 DOM 에서 그대로 읽는다 — 정의서 3번이
+   * "Drawer 값은 로봇 실시간 상태를 그대로 표시" 라, 같은 값을 두 곳에
+   * 적어 두면 언젠가 어긋난다. 한 곳(카드)만 고치면 Drawer 도 따라온다.
+   *
+   * 자리 · 시각 · 이벤트는 Figma 의 자리표시자를 본떠 지었다(서버가 없다).
+   * dbm 은 신호 등급과 짝이 맞게 골랐다 — Strong ≥ −55, Good ≥ −67, Weak < −70.
+   */
+  var DETAILS = [
+    {
+      where: "터빈 2 / Unit 01 · SPOT-DD-0206 · 192.168.10.59",
+      dbm: -47, last: "10:24:02 (방금)", odom: "X 41.2 / Y 18.6", dock: "DOCK_Station_01",
+      events: [
+        { text: "터빈2 순회 미션 시작", time: "10:04" },
+        { text: "Spiral Casing 판독 완료", time: "09:52" },
+        { text: "도킹 해제 · 자율주행 전환", time: "09:12" }
+      ]
+    },
+    {
+      // Figma 에 그려진 그 로봇이다 — 알림 문구도 컴포넌트 값 그대로 옮겼다.
+      where: "터빈 2 / Unit 03 · SPOT-DD-0209 · 192.168.10.62",
+      dbm: -78, last: "10:22:41 (2분 전)", odom: "X 12.8 / Y 44.1", dock: "DOCK_Station_02",
+      notice: {
+        title: "통신 불안정",
+        desc: "RSSI −78dBm. 10:18부터 3회 재접속했습니다. 통신을 점검하기 전에는 새 미션을 배정할 수 없습니다."
+      },
+      events: [
+        { text: "재접속 3회 실패 · RSSI −78", time: "10:22", tone: "warning" },
+        { text: "신호 약함 감지 · 미션 일시정지", time: "10:18", tone: "warning" },
+        { text: "터빈2 순회 미션 시작", time: "10:04" }
+      ]
+    },
+    {
+      where: "터빈 3 / Unit 02 · SPOT-DD-0211 · 192.168.10.64",
+      dbm: -58, last: "10:23:19 (1분 전)", odom: "X 63.5 / Y 07.4", dock: "DOCK_Station_02",
+      events: [
+        { text: "충전 시작 · 35%", time: "10:11" },
+        { text: "도킹 완료", time: "10:09" }
+      ]
+    },
+    {
+      where: "터빈 1 / Unit 04 · SPOT-DD-0203 · 192.168.10.55",
+      dbm: -51, last: "10:23:47 (1분 전)", odom: "X 08.1 / Y 22.9", dock: "DOCK_Station_01",
+      events: [
+        { text: "순회 6구간 완료 · 이상 없음", time: "09:06" },
+        { text: "터빈1 순회 미션 시작", time: "07:20" }
+      ]
+    },
+    {
+      where: "터빈 3 / Unit 01 · SPOT-DD-0214 · 192.168.10.67",
+      dbm: -61, last: "10:24:05 (방금)", odom: "X 27.6 / Y 51.3", dock: "DOCK_Station_03",
+      events: [
+        { text: "Generator Bearing 진동 수집 중", time: "10:17" },
+        { text: "터빈3 순회 미션 시작", time: "10:02" }
+      ]
+    },
+    {
+      where: "터빈 4 / Unit 02 · SPOT-DD-0216 · 192.168.10.69",
+      dbm: -74, last: "10:21:58 (3분 전)", odom: "X 55.0 / Y 33.7", dock: "DOCK_Station_03",
+      notice: {
+        title: "배터리 부족",
+        desc: "잔량 8%. 충전이 끝날 때까지 미션을 배정할 수 없습니다."
+      },
+      events: [
+        { text: "저전압 경고 · 8%", time: "10:12", tone: "warning" },
+        { text: "충전 시작", time: "10:10" },
+        { text: "긴급 복귀 · 도킹", time: "10:07" }
+      ]
+    },
+    {
+      where: "터빈 1 / Unit 02 · SPOT-DD-0201 · 192.168.10.53",
+      dbm: -49, last: "10:23:52 (방금)", odom: "X 03.4 / Y 11.2", dock: "DOCK_Station_01",
+      events: [
+        { text: "충전 96% · 대기 전환", time: "09:41" },
+        { text: "순회 4구간 완료", time: "07:16" }
+      ]
+    },
+    {
+      where: "터빈 2 / Unit 05 · SPOT-DD-0210 · 192.168.10.63",
+      dbm: -63, last: "10:23:30 (1분 전)", odom: "X 38.9 / Y 26.5", dock: "DOCK_Station_02",
+      events: [
+        { text: "미션 배정 대기", time: "10:15" },
+        { text: "자가 점검 통과", time: "10:13" }
+      ]
+    },
+    {
+      where: "터빈 3 / Unit 04 · SPOT-DD-0215 · 192.168.10.68",
+      dbm: -53, last: "10:24:00 (방금)", odom: "X 71.2 / Y 48.0", dock: "DOCK_Station_03",
+      events: [
+        { text: "순회 5구간 완료 · 이상 없음", time: "06:03" },
+        { text: "터빈3 순회 미션 시작", time: "05:10" }
+      ]
+    },
+    {
+      // 연결이 끊긴 로봇 — 정의서 1·2번의 예외가 걸리는 자리다.
+      where: "터빈 4 / Unit 05 · SPOT-DD-0218 · 192.168.10.71",
+      dbm: null, last: "09:58:12 (26분 전)", odom: "X 84.7 / Y 19.3", dock: "DOCK_Station_04",
+      events: [
+        { text: "연결 끊김 · 응답 없음", time: "09:58", tone: "critical" },
+        { text: "재접속 5회 실패", time: "09:56", tone: "warning" },
+        { text: "신호 약함 감지", time: "09:47", tone: "warning" }
+      ]
+    },
+    {
+      where: "터빈 1 / Unit 01 · SPOT-DD-0200 · 192.168.10.52",
+      dbm: -45, last: "10:24:07 (방금)", odom: "X 19.5 / Y 05.8", dock: "DOCK_Station_01",
+      events: [
+        { text: "Switchgear Room 열화상 촬영 중", time: "10:19" },
+        { text: "터빈1 순회 미션 시작", time: "10:06" }
+      ]
+    },
+    {
+      where: "터빈 4 / Unit 01 · SPOT-DD-0217 · 192.168.10.70",
+      dbm: -60, last: "10:23:41 (1분 전)", odom: "X 47.3 / Y 60.1", dock: "DOCK_Station_04",
+      events: [
+        { text: "충전 시작 · 55%", time: "10:20" },
+        { text: "도킹 완료", time: "10:18" }
+      ]
+    }
+  ];
+
+  // 상태 배지는 Figma 에서 사라졌다 — 레일 표식과 카드 면이 그 역할을 한다.
+  var STATE = {
+    done: { klass: "is-done", icon: "var(--ic-check-circle)" },
+    running: { klass: "is-running", icon: "var(--ic-play-circle)" },
+    pending: { klass: "is-pending", icon: null }
+  };
+
+  function el(tag, klass, text) {
+    var node = document.createElement(tag);
+    if (klass) {
+      node.className = klass;
+    }
+    if (text !== undefined) {
+      node.textContent = text;
+    }
+    return node;
+  }
+
+  /*
+   * 점선 레일의 마디를 이어 붙인다.
+   *
+   * 점선은 .rail-line 마다 따로 그려지고(무늬는 CSS mask 다 — app-shell.css 참고),
+   * 무늬(점 2 · 빈 6 · 주기 8)가 요소 맨 위에서 다시 시작한다. 칸 높이가 8 의 배수가
+   * 아니라서 — 화면에서 재 보니 대기 칸이 84, 수행 칸이 82 다 — 칸이 바뀔 때마다 리듬이 깨진다.
+   *   84 = 8*10 + 4  ->  점이 2px 남고 다음 칸이 곧바로 점을 찍어 사이가 6 이 아니라 2 가 된다
+   *   82 = 8*10 + 2  ->  점끼리 붙어 4px 짜리 긴 점이 된다
+   *
+   * CSS 만으로는 못 고친다. 앞 칸이 얼마나 높은지를 뒤 칸이 알 방법이 없다.
+   * 그래서 첫 점선을 기준으로 삼고, 그 아래 선들은 내려온 거리만큼 무늬를 밀어 준다.
+   * 첫 점선은 안 민다 — 표식 바로 밑이 잘린 점으로 시작하면 그게 더 눈에 띈다.
+   */
+  var RAIL_DASH = 8;
+
+  function phaseRails(timeline) {
+    var lines = Array.prototype.slice.call(
+      timeline.querySelectorAll(".is-running .rail-line, .is-pending .rail-line")
+    );
+    if (!lines.length) { return; }
+    // 스크롤을 걷어낸 내용 좌표계로 옮긴다.
+    var base = timeline.getBoundingClientRect().top - timeline.scrollTop;
+    var origin = null;
+    lines.forEach(function (line) {
+      var y = line.getBoundingClientRect().top - base;
+      if (origin === null) { origin = y; }
+      var shift = (y - origin) % RAIL_DASH;
+      var pos = "0 " + (-shift).toFixed(2) + "px";
+      // background-position 이 아니라 mask-position 이다 — 무늬는 mask 로 도려낸다.
+      line.style.maskPosition = pos;
+      line.style.webkitMaskPosition = pos;
+    });
+  }
+
+  /*
+   * 웨이포인트 상태는 둘로 나눠 들고 있는다.
+   *
+   *   진행 상태  completed · current · upcoming — 미션이 정하는 것이다
+   *   고른 상태  selected — 사람이 들여다보려고 짚은 것이다
+   *
+   * 둘을 한 자리에 두면 로봇이 다음 칸으로 넘어갈 때 사람이 보던 칸이 튕겨 나간다.
+   * 그래서 currentWaypointId 와 selectedWaypointId 를 따로 둔다.
+   */
+  var WP_STATE = { done: "completed", running: "current", pending: "upcoming" };
+
+  // 미션 하나 안에서만 쓰는 이름이라 순번으로 충분하다. 지도와 목록이 이 값을 나눠 쓴다.
+  function wpId(index) {
+    return "WP-" + (index + 1 < 10 ? "0" : "") + (index + 1);
+  }
+
+  /*
+   * 남은 시간 — 진행 막대 아래 왼쪽.
+   *
+   * 관제사가 그 자리에서 묻는 것은 "얼마나 했나" 가 아니라 "언제 끝나나" 다.
+   * 얼마나 했나는 백분율 · 지나온 수 · 타임라인이 이미 세 번 말한다.
+   *
+   * 아직 안 지난 칸들의 예상 소요를 더한다. 소요가 안 적힌 칸은 적힌 칸들의 평균으로 친다 —
+   * 지어낸 값이 아니라 같은 미션의 평균이다. 추정이라 "약" 을 붙인다.
+   */
+  function minutesOf(text) {
+    var m = String(text || "").match(/([0-9]+)\s*분/);
+    return m ? Number(m[1]) : 0;
+  }
+
+  // 상태바 시계가 지금이다(퍼블리싱이라 멈춰 있는 시각이다).
+  function nowMinutes() {
+    var clock = document.querySelector(".utc-clock .num");
+    var m = clock && clock.textContent.match(/T([0-9]{2}):([0-9]{2})/);
+    return m ? Number(m[1]) * 60 + Number(m[2]) : null;
+  }
+
+  function timeLeft(robot) {
+    var known = robot.steps.map(function (s) { return minutesOf(s.duration); })
+      .filter(function (n) { return n > 0; });
+    if (!known.length) { return "—"; }
+    var avg = Math.round(known.reduce(function (a, b) { return a + b; }, 0) / known.length);
+
+    var left = 0;
+    robot.steps.forEach(function (s) {
+      if (s.state === "done") { return; }
+      left += minutesOf(s.duration) || avg;
+    });
+    if (!left) { return "모든 지점 완료"; }
+
+    var span = left >= 60
+      ? "약 " + Math.floor(left / 60) + "시간 " + (left % 60 ? (left % 60) + "분 " : "") + "남음"
+      : "약 " + left + "분 남음";
+
+    var now = nowMinutes();
+    if (now === null) { return span; }
+    var end = (now + left) % (24 * 60);
+    var hh = ("0" + Math.floor(end / 60)).slice(-2);
+    var mm = ("0" + (end % 60)).slice(-2);
+    return span + " · " + hh + ":" + mm + " 종료 예상";
+  }
+
+  function stepNode(step, index) {
+    var meta = STATE[step.state];
+
+    // 레일 — 선 18, (표식), 남은 선.
+    // 대기 단계에는 표식이 없고 머리 선도 없다 — 점선 하나가 처음부터 끝까지 지난다.
+    // 머리 선은 표식을 18 만큼 내려 카드 첫 줄 한가운데에 맞추는 몫이라 표식과 짝이다.
+    var capsule = el("span", "rail-capsule");
+    if (meta.icon) {
+      capsule.appendChild(el("span", "rail-stub"));
+      var mark = el("span", "rail-mark");
+      // 표식은 지도의 웨이포인트 점과 같은 그림이다 — 상태색 고리에 가운데 점(app-shell.css).
+      // 체크 · 재생 · 경고 아이콘을 쓰던 자리인데, 같은 것을 가리키는 표식이 두 모양이면
+      // 지도와 목록을 오갈 때마다 다시 읽어야 한다.
+      mark.appendChild(el("span", "rail-dot"));
+      capsule.appendChild(mark);
+    }
+    capsule.appendChild(el("span", "rail-line"));
+
+    // 머리 첫 줄 — 번호는 왼쪽, 시각과 소요는 오른쪽으로 밀린다.
+    var metaRow = el("div", "step-meta-row");
+    metaRow.appendChild(el("span", "step-no t-label-1", String(index + 1)));
+    var times = el("span", "step-times");
+    if (step.time) {
+      times.appendChild(el("span", "t-caption step-time num", step.time));
+      times.appendChild(el("span", "t-caption step-duration", step.duration));
+    }
+    metaRow.appendChild(times);
+
+    var titleRow = el("div", "step-title-row");
+    // 지점 이름은 Label/1(14/20 · 800) — Figma 는 Title/2(16/24) 인데 한 단계 내렸다(디자이너 확인).
+    // 좁아진 카드에서 목록이 진행 제목(Title/1 · 18)과 거의 같은 무게로 읽혔고,
+    // 알림 제목 · 로봇명 같은 다른 목록 제목이 모두 Label/1 이다.
+    titleRow.appendChild(el("span", "t-label-1 step-title", step.title));
+
+    var head = el("div", "step-head");
+    var card = el("div", "step-card");
+    var v22 = document.body.classList.contains("v2-2");
+    if (v22) {
+      /*
+       * v2.2(10/19 디자이너) — 번호 옆에 지점 이름(한 줄), 그 아래 설명, 시각 · 소요는 맨 아래.
+       * 시각 줄은 지금 도는 칸 · 지난 칸에 보인다(CSS, 왼쪽 정렬 — 10/19 2차). 안 간 칸만 감춘다 —
+       * 예정은 진행 막대의 "종료 예상" 이 말한다. 지도 쪽지에도 시각 · 소요가 붙는다(data-wp-time).
+       */
+      titleRow.insertBefore(metaRow.firstChild, titleRow.firstChild);
+      head.appendChild(titleRow);
+      card.appendChild(head);
+      if (step.desc) { card.appendChild(el("p", "t-caption step-desc", step.desc)); }
+      if (step.time) {
+        times.className = "step-times step-times-foot";
+        card.appendChild(times);
+      }
+    } else {
+      head.appendChild(metaRow);
+      head.appendChild(titleRow);
+      card.appendChild(head);
+      if (step.desc) {
+        card.appendChild(el("p", "t-caption step-desc", step.desc));
+      }
+    }
+
+    var wrap = el("div", "step-wrap");
+    wrap.appendChild(card);
+
+    /*
+     * 검사 결과와 측정 요약은 카드에 그리지 않는다. 목록의 생김새는 예전 그대로다.
+     * 대신 값을 속성에 적어 둔다 — 지도 쪽지가 이 자리에서 읽어 간다.
+     * 같은 값을 지도와 목록 두 군데에 적어 두면 언젠가 어긋난다.
+     */
+    var kind = WP_STATE[step.state];
+    var item = el("article", "timeline-item " + meta.klass);
+    item.setAttribute("data-waypoint", wpId(index));
+    item.setAttribute("data-wp-state", kind);
+    if (step.time) { item.setAttribute("data-wp-time", step.time + (step.duration ? " · " + step.duration : "")); }
+    if (kind === "completed") {
+      item.setAttribute("data-wp-result", step.result || "safe");
+      item.setAttribute("data-wp-read", step.read || "측정 6항목 · 기준 이내");
+    } else if (kind === "current") {
+      item.setAttribute("data-wp-read", step.measuring || "측정 항목 확인 중");
+    }
+    item.setAttribute("tabindex", "0");
+    item.appendChild(capsule);
+    item.appendChild(wrap);
+    return item;
+  }
+
+  (function () {
+    var timeline = document.querySelector("[data-timeline]");
+    var cards = Array.prototype.slice.call(document.querySelectorAll("[data-robot]"));
+    if (!timeline || !cards.length) {
+      return;
+    }
+
+    // 머리의 제목이 전체 미션명이고, 진행 막대의 제목은 지금 하는 칸 이름이다(Figma 828:15313).
+    var missionName = document.querySelector("[data-mission-name]");
+    var title = document.querySelector("[data-progress-title]");
+    var percent = document.querySelector("[data-progress-percent]");
+    var track = document.querySelector("[data-progress-track]");
+    var countSlot = document.querySelector("[data-progress-count]");
+    var leftSlot = document.querySelector("[data-progress-left]");
+
+    function render(index) {
+      var robot = ROBOTS[index];
+      if (!robot) {
+        return;
+      }
+
+      var total = robot.steps.length;
+      var done = robot.steps.filter(function (s) { return s.state === "done"; }).length;
+
+      // 지금 하는 칸. 다 돌았으면 마지막으로 한 칸을 쓴다.
+      var live = robot.steps.filter(function (s) { return s.state === "running"; })[0];
+
+      /*
+       * 패널 머리는 전체 미션명, 진행 막대 제목은 지금 하는 행동이다 — 다른 말이어야 한다.
+       * 칸 이름(title)은 설비 이름이라 그대로 쓰면 "무엇을 하는 중인지"가 빠진다.
+       * 그래서 지금 도는 칸의 act 를 먼저 보고, 없으면 칸 이름으로 물러선다.
+       * 수행 중인 칸이 아예 없으면(대기 · 복귀 · 충전) 로봇의 지금 상태가 곧 하는 일이다.
+       */
+      if (missionName) { missionName.textContent = robot.mission || robot.current; }
+      if (title) { title.textContent = (live && (live.act || live.title)) || robot.current; }
+      percent.textContent = Math.round((done / total) * 100) + "%";
+
+      if (leftSlot) { leftSlot.textContent = timeLeft(robot); }
+
+      // 선은 길이만 말한다. 수는 아래 줄이 맡는다(지나온 수 / 전체 수).
+      track.style.setProperty("--progress", (total ? done / total * 100 : 0) + "%");
+      if (countSlot) { countSlot.textContent = done + "/" + total; }
+      track.setAttribute("aria-label", total + "단계 중 " + done + "단계 완료");
+
+      timeline.textContent = "";
+      robot.steps.forEach(function (step, i) {
+        timeline.appendChild(stepNode(step, i));
+      });
+      timeline.scrollTop = 0;
+      phaseRails(timeline);
+
+      /*
+       * 미션이 바뀌면 고른 칸은 놓는다. 앞 미션의 세 번째 칸을 짚어 두었다고
+       * 다음 미션의 세 번째 칸을 짚은 것은 아니다.
+       * 지금 하는 칸은 놓지 않는다 — 그것은 사람이 고른 것이 아니라 미션이 정한 것이다.
+       */
+      var live = robot.steps.reduce(function (found, step, i) {
+        return found || (step.state === "running" ? wpId(i) : null);
+      }, null);
+      timeline.setAttribute("data-current-waypoint", live || "");
+      timeline.removeAttribute("data-selected-waypoint");
+      paintPicked(null);
+
+      // 지도에게 목록이 새로 그려졌다고 알린다. 지도는 이 목록에서 웨이포인트를 읽는다.
+      document.dispatchEvent(new CustomEvent("aprism:mission", {
+        detail: { current: live }
+      }));
+    }
+
+    // 고른 칸에만 표시를 남긴다. 진행 상태(completed·current·upcoming)는 건드리지 않는다.
+    function paintPicked(id) {
+      Array.prototype.forEach.call(timeline.querySelectorAll("[data-waypoint]"), function (item) {
+        var on = id && item.getAttribute("data-waypoint") === id;
+        item.classList.toggle("is-selected", !!on);
+        if (on) { item.setAttribute("data-wp-selected", "true"); }
+        else { item.removeAttribute("data-wp-selected"); }
+      });
+    }
+
+    /*
+     * 칸 하나를 고른다. from 은 어디서 눌렀는지다 —
+     * 지도에서 온 것이면 목록을 그 자리로 굴려 주고, 목록에서 온 것이면 지도에 알린다.
+     * 알림을 되돌려 보내지 않는 것은, 두 쪽이 서로를 끝없이 부르는 것을 막기 위해서다.
+     */
+    function pickWaypoint(id, from) {
+      var same = timeline.getAttribute("data-selected-waypoint") === id;
+      var next = (same && from === "panel") ? null : id;   // 같은 칸을 다시 누르면 놓는다
+
+      if (next) { timeline.setAttribute("data-selected-waypoint", next); }
+      else { timeline.removeAttribute("data-selected-waypoint"); }
+      paintPicked(next);
+
+      if (next && from === "map") {
+        var card = timeline.querySelector("[data-waypoint='" + next + "']");
+        // 화면 밖에 있으면 그 자리까지 굴려 준다. 골랐는데 안 보이면 고른 줄을 모른다.
+        if (card && card.scrollIntoView) {
+          card.scrollIntoView({ block: "nearest", behavior: "smooth" });
+        }
+      }
+      if (from !== "map") {
+        document.dispatchEvent(new CustomEvent("aprism:waypoint", {
+          detail: { id: next, from: "panel" }
+        }));
+      }
+    }
+
+    timeline.addEventListener("click", function (event) {
+      var item = event.target.closest("[data-waypoint]");
+      if (!item) { return; }
+      pickWaypoint(item.getAttribute("data-waypoint"), "panel");
+    });
+
+    timeline.addEventListener("keydown", function (event) {
+      if (event.key !== "Enter" && event.key !== " ") { return; }
+      var item = event.target.closest && event.target.closest("[data-waypoint]");
+      if (!item) { return; }
+      event.preventDefault();
+      pickWaypoint(item.getAttribute("data-waypoint"), "panel");
+    });
+
+    // 지도에서 고른 것을 받는다.
+    document.addEventListener("aprism:waypoint", function (event) {
+      if (!event.detail || event.detail.from !== "map") { return; }
+      pickWaypoint(event.detail.id, "map");
+    });
+
+    // 폭이 바뀌면 제목이 다르게 접혀 칸 높이가 달라진다 — 무늬를 다시 맞춘다.
+    if (window.ResizeObserver) {
+      new ResizeObserver(function () { phaseRails(timeline); }).observe(timeline);
+    }
+
+    cards.forEach(function (card) {
+      card.addEventListener("click", function () {
+        // 정의서 1번 — "연결 끊김 로봇은 클릭 불가". 선택도 타임라인도 그대로 둔다.
+        if (card.hasAttribute("data-robot-offline")) { return; }
+        cards.forEach(function (other) {
+          other.setAttribute("aria-pressed", other === card ? "true" : "false");
+        });
+        render(Number(card.getAttribute("data-robot")));
+      });
+    });
+
+    var initial = cards.filter(function (c) { return c.getAttribute("aria-pressed") === "true"; })[0] || cards[0];
+    initial.setAttribute("aria-pressed", "true");
+    render(Number(initial.getAttribute("data-robot")));
+  })();
+
+  // ------------------------------------------------------------------
+  // 로봇 상세 Drawer — Figma "Drawer / 로봇 상세" 778:11895
+  // 동작은 정의서(UI_99 862:42223) 를 그대로 따른다.
+  //
+  //   1  카드 1회 클릭       선택만 바뀐다 (위 블록이 한다)
+  //   2  더블클릭 · 우클릭    Drawer 가 열린다. 선택은 건드리지 않는다.
+  //                         이미 열려 있으면 그 로봇 값으로 갈아 끼운다.
+  //   3  값                 카드에서 읽을 수 있는 것은 카드에서 읽는다.
+  //                         최근 이벤트는 최신순으로 세운다.
+  //   4  닫기               [✕] 와 ESC 뿐이다. 밖을 눌러도 열려 있다.
+  //   5  알림               자동복귀 · 비상정지 때 알림이 뜨고 이벤트가 쌓인다.
+  //
+  // 모달이 아니다 — 배경막도 없고 뒤 화면에 inert 도 걸지 않는다.
+  // 지도와 미션 패널을 그대로 쓰면서 옆에서 값을 읽는 자리다.
+  // ------------------------------------------------------------------
+  (function () {
+    var drawer = document.querySelector("[data-robot-drawer]");
+    var cards = Array.prototype.slice.call(document.querySelectorAll(".robot-strip [data-robot]"));
+    if (!drawer || !cards.length) {
+      return;
+    }
+
+    var slots = {};
+    Array.prototype.slice.call(drawer.querySelectorAll("[data-rd]")).forEach(function (node) {
+      slots[node.getAttribute("data-rd")] = node;
+    });
+    var nameSlot = drawer.querySelector("[data-rd-name]");
+    var whereSlot = drawer.querySelector("[data-rd-where]");
+    var notice = drawer.querySelector("[data-rd-notice]");
+    var noticeTitle = drawer.querySelector("[data-rd-notice-title]");
+    var noticeDesc = drawer.querySelector("[data-rd-notice-desc]");
+    var eventList = drawer.querySelector("[data-rd-events]");
+    var closeButton = drawer.querySelector("[data-rd-close]");
+
+    var current = null;
+
+    function card(index) {
+      return document.querySelector(".robot-strip .robot-card[data-robot='" + index + "']");
+    }
+
+    function text(node) {
+      return node ? node.textContent.trim() : "";
+    }
+
+    // 카드 배지 · 신호 등급을 Drawer 의 말로 옮긴다.
+    var STATES = { "수행중": "미션 수행 중", "대기": "대기 중", "완료": "순회 완료", "끊김": "연결 끊김" };
+    var SIGNALS = { Strong: "강함", Good: "보통", Weak: "약함", "끊김": "끊김" };
+
+    /*
+     * 정의서 3번 — "Drawer 값은 로봇 실시간 상태를 그대로 표시".
+     * 상태 · 배터리 · 신호는 카드가 이미 들고 있다. 여기서 다시 적어 두면
+     * 언젠가 두 값이 어긋나므로 카드 DOM 에서 그대로 읽는다.
+     */
+    function readCard(node) {
+      var rows = node.querySelectorAll(".robot-row");
+      var badge = text(node.querySelector(".badge"));
+      var battery = rows[1] ? rows[1].querySelector(".battery") : null;
+      var percent = text(rows[1] ? rows[1].querySelector(".num") : null);
+      var level = text(rows[2] ? rows[2].querySelector(".t-caption:last-child") : null);
+      var charging = !!(battery && battery.classList.contains("is-charging"));
+      var number = parseInt(percent, 10);
+
+      return {
+        state: STATES[badge] || badge,
+        // 충전 중이면 그렇게, 아니면 30% 이하일 때만 충전이 필요하다고 적는다.
+        battery: percent + (charging ? " · 충전 중" : (number <= 30 ? " · 충전 필요" : "")),
+        signal: SIGNALS[level] || level
+      };
+    }
+
+    // 새 이벤트의 시각. 화면의 mock 시계가 10:24 언저리라 그 뒤로 한 칸씩 붙인다.
+    var clock = 10 * 60 + 24;
+    function nextTime() {
+      clock += 1;
+      var h = Math.floor(clock / 60) % 24;
+      var m = clock % 60;
+      return (h < 10 ? "0" : "") + h + ":" + (m < 10 ? "0" : "") + m;
+    }
+
+    function fill(index) {
+      var node = card(index);
+      var detail = DETAILS[index] || {};
+      var robot = ROBOTS[index] || {};
+      if (!node) {
+        return;
+      }
+      var read = readCard(node);
+
+      // 이름도 카드에서 읽는다 — 카드 라벨만 고치면 Drawer 가 따라온다.
+      nameSlot.textContent = text(node.querySelector(".robot-id"));
+      whereSlot.textContent = detail.where || "";
+
+      slots.state.textContent = read.state;
+      // \ubbf8\uc158\uc740 \uc218\ud589 \uc911\uc77c \ub54c\ub9cc \uc788\ub2e4. ROBOTS[].current \ub294 \ub300\uae30 \u00b7 \ubcf5\uadc0 \u00b7 \ucda9\uc804 \uac19\uc740
+      // \uc0c1\ud0dc \ubb38\uad6c\ub3c4 \ub2f4\uace0 \uc788\uc5b4\uc11c, \uadf8\ub300\ub85c \uc4f0\uba74 \ubc14\ub85c \uc717\uc904\uacfc \uac19\uc740 \ub9d0\uc744 \ub450 \ubc88 \uc801\uac8c \ub41c\ub2e4.
+      slots.mission.textContent = read.state === "\ubbf8\uc158 \uc218\ud589 \uc911" ? (robot.current || "\u2014") : "\u2014";
+      slots.battery.textContent = read.battery;
+      slots.last.textContent = detail.last || "\u2014";
+      // Figma 는 "약함 · −78dBm" 이다. 끊긴 로봇은 셀 값이 없다.
+      slots.signal.textContent = read.signal + (detail.dbm === null || detail.dbm === undefined
+        ? "" : " · \u2212" + Math.abs(detail.dbm) + "dBm");
+      slots.odom.textContent = detail.odom || "\u2014";
+      slots.dock.textContent = detail.dock || "\u2014";
+
+      if (detail.notice) {
+        notice.hidden = false;
+        notice.classList.toggle("is-critical", detail.notice.tone === "critical");
+        notice.classList.toggle("is-warning", detail.notice.tone !== "critical");
+        noticeTitle.textContent = detail.notice.title;
+        noticeDesc.textContent = detail.notice.desc;
+      } else {
+        notice.hidden = true;
+      }
+
+      // 정의서 3번 — 최근 이벤트는 최신순이다. 데이터 순서에 기대지 않고 여기서 세운다.
+      eventList.textContent = "";
+      (detail.events || []).slice()
+        .sort(function (a, b) { return a.time < b.time ? 1 : (a.time > b.time ? -1 : 0); })
+        .forEach(function (item) {
+          var row = el("li", "rd-event" + (item.tone ? " is-" + item.tone : ""));
+          row.appendChild(el("span", "t-caption rd-event-text", item.text));
+          row.appendChild(el("span", "t-caption num rd-event-time", item.time));
+          eventList.appendChild(row);
+        });
+    }
+
+    function open(index) {
+      var node = card(index);
+      // 정의서 1·2번 — 연결이 끊긴 로봇은 열리지 않는다.
+      if (!node || node.hasAttribute("data-robot-offline")) {
+        return;
+      }
+      fill(index);
+      drawer.hidden = false;
+      current = index;
+      if (closeButton) {
+        closeButton.focus();
+      }
+    }
+
+    function close() {
+      if (drawer.hidden) {
+        return;
+      }
+      var back = current === null ? null : card(current);
+      drawer.hidden = true;
+      current = null;
+      if (back && back.focus) {
+        back.focus();
+      }
+    }
+
+    cards.forEach(function (node) {
+      var index = Number(node.getAttribute("data-robot"));
+      // 더블클릭 — 선택은 앞선 클릭이 이미 했다. 여기서 다시 건드리지 않는다.
+      node.addEventListener("dblclick", function (event) {
+        event.preventDefault();
+        open(index);
+      });
+      // 우클릭 — 선택을 아예 지나친다. 브라우저 메뉴는 띠 위에서 막는다.
+      node.addEventListener("contextmenu", function (event) {
+        event.preventDefault();
+        open(index);
+      });
+    });
+
+    if (closeButton) {
+      closeButton.addEventListener("click", close);
+    }
+
+    // ESC 로 닫는다. 모달이 떠 있으면 그쪽이 먼저다 — 위에 있는 것부터 닫힌다.
+    document.addEventListener("keydown", function (event) {
+      if (event.key !== "Escape" || drawer.hidden) {
+        return;
+      }
+      if (document.querySelector("[data-modal]:not([hidden])")) {
+        return;
+      }
+      close();
+    });
+
+    /*
+     * 정의서 5번 — "일시정지 · 자동복귀 시 Drawer 에 Alert 노출, [최근 이벤트]에 이력 추가".
+     * 알림은 DETAILS 에 쌓는다. Drawer 가 닫혀 있어도 남았다가 다음에 열 때 보인다.
+     * 화면에 "일시정지" 버튼은 없다 — 미션을 멈추는 자리가 E-STOP 이라 그 자리를 썼다.
+     */
+    function raise(next, item) {
+      var chosen = document.querySelector(".robot-strip .robot-card[aria-pressed='true']");
+      if (!chosen) {
+        return;
+      }
+      var index = Number(chosen.getAttribute("data-robot"));
+      var detail = DETAILS[index];
+      if (!detail) {
+        return;
+      }
+      detail.notice = next;
+      detail.events = (detail.events || []).concat([
+        { text: item.text, time: nextTime(), tone: item.tone }
+      ]);
+      if (current === index) {
+        fill(index);
+      }
+    }
+
+    document.addEventListener("aprism:estop", function () {
+      raise({
+        tone: "critical",
+        title: "비상정지 발동",
+        desc: "모터 전원이 차단되었습니다. 자세·안전 점검을 마친 뒤에 해제할 수 있습니다."
+      }, { text: "비상정지 발동 · 모터 전원 차단", tone: "critical" });
+    });
+
+    document.addEventListener("aprism:recall", function () {
+      raise({
+        tone: "warning",
+        title: "자동복귀 중",
+        desc: "진행 중이던 미션을 중단하고 도킹 스테이션으로 복귀합니다. 복귀가 끝나면 대기 상태가 됩니다."
+      }, { text: "자동복귀 시작 · 도킹 스테이션 이동", tone: "warning" });
+    });
+  })();
+
+  // ------------------------------------------------------------------
+  // 화면 이동 — [data-goto] 버튼을 누르면 같은 폴더의 그 페이지로 간다.
+  // disabled 인 버튼은 무시한다(사전 점검이 끝나야 "미션 시작" 이 열린다).
+  // ------------------------------------------------------------------
+  (function () {
+    var buttons = Array.prototype.slice.call(document.querySelectorAll("[data-goto]"));
+    buttons.forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        if (btn.disabled) { return; }
+        window.location.href = btn.getAttribute("data-goto");
+      });
+    });
+  })();
+
+  // ------------------------------------------------------------------
+  // 미션 설정 폼 — 체크박스 · 스위치 · Select 드롭다운
+  // 퍼블리싱용이라 값은 화면 안에서만 바뀐다.
+  // ------------------------------------------------------------------
+  (function () {
+    // 체크박스: 클릭 / Space / Enter 로 토글, "N개 선택" 갱신
+    // 미션 설정의 계획표 줄은 mission-setup.js 가 맡는다 — 순서 · 배터리까지 같이 움직여야 한다.
+    var rows = Array.prototype.slice.call(
+      document.querySelectorAll('.check-row[role="checkbox"]')
+    ).filter(function (row) { return !row.closest("[data-mp-plan]"); });
+    var countEl = document.querySelector(".check-group-head .count");
+
+    function refreshCount() {
+      if (!countEl) { return; }
+      var n = rows.filter(function (row) {
+        return row.getAttribute("aria-checked") === "true";
+      }).length;
+      countEl.textContent = n + "개 선택";
+    }
+
+    rows.forEach(function (row) {
+      function toggle() {
+        row.setAttribute("aria-checked", row.getAttribute("aria-checked") === "true" ? "false" : "true");
+        refreshCount();
+      }
+      row.addEventListener("click", toggle);
+      row.addEventListener("keydown", function (event) {
+        if (event.key === " " || event.key === "Enter") { event.preventDefault(); toggle(); }
+      });
+    });
+
+    // 스위치
+    Array.prototype.slice.call(document.querySelectorAll('.switch[role="switch"]')).forEach(function (sw) {
+      sw.addEventListener("click", function () {
+        sw.setAttribute("aria-checked", sw.getAttribute("aria-checked") === "true" ? "false" : "true");
+      });
+    });
+
+    // Select 드롭다운
+    var selects = Array.prototype.slice.call(document.querySelectorAll("[data-select]"));
+
+    function closeSelects(except) {
+      selects.forEach(function (sel) {
+        if (sel === except) { return; }
+        sel.removeAttribute("data-open");
+        sel.querySelector("[data-select-trigger]").setAttribute("aria-expanded", "false");
+        sel.querySelector(".field-menu").hidden = true;
+      });
+    }
+
+    selects.forEach(function (sel) {
+      var trigger = sel.querySelector("[data-select-trigger]");
+      var menu = sel.querySelector(".field-menu");
+      var valueEl = sel.querySelector("[data-select-value]");
+      var options = Array.prototype.slice.call(sel.querySelectorAll(".field-option"));
+
+      trigger.addEventListener("click", function (event) {
+        event.stopPropagation();
+        var open = sel.hasAttribute("data-open");
+        closeSelects(sel);
+        if (open) {
+          sel.removeAttribute("data-open");
+          trigger.setAttribute("aria-expanded", "false");
+          menu.hidden = true;
+        } else {
+          sel.setAttribute("data-open", "");
+          trigger.setAttribute("aria-expanded", "true");
+          menu.hidden = false;
+        }
+      });
+
+      options.forEach(function (opt) {
+        opt.addEventListener("click", function () {
+          valueEl.textContent = opt.textContent;
+          options.forEach(function (o) { o.removeAttribute("aria-selected"); });
+          opt.setAttribute("aria-selected", "true");
+          sel.removeAttribute("data-open");
+          trigger.setAttribute("aria-expanded", "false");
+          menu.hidden = true;
+          // 고른 값이 바뀌었다고 알린다 — 미션 설정은 로봇이 바뀌면 배터리를 다시 센다.
+          document.dispatchEvent(new CustomEvent("aprism:select", {
+            detail: { select: sel, value: opt.textContent.trim() }
+          }));
+        });
+      });
+
+      sel.addEventListener("keydown", function (event) {
+        if (event.key === "Escape" && sel.hasAttribute("data-open")) {
+          sel.removeAttribute("data-open");
+          trigger.setAttribute("aria-expanded", "false");
+          menu.hidden = true;
+          trigger.focus();
+        }
+      });
+    });
+
+    if (selects.length) {
+      document.addEventListener("click", function (event) {
+        var inside = selects.some(function (sel) { return sel.contains(event.target); });
+        if (!inside) { closeSelects(null); }
+      });
+    }
+  })();
+
+  // ------------------------------------------------------------------
+  // 사전 점검 — 항목이 하나씩 통과한다. 넷이 다 통과하면
+  // "미션 시작" 이 열리고, 잠시 뒤 자동으로 미션 모니터링으로 넘어간다.
+  // (Figma 안내: "점검이 끝나면 자동으로 시작합니다")
+  // ------------------------------------------------------------------
+  (function () {
+    var list = document.querySelector("[data-precheck]");
+    if (!list) { return; }
+
+    var pending = Array.prototype.slice.call(list.querySelectorAll("[data-precheck-row]"));
+    var tag = list.querySelector("[data-precheck-tag]");
+    // 버튼 모양이 판마다 다르다(v1 은 .btn-line, v2.2 는 .btn) — 하는 일로 잡는다.
+    var startBtn = document.querySelector(".mp-actions [data-sian-go='monitor']");
+    // 간격은 CSS 가 정한다(--precheck-step) — 게이지가 차는 시간과 같은 값이어야 한다.
+    var STEP = parseFloat(getComputedStyle(list).getPropertyValue("--precheck-step")) || 1400;
+
+    function complete(row) {
+      row.classList.remove("is-running", "is-active", "is-pending");
+      row.classList.add("is-done");
+      /*
+       * 통과한 줄은 체크 동그라미다. 예전에는 --ic-delta 를 썼는데, 그 이름이 세트마다 다른 그림이다 —
+       * 기본 세트에서는 "체크 동그라미" 지만 v2.2 아웃라인 세트에서는 DELTA 브랜드 마크(네모 넷)다.
+       * 그래서 v2.2 를 입히자 완료 표시가 로고로 바뀌어 버렸다. 양쪽에서 뜻이 같은 이름으로 바꾼다.
+       */
+      var icon = row.querySelector(".i");
+      if (icon) { icon.style.setProperty("--i", "var(--ic-check-circle)"); }
+      var meta = row.querySelector(".meta");
+      if (meta) {
+        meta.textContent = row.getAttribute("data-done-meta") || "";
+        meta.classList.remove("is-plain");
+      }
+    }
+
+    function tick() {
+      var next = pending.shift();
+      if (!next) {
+        if (tag) { tag.textContent = "완료"; }
+        if (startBtn) { startBtn.disabled = false; }
+        window.setTimeout(function () {
+          // [11/03] 화면이 적어 둔 관제 주소(body[data-monitor-href] — v6 사전 점검은 control-v6)를 먼저 따른다. 없으면 예전 그대로
+          window.location.href = document.body.getAttribute("data-monitor-href") || "dashboard-home.html";
+        }, 1600);
+        return;
+      }
+      complete(next);
+      // 다음 대기 항목을 "확인 중" 으로 승격
+      if (pending[0]) {
+        pending[0].classList.remove("is-pending");
+        pending[0].classList.add("is-running", "is-active");
+        var m = pending[0].querySelector(".meta");
+        if (m) { m.textContent = "확인중.."; }
+      }
+      window.setTimeout(tick, STEP);
+    }
+
+    window.setTimeout(tick, STEP);
+  })();
+})();

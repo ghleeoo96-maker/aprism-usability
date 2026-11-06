@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="ko" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>스플래시 · 로그인 · 비밀번호 변경 · 퍼블리싱 노트 — APRISM</title>
+  <meta name="description" content="진입 화면 Figma 기준 반영 내역과 고친 지점" />
+  <link rel="stylesheet" href="../assets/css/tokens.css?v=b64812bd" />
+  <link rel="stylesheet" href="../assets/css/base.css?v=5ccd4bb3" />
+  <style>
+    .notes {
+      max-width: 880px;
+      margin: 0 auto;
+      padding: var(--space-48) var(--space-20) 96px;
+      font-size: var(--font-size-14);
+      line-height: var(--font-line-height-22);
+      color: var(--text-secondary);
+    }
+
+    .notes h2 {
+      margin-bottom: var(--space-8);
+      font-size: var(--font-size-32);
+      line-height: var(--font-line-height-40);
+      letter-spacing: -0.02em;
+      color: var(--text-primary);
+    }
+
+    .notes h3 {
+      margin: var(--space-48) 0 var(--space-12);
+      font-size: var(--font-size-16);
+      line-height: var(--font-line-height-24);
+      color: var(--text-primary);
+    }
+
+    .notes p + p { margin-top: var(--space-12); }
+    .notes .lead { margin-bottom: var(--space-8); }
+
+    .notes table {
+      width: 100%;
+      margin-top: var(--space-12);
+      border-collapse: collapse;
+      font-size: var(--font-size-13);
+      line-height: var(--font-line-height-20);
+    }
+
+    .notes th,
+    .notes td {
+      padding: var(--space-8) var(--space-12);
+      border-bottom: var(--border-width-thin) solid var(--border-divider);
+      text-align: left;
+      vertical-align: top;
+    }
+
+    .notes th { color: var(--text-tertiary); font-weight: 500; white-space: nowrap; }
+
+    .notes code {
+      font-family: var(--font-family-mono);
+      font-size: 0.92em;
+      color: var(--text-primary);
+    }
+
+    .notes ul { margin: var(--space-8) 0 0; padding-left: 1.1em; }
+    .notes li { margin-bottom: var(--space-4); }
+    .notes strong,
+    .notes b { color: var(--text-primary); font-weight: 600; }
+
+    .notes .eyebrow {
+      font-family: var(--font-family-mono);
+      font-size: var(--font-size-12);
+      font-weight: 500;
+      letter-spacing: 0.09em;
+      text-transform: uppercase;
+      color: var(--comp-gnb-text-brand);
+      margin-bottom: var(--space-8);
+    }
+
+    .notes .open { display: flex; gap: var(--space-12); margin-top: var(--space-24); }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true"></span>
+      <span class="brand-name">APRISM</span>
+    </div>
+    <button type="button" class="theme-toggle" data-theme-toggle aria-label="테마 전환">
+      <span data-theme-label>Dark</span>
+    </button>
+  </header>
+
+  <main class="site-main" style="max-width:none;padding:0">
+<section class="notes">
+  <p class="eyebrow">Publishing Notes</p>
+  <h2>스플래시 · 로그인</h2>
+  <p class="lead">
+    Figma <code>UI_01/ CM-01 스플래시</code>(<code>630:3480</code>) ·
+    <code>UI_01/ CM-02 로그인 화면</code>(<code>630:3481</code>) 를 옮긴 것입니다.
+    <b>디자인 확정 전</b>이라고 하셔서 구조만 그대로 두고 어긋난 값은 고쳤습니다.
+    아래가 고친 자리 전부입니다.
+  </p>
+
+  <h3>1. 로그인 패널 폭 — 791 이 아니라 800 입니다</h3>
+  <p>
+    Figma 는 <code>Brand Panel 1120</code> + <code>Login Panel 791</code> = <b>1911</b> 이라
+    오른쪽 끝에 <b>9 가 빕니다.</b> 어느 쪽이 맞는 값인지는 안쪽 요소가 알려 줍니다.
+  </p>
+  <table>
+    <tr><th>요소</th><th>패널 안 x</th><th>800 기준 가운데</th><th>791 기준 가운데</th></tr>
+    <tr><td>Login Form (400)</td><td><b>200</b></td><td><b>200</b> ✓</td><td>195.5</td></tr>
+    <tr><td>Copyright (298)</td><td><b>251</b></td><td><b>251</b> ✓</td><td>246.5</td></tr>
+  </table>
+  <p>
+    둘 다 <b>800 기준으로 정확히 가운데</b>입니다. 폼을 놓은 뒤 패널만 791 로 좁혀진 것으로 보고
+    <b>패널을 800 으로 되돌렸습니다.</b> 그러면 1120 + 800 = 1920 으로 딱 맞고,
+    폼과 저작권 줄의 가로 위치는 <b>Figma 값 그대로</b>가 됩니다.
+  </p>
+  <p>
+    구현에서는 <b>로그인 면만 800 고정</b>이고 브랜드 면이 나머지를 먹습니다 —
+    1920 이 아닌 폭에서도 폼의 여백이 흔들리지 않습니다.
+  </p>
+
+  <h3>2. 브랜드 덩어리가 왼쪽 면 가운데가 아니었습니다</h3>
+  <p>
+    로그인 화면의 락업+태그라인 덩어리(283 × 231)가 <code>x = 507</code> 에 있었습니다.
+    1120 면의 가운데는 <b>418.5</b> 라 <b>88.5 오른쪽으로 밀려</b> 있었습니다.
+    세로도 <code>y = 355</code> 로 가운데(396.5)보다 41.5 위였습니다. <b>가로·세로 모두 가운데로 옮겼습니다.</b>
+  </p>
+
+  <h3>3. 로고는 가운데인데 글자는 왼쪽이었습니다</h3>
+  <p>
+    로그인 화면의 <code>Tagline</code> 은 <code>counterAxisAlignItems = MIN</code> 이라
+    두 줄이 왼쪽에 붙습니다. 그런데 그 위 로고는 가운데라, 짧은 국문 줄(222)이
+    긴 영문 줄(283) 안에서 왼쪽으로 쏠려 보였습니다.
+    <b>스플래시와 같이 가운데 정렬로 맞췄습니다</b>(스플래시 쪽은 <code>CENTER</code> 입니다).
+  </p>
+
+  <h3>4. 폼이 위로 붙어 아래가 351 비어 있었습니다</h3>
+  <p>
+    Figma 는 <code>Login Form</code> 이 <code>y = 222</code> 에서 시작해 673 에서 끝나고,
+    저작권 줄이 944 에 따로 놓여 있습니다. 그 사이 <b>351 이 그냥 빕니다.</b>
+  </p>
+  <p>
+    구현은 <b>저작권 줄을 뺀 나머지 자리의 한가운데</b>에 폼을 세웁니다
+    (열 방향 flex 에 <code>margin: auto 0</code>). 위아래 여백 64 를 주면
+    저작권 줄이 <code>y = 942</code> 에 서는데 <b>Figma 의 944 와 2 차이</b>입니다 —
+    저작권 줄은 사실상 그대로고 폼만 56 내려온 셈입니다.
+  </p>
+
+  <h3>5. 체크박스 — 컴포넌트에서 둘을 고쳤습니다</h3>
+  <table>
+    <tr><th></th><th>Figma <code>Checkbox</code></th><th>여기</th></tr>
+    <tr><td>상자 자리</td><td>라벨 <b>오른쪽</b>(자식 순서가 Label → Box)</td><td><b>왼쪽</b></td></tr>
+    <tr><td>아래 테두리</td><td><code>border/default</code> 1px — <b>Default 세 변형에만</b> 있고
+      Disabled 두 변형에는 없습니다</td><td><b>없음</b></td></tr>
+  </table>
+  <p>
+    아래 테두리는 변형끼리 어긋나 있어 남은 자국으로 봤습니다.
+    나머지(상자 18 · <code>radius 4</code> · 패딩 <code>8/8/8/12</code> · gap 8 · 줄 높이 38 ·
+    On 일 때 <code>bg/brand</code> 면 + 14 짜리 check)는 <b>Figma 그대로</b>입니다.
+  </p>
+  <p>
+    <b>Figma 컴포넌트는 손대지 않았습니다.</b> 다른 화면에서도 쓰는 컴포넌트라
+    말씀 주시면 그때 고치겠습니다.
+  </p>
+
+  <h3>6. 입력칸 안내 문구를 placeholder 로 내렸습니다</h3>
+  <p>
+    Figma 는 <code>Text Field</code> 의 <code>Value</code> 자리에
+    "사번 또는 아이디를 입력하세요" 를 <code>fg/primary</code> 로 적어 두었습니다.
+    실제로는 <b>친 글자가 아니라 안내 문구</b>라서 <code>fg/tertiary</code> 로 낮췄습니다.
+    <b>친 글자가 <code>fg/primary</code></b> 입니다.
+  </p>
+
+  <h3>7. 눈 아이콘을 실제 토글로 만들었습니다</h3>
+  <p>
+    Figma 에는 <code>Icon / eye-off</code> 만 놓여 있고 상태가 없습니다.
+    누르면 <code>Icon / eye</code> 로 바뀌며 비밀번호가 보입니다
+    (<code>aria-pressed</code> 로 상태를 알립니다). 두 아이콘 모두 Figma 의
+    <code>01.7 Icon</code> 페이지에서 내려받아 <code>assets/icons/</code> 에 넣었습니다.
+  </p>
+
+  <h3>8. 그대로 둔 것</h3>
+  <ul>
+    <li><b>로그인 버튼이 <code>Secondary</code></b> 입니다 — 화면의 주 동작인데 보조 버튼입니다.
+      정렬 문제가 아니라 고르신 값이라 <b>그린 대로 뒀습니다.</b>
+      <code>Primary</code> 로 바꿀지는 말씀해 주세요.</li>
+    <li><b><code>Options</code> 줄의 오른쪽이 비어 있습니다.</b>
+      <code>SPACE_BETWEEN</code> 인데 자식이 체크박스 하나뿐입니다.
+      "비밀번호 찾기" 같은 링크 자리로 보고 줄은 그대로 두었습니다.</li>
+    <li><b>태그라인 아랫줄이 두 화면에서 다릅니다.</b> 스플래시는
+      <code>Label/1</code>(14/20 ExtraBold) <b>대문자</b>, 로그인은
+      <code>Body/4</code>(13/20 Regular) 원래 대소문자입니다. 크기 차이는 의도로 보고 뒀습니다.</li>
+    <li><b>락업 흰색.</b> Figma 가 변수 없이 <code>#FFFFFF</code> 로 박아 둔 값이라
+      여기서도 흰색 그대로입니다. Light 로 뒤집을 때만 <code>fg/primary</code> 로 넘어갑니다.</li>
+  </ul>
+
+  <h3>9. 타입 램프 이름을 Figma 에 다시 맞췄습니다</h3>
+  <p>
+    <code>Body</code> 램프에 <code>Body/4</code> 가 끼면서 번호가 한 칸씩 밀려 있었습니다.
+    <code>app-shell.css</code> 의 <code>.t-*</code> 는 <b>예전 이름</b>이라
+    <code>.t-body-2</code> 가 14/22 를 가리키고 있었습니다.
+  </p>
+  <table>
+    <tr><th>클래스</th><th>전</th><th>후 (Figma 현재)</th></tr>
+    <tr><td><code>.t-body-1</code></td><td>없음</td><td><b>20/32 SemiBold</b></td></tr>
+    <tr><td><code>.t-body-2</code></td><td>14/22</td><td><b>16/24</b></td></tr>
+    <tr><td><code>.t-body-3</code></td><td>13/20</td><td><b>14/22</b></td></tr>
+    <tr><td><code>.t-body-4</code></td><td>없음</td><td><b>13/20</b></td></tr>
+    <tr><td><code>.t-heading-2</code></td><td>없음</td><td><b>24/32 SemiBold, -1%</b></td></tr>
+  </table>
+  <p>
+    쓰이던 곳은 세 화면의 사이트 셀렉트 하나뿐이라 <code>t-body-3 → t-body-4</code> 로 바꿨습니다 —
+    <b>그려지는 크기는 그대로</b>고 이름만 맞았습니다.
+  </p>
+  <p>
+    <code>Typography/Label/1/<b>SemiBold</b></code> 는 실제 굵기가 <b>ExtraBold(800)</b> 입니다.
+    이름과 값이 어긋난 스타일이 넷(<code>Heading/3</code> · <code>Label/1</code> ·
+    <code>Title/1,2</code> · <code>Body/1</code>)인데 <b>여기서는 값을 따릅니다</b> —
+    전부터 그렇게 두고 있던 규칙입니다.
+  </p>
+
+  <h3>10. 실측</h3>
+  <p>괄호 안이 Figma 값입니다.</p>
+  <table>
+    <tr><th>요소</th><th>값</th></tr>
+    <tr><td>Login Form</td><td><b>400 × 451</b> (400 × 451) · 블록 간 32 (32)</td></tr>
+    <tr><td>Header</td><td><b>62</b> (62) — 32 + 8 + 22</td></tr>
+    <tr><td>Fields</td><td><b>148</b> (148) — 64 + 20 + 64</td></tr>
+    <tr><td>Text Field</td><td>라벨 20 + gap 8 + 칸 <b>36</b> (36) · 패딩 0/12 · radius 4</td></tr>
+    <tr><td>Options</td><td><b>38</b> (38) · 체크박스 <b>110.4</b> (111)</td></tr>
+    <tr><td>Button</td><td><b>400 × 40</b> (400 × 40)</td></tr>
+    <tr><td>Help</td><td><b>35</b> (35) — 1 + 16 + 18</td></tr>
+    <tr><td>Copyright</td><td>폭 <b>297.1</b> (298) · 패널 안 x <b>251.9</b> (251)</td></tr>
+    <tr><td>브랜드 덩어리</td><td><b>232</b> (231) · 락업 153 × 160 + gap 18 + 태그라인</td></tr>
+  </table>
+
+  <h3>11. 화면 밖 동작</h3>
+  <ul>
+    <li><b>스플래시 → 로그인</b> — 2 초 머문 뒤 넘어갑니다. 누르거나 키를 치면 바로 넘어가고,
+      <code>?hold=0</code> 으로 열면 멈춰 있습니다(캡처용).</li>
+    <li><b>로그인 → 미션 설정</b> — 붙일 인증이 없어서 값을 확인하지 않고
+      <code>mission-setup.html</code> 로 넘깁니다. 들어오면 바로 미션을 짜는 흐름이라
+      관제 메인이 아니라 미션 설정이 다음 화면입니다. 서버가 붙으면 그 자리가 요청으로 바뀝니다.</li>
+    <li><b>1080 아래</b> — 브랜드 면을 접고 로그인 면만 남깁니다.
+      관제실 기준이 1920 이라 별도 화면을 그리는 대신 무너지지만 않게 했습니다.</li>
+  </ul>
+
+
+  <h3>12. 비밀번호 변경 강제 화면 (677:7468)</h3>
+  <p>
+    비밀번호 사용 기간이 만료된 계정이 보는 화면입니다. 브랜드 면 · 카드 · 입력칸 · Help 는
+    로그인과 같은 부품이라 <b>새로 만든 것은 넷</b>입니다 — 경고 알림, 규칙 네 줄,
+    Danger 버튼, 카드 밑 링크.
+  </p>
+
+  <h3>12-1. 카드가 오른쪽 칸의 가운데에 섭니다</h3>
+  <p>
+    로그인 카드는 브랜드 면 끝에서 <b>9 만 띄우고 왼쪽에 붙는데</b>, 이 화면은 다릅니다.
+    오른쪽 칸 <code>1129..1921</code>(792) 안에서 카드가 <code>1291..1759</code>(468) 라
+    <b>양옆이 162 로 같습니다.</b> 가운데 정렬로 두고, 왼쪽 9 는 그대로 둔 채
+    오른쪽 패딩을 0 으로 잡아 <b>1290.5</b> 에 세웠습니다(Figma 1291).
+  </p>
+
+  <h3>12-2. 알림은 Header 안입니다 — 블록이 아닙니다</h3>
+  <p>
+    <code>Inline Notice</code> 가 카드의 독립 블록처럼 보이지만 <code>Header</code>(677:7067)의
+    <b>세 번째 자식</b>입니다. 그래서 부제와의 간격이 블록 간격 40 이 아니라 <b>8</b> 입니다
+    (제목 y0 → 부제 y40 → 알림 y70, 둘 다 8).
+  </p>
+
+  <h3>12-3. 규칙 네 줄은 상태를 가집니다</h3>
+  <p>
+    Figma 스냅숏은 <b>첫 줄만 초록</b>(<code>status/normal/fg</code>)이고 나머지 셋은
+    <b>회색</b>(<code>fg/disabled</code>)입니다. 글자는 넷 다 <code>fg/secondary</code> 로 같습니다.
+    체크 아이콘 색으로 <b>채워진 줄과 아닌 줄을 가르는 화면</b>이라는 뜻이라, 친 값에 따라
+    네 줄을 실시간으로 켜고 끕니다. 비어 있는 첫 화면에서는 넷 다 회색입니다 —
+    Figma 스냅숏은 4자 이상을 이미 친 상태를 그린 것입니다.
+  </p>
+  <table>
+    <tr><th>규칙</th><th>여기서 보는 것</th></tr>
+    <tr><td>4자 이상</td><td>길이</td></tr>
+    <tr><td>영문 · 숫자 · 특수문자 중 2종 이상</td><td>세 갈래 중 섞인 갈래 수</td></tr>
+    <tr><td>아이디와 3자 이상 연속 일치 금지</td><td><b>로그인에서 친 아이디</b>의 3글자 창을 훑습니다</td></tr>
+    <tr><td>최근 비밀번호와 중복 금지</td><td><b>위 칸의 현재 비밀번호</b>와 같은지</td></tr>
+  </table>
+  <p>
+    셋째 줄은 이 화면에 아이디 칸이 없어서 볼 값이 없습니다. 그래서 로그인에서 넘어올 때
+    <b>친 아이디만</b> <code>sessionStorage</code> 에 남깁니다(비밀번호는 남기지 않습니다).
+    바로 이 주소로 들어와 아이디를 모르면 <b>어길 것이 없어 통과</b>로 봅니다.
+  </p>
+  <p>
+    넷째 줄의 "최근"은 이 화면이 아는 범위가 <b>현재 비밀번호 한 칸뿐</b>입니다.
+    그 이전 이력은 서버가 볼 자리입니다.
+  </p>
+
+  <h3>12-4. 버튼은 Danger 이고, Figma 는 Disabled 상태로 그려져 있습니다</h3>
+  <p>
+    <code>Type=Danger, Size=Large, State=Disabled</code> 입니다. 규칙을 채우기 전 상태를
+    그려 둔 것으로 보고, <b>네 줄이 다 켜지고 새 비밀번호 두 번이 같을 때</b> 열리게 했습니다.
+    열린 모습은 같은 컴포넌트의 <code>State=Default</code>(<code>button/danger/bg/default</code>)입니다.
+    <code>hover</code> 는 Figma 에 변형이 없어 다른 버튼들과 맞춰 더했습니다
+    (<code>button/danger/bg/hover</code> 는 이미 토큰에 있습니다).
+  </p>
+
+  <h3>12-5. "다른 계정으로 로그인" 은 카드 밖입니다</h3>
+  <p>
+    이름이 <code>Copyright</code> 인데 내용은 링크이고, 로그인의 저작권 줄과 달리
+    <b>카드 안이 아니라 카드 밖</b>입니다 — 카드 하단 888.5 에서 <b>20 아래</b>인 908.5 에,
+    카드 폭 기준 가운데로 놓여 있습니다. 색도 <code>fg/brand</code> 라 링크로 보고
+    <code>login.html</code> 로 걸었습니다.
+  </p>
+
+  <h3>12-6. 현재 비밀번호 칸의 점 여덟 개는 placeholder 로 내렸습니다</h3>
+  <p>
+    Figma 는 <code>Value</code> 자리에 <code>••••••••</code> 를 <code>fg/primary</code> 로
+    적어 두었습니다. 나머지 두 칸이 안내 문구인 것과 같은 자리라 <b>친 값이 아니라 목업</b>으로 보고,
+    위 6번과 같은 규칙으로 <b>"현재 비밀번호를 입력하세요" placeholder</b> 로 바꿨습니다.
+  </p>
+
+  <h3>12-7. 같이 고친 것</h3>
+  <ul>
+    <li><b>눈 아이콘이 한 칸에서만 먹었습니다.</b> <code>auth.js</code> 가
+      <code>querySelector</code> 로 첫 하나만 잡고 있었습니다. 이 화면은 칸이 셋이라
+      <code>querySelectorAll</code> 로 바꿨습니다 — 로그인 쪽 동작은 그대로입니다.</li>
+    <li><b>카드가 창보다 커질 수 있습니다.</b> 로그인 카드는 581 인데 이 카드는 793 입니다.
+      <code>.auth</code> 가 <code>overflow:hidden</code> 이라 낮은 화면에서 잘리므로,
+      카드가 앉는 칸만 세로로 스크롤되게 했습니다.</li>
+  </ul>
+
+  <h3>12-9. 두 번 친 값이 다를 때 — Text Field 의 State=Error (49:138)</h3>
+  <p>
+    <code>Text Field</code> 컴포넌트에 <code>State</code> 가 다섯입니다
+    (<code>Default · Hover · Focus · Error · Disabled</code>). 어긋난 칸에
+    <b><code>Error</code> 를 그대로</b> 얹었습니다. <code>Default</code> 와 다른 것은 셋뿐입니다.
+  </p>
+  <table>
+    <tr><th></th><th>Default</th><th>Error</th></tr>
+    <tr><td>칸 테두리</td><td><code>border/default</code> <b>1px</b></td>
+        <td><code>status/critical/border</code> <b>2px</b></td></tr>
+    <tr><td>칸 끝</td><td>없음</td>
+        <td><b>20 짜리 <code>Icon / warning</code></b>(<code>status/critical/icon</code>)</td></tr>
+    <tr><td>Helper</td><td><code>fg/tertiary</code> 12/18</td>
+        <td><b><code>status/critical/fg</code></b> 12/18</td></tr>
+  </table>
+  <p>
+    칸 높이는 <b>36 그대로</b>입니다 — 테두리가 굵어져도 <code>box-sizing: border-box</code> 라 안 밀립니다.
+    경고 아이콘은 Figma 가 <code>Trailing Icon</code> <b>다음 자리</b>에 따로 두는데,
+    이 화면의 그 자리에는 눈 아이콘이 있어서 <b>눈 아이콘 오른쪽</b>에 붙습니다.
+  </p>
+  <p>
+    <b>Helper 줄은 이 화면에서 처음 씁니다.</b> 다른 화면의 Text Field 는 Helper 를 안 써서
+    <code>app-shell.css</code> 에 규칙이 없었습니다. 안내문으로 늘 띄우지 않고
+    <b>어긋났을 때만</b> 보이게 했습니다 — 그래서 그때 칸이 <code>26</code>(18 + gap 8) 만큼 자랍니다.
+  </p>
+  <p>
+    <b>치는 도중에는 말하지 않습니다.</b> 확인 칸을 <b>한 번 떠난 뒤부터</b> 어긋난 것을 알리고,
+    그다음부터는 고치는 대로 실시간으로 따라가 맞는 순간 사라집니다.
+    첫 글자부터 빨개지는 것을 피하려는 것입니다.
+  </p>
+  <p>
+    <b>문구는 Figma 에 없어서 여기서 썼습니다</b> — "새 비밀번호와 일치하지 않습니다."
+    Helper 의 기본값은 컴포넌트 예시문(<code>터빈 단위로…</code>)이라 그대로 쓸 수 없었습니다.
+  </p>
+  <p>
+    <b><code>Focus</code> 와 겹쳤을 때의 그림은 Figma 에 없습니다</b> — 둘이 다른 변형입니다.
+    틀렸다는 사실이 먼저라 <b>색은 Error 쪽을 두고</b>, 포커스 테두리만 같은 빨강으로 얹어
+    어디에 있는지는 잃지 않게 했습니다.
+  </p>
+  <p>
+    읽어 주는 쪽으로는 <code>aria-invalid</code> 와 <code>aria-describedby</code> 를 걸고
+    메시지 줄에 <code>role="alert"</code> 를 뒀습니다.
+  </p>
+
+  <h3>12-8. 흐름</h3>
+  <p>
+    붙일 서버가 없어서 값을 보내지 않고 <code>mission-setup.html</code> 로 넘깁니다 — 로그인과 같은 자리입니다.
+    <b>로그인에서 이 화면으로 보내는 분기는 넣지 않았습니다</b> — 지금 로그인은 여전히
+    바로 미션 설정으로 갑니다. 만료 계정을 여기로 보내는 조건은 서버가 정할 자리라
+    말씀 주시면 그때 잇겠습니다.
+  </p>
+
+  <h3>13. 패널 여백을 다시 쟀습니다 (677:6987 · 677:7468)</h3>
+  <p>
+    두 화면의 <code>Panel</code> 이 같은 여백을 씁니다 —
+    <b>padding 40 / 20 / 20 · 블록 간 gap 40</b> 입니다.
+    전에는 <code>64 / 40 / 20</code> 이었습니다. 위가 24 줄고 좌우가 20 씩 줄어
+    <b>안쪽 폭이 388 에서 428 로 넓어졌고</b>, 카드 높이는 613 → <b>581</b>(로그인) ·
+    825 → <b>793</b>(비밀번호 변경) 이 되었습니다.
+  </p>
+  <table>
+    <tr><th>요소</th><th>로그인 (677:7710)</th><th>비밀번호 변경 (677:7435)</th></tr>
+    <tr><td>Panel</td><td><b>468 × 581</b></td><td><b>468 × 793</b></td></tr>
+    <tr><td>padding</td><td colspan="2"><b>40</b> 위 · <b>20</b> 좌우 · <b>20</b> 아래</td></tr>
+    <tr><td>블록 간 gap</td><td colspan="2"><b>40</b></td></tr>
+    <tr><td>Header</td><td><b>62</b> — 32 + 8 + 22</td><td><b>166</b> — 32 + 8 + 22 + 8 + 96</td></tr>
+    <tr><td>Fields</td><td><b>206</b> — 64 + 20 + 64 + 20 + 38</td><td><b>372</b> — 64 + 20 + 64 + 20 + 64 + 20 + 120</td></tr>
+    <tr><td>Button</td><td><b>428 × 40</b></td><td><b>428 × 40</b></td></tr>
+    <tr><td>Help</td><td><b>35</b> — 1 + 16 + 18</td><td><b>35</b> — 1 + 16 + 18</td></tr>
+  </table>
+  <p>
+    <b>제목이 <code>Heading/1</code> 이 아니라 <code>Heading/2</code> 였습니다.</b>
+    같이 재다가 나온 것입니다 — 제목 줄 높이가 40 이 아니라 <b>32</b>(24/32 SemiBold, -1%)라
+    Header 62 · 166 이 그 값으로만 맞아떨어집니다. <code>t-heading-1 → t-heading-2</code> 로 바꿨습니다.
+    여백만 고치고 두면 카드가 Figma 보다 8 높아집니다.
+  </p>
+
+</section>
+    <p class="notes open" style="max-width:880px;margin:0 auto;padding:0 var(--space-20) 64px">
+      <a class="screen-name" href="./login.html">로그인 보기 →</a>
+      <a class="screen-name" href="./password-expired.html">비밀번호 변경 보기</a>
+      <a class="screen-name" href="./splash.html?hold=0">스플래시 보기</a>
+      <a class="screen-name" href="../index.html">목록으로</a>
+    </p>
+  </main>
+
+  <footer class="site-footer">
+    <span>APRISM · 공장 환경점검 로봇 관제 대시보드</span>
+  </footer>
+
+  <script src="../assets/js/theme.js?v=c86093d9"></script>
+</body>
+</html>

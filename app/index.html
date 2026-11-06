@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="ko" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>APRISM — 화면 퍼블리싱</title>
+  <meta name="description" content="APRISM 공장 환경점검 로봇 관제 대시보드 화면 퍼블리싱" />
+  <link rel="stylesheet" href="./assets/css/tokens.css?v=b64812bd" />
+  <link rel="stylesheet" href="./assets/css/base.css?v=5ccd4bb3" />
+</head>
+<body>
+  <header class="site-header">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true"></span>
+      <span class="brand-name">APRISM</span>
+    </div>
+    <button type="button" class="theme-toggle" data-theme-toggle aria-label="테마 전환">
+      <span data-theme-label>Dark</span>
+    </button>
+  </header>
+
+  <main class="site-main">
+    <section class="intro">
+      <p class="eyebrow">Wireframe Publishing</p>
+      <h1>화면 퍼블리싱 인덱스</h1>
+      <p class="lead">화면별로 버전을 모았습니다. <span class="ver-badge">최신</span> 이 붙은 판이 지금 기준입니다.</p>
+    </section>
+
+    <!-- 확인이 필요한 것 — 디자이너 혼자 정하기 애매해 클라이언트와 같이 정할 것.
+         항목 하나 = 질문 한 줄 + 화면 · 버전 태그. 긴 설명은 퍼블리싱 노트로 보낸다.
+         답이 나오면 그 li 를 아래 "결정된 것" 으로 옮기고 답과 날짜(ask-answer)를 붙인다.
+         해당 버전 카드의 "확인 N" 배지 수도 같이 맞춘다. -->
+    <section class="ask" id="ask" aria-labelledby="ask-title">
+      <h2 class="ask-title" id="ask-title">확인이 필요한 것 <span class="ask-count">7</span></h2>
+      <ul class="ask-list">
+        <li class="ask-item">
+          <a class="ask-tag" href="./screens/main-v2-2.html">04.1 · v3</a>
+          <span class="ask-q">미션 화면에서 Delta의 문구와 알림 건수를 '현재 미션' 기준으로 할까요, '전체 미션' 기준으로 할까요? 지금은 전체 미션 기준이라 목록(현재 미션)과 숫자가 다를 수 있습니다. 전체 미션은 통합 순회 현황에서 한눈에 봅니다.</span>
+        </li>
+        <li class="ask-item">
+          <a class="ask-tag" href="./screens/main-v2-2.html">04.1 · v3</a>
+          <span class="ask-q">한 미션에 로봇이 여러 대(다기종) 붙으면 E-STOP 은 '보고 있는 로봇'만 멈출까요, '미션의 로봇 전체'를 멈출까요? 지금은 미션 하나에 로봇 한 대라 둘이 같습니다.</span>
+        </li>
+        <li class="ask-item">
+          <a class="ask-tag" href="./screens/safety-v6.html#detail">SD-01 · v6</a>
+          <span class="ask-q">누출감지 결과는 실제 장비가 퍼센트(AI가 누출이라 보는 정도)로 주나요, 보고서 예시처럼 경미 · 보통 · 심각 단계로 주나요? 지금은 '누출 의심도 62%'(주의 55% · 위험 70%)로 그려 두었어요.</span>
+        </li>
+        <li class="ask-item">
+          <a class="ask-tag" href="./screens/main-v6.html">04.1 · v6</a>
+          <span class="ask-q">상단 미션 탭을 누르면 그 미션의 '지금 상태'를 보여요 — 대기 → 미션 설정, 사전점검 중 → 사전점검, 수행중 → 관제, 완료 → 끝난 관제 + 보고서 · 다시 실행. 미션은 다른 곳(스케줄러 · 미션 관리)에서 만들어지고 미션 설정은 실행 전 설정 단계라 미션 이름은 읽기 전용이에요. 이 기준으로 괜찮을까요? 대기 미션 둘(소방 설비 점검 · 주간 설비 점검)은 임시 이름이에요.</span>
+        </li>
+        <li class="ask-item">
+          <a class="ask-tag" href="./screens/main-v6.html">04.1 · v6</a>
+          <span class="ask-q">Delta 펼침 답의 문체를 '~요'로 할까요, 시안처럼 '~습니다'로 할까요? 지금은 Delta 라이팅 시스템대로 '~요'예요.</span>
+        </li>
+        <li class="ask-item">
+          <a class="ask-tag" href="./screens/main-v6.html">04.1 · v6</a>
+          <span class="ask-q">Delta가 안내하는 처리 순서(위험 → 보는 미션 → 오래된 순)를 운영 기준으로 확정해도 될까요?</span>
+        </li>
+        <li class="ask-item">
+          <a class="ask-tag" href="./screens/main-v6.html">04.1 · v6</a>
+          <span class="ask-q">Delta를 펼칠 때 지금처럼 지도 왼쪽에서 세로로 길게 열까요, 시안처럼 접힌 자리에서 아래로 자라게 할까요?</span>
+        </li>
+      </ul>
+      <details class="ask-done">
+        <summary>결정된 것 <span class="ask-count">1</span></summary>
+        <ul class="ask-list">
+          <!-- 예) <li class="ask-item"><a class="ask-tag" href="…">04.1 · v3</a><span class="ask-q">질문</span><span class="ask-answer">2026.10.20 · 답</span></li> -->
+          <li class="ask-item">
+            <a class="ask-tag" href="./screens/alert-center.html">04.1 · v3</a>
+            <span class="ask-q">알림 전체보기(알림 센터)와 알림별 보고서 화면에 꼭 들어가야 할 내용이 있을까요?</span>
+            <span class="ask-answer">2026.10.20 · 알림 센터 설계 완료(10/16) · 보고서는 실제 보고서 예시(ARPS 순시 점검 보고서) 기준으로 설계 예정</span>
+          </li>
+        </ul>
+      </details>
+    </section>
+
+    <!-- 화면 한 줄 = 화면 하나. 버전은 왼쪽에서 오른쪽으로 시간순이고, 마지막 판에 is-latest 를 붙인다.
+         새 판이 나오면 오른쪽에 카드를 더하고, is-latest · 최신 배지 · 화면 이름 링크를 그 판으로 옮긴다. -->
+    <section class="screens" aria-labelledby="screens-title">
+      <h2 id="screens-title" class="visually-hidden">화면</h2>
+
+      <article class="screen-row">
+        <header class="screen-head">
+          <span class="screen-code">CM-01</span>
+          <a class="screen-title" href="./screens/splash.html">스플래시</a>
+        </header>
+        <ol class="ver-list">
+          <li class="ver-card is-latest">
+            <a class="ver-link" href="./screens/splash.html"><span class="ver-name">v1</span></a>
+            <span class="ver-date">2026.09.03</span>
+            <span class="ver-badge">최신</span>
+          </li>
+        </ol>
+      </article>
+
+      <article class="screen-row">
+        <header class="screen-head">
+          <span class="screen-code">CM-02</span>
+          <a class="screen-title" href="./screens/login.html">로그인</a>
+        </header>
+        <ol class="ver-list">
+          <li class="ver-card is-latest">
+            <a class="ver-link" href="./screens/login.html"><span class="ver-name">v1</span></a>
+            <span class="ver-date">2026.09.03</span>
+            <span class="ver-badge">최신</span>
+            <span class="ver-extra"><a href="./screens/auth-notes.html">퍼블리싱 노트</a></span>
+          </li>
+        </ol>
+      </article>
+
+      <article class="screen-row">
+        <header class="screen-head">
+          <span class="screen-code">CM-02a</span>
+          <a class="screen-title" href="./screens/password-expired.html">비밀번호 변경 강제</a>
+        </header>
+        <ol class="ver-list">
+          <li class="ver-card is-latest">
+            <a class="ver-link" href="./screens/password-expired.html"><span class="ver-name">v1</span></a>
+            <span class="ver-date">2026.09.04</span>
+            <span class="ver-badge">최신</span>
+            <span class="ver-extra"><a href="./screens/auth-notes.html">퍼블리싱 노트</a></span>
+          </li>
+        </ol>
+      </article>
+
+      <article class="screen-row">
+        <header class="screen-head">
+          <span class="screen-code">Screen 04.1</span>
+          <a class="screen-title" href="./screens/main-v6.html">통합 관제 메인</a>
+        </header>
+        <!-- 버전 묶음(10/21 디자이너) — 큰 번호마다 한 열, 그 안은 위에서 아래로 나온 차례. -->
+        <div class="ver-groups">
+          <section class="ver-group" aria-label="v1">
+            <p class="ver-group-label">v1</p>
+            <ol class="ver-list is-stack">
+              <li class="ver-card">
+                <a class="ver-link" href="./screens/sian-1.html"><span class="ver-name">v1-A</span><span class="ver-tag">좌측 패널형</span></a>
+                <span class="ver-date">2026.09.17</span>
+              </li>
+              <li class="ver-card">
+                <a class="ver-link" href="./screens/sian-2.html"><span class="ver-name">v1-B</span><span class="ver-tag">모달형</span></a>
+                <span class="ver-date">2026.09.17</span>
+              </li>
+            </ol>
+          </section>
+          <section class="ver-group" aria-label="v2">
+            <p class="ver-group-label">v2</p>
+            <ol class="ver-list is-stack">
+              <li class="ver-card">
+                <a class="ver-link" href="./screens/dashboard-home.html"><span class="ver-name">v2</span><span class="ver-tag">통합판</span></a>
+                <span class="ver-date">2026.09.21</span>
+                <span class="ver-extra"><a href="./screens/dashboard-home-notes.html">퍼블리싱 노트</a></span>
+              </li>
+              <li class="ver-card">
+                <a class="ver-link" href="./screens/sian-3.html"><span class="ver-name">v2.1</span><span class="ver-tag">Delta 창형</span></a>
+                <span class="ver-date">2026.09.28</span>
+              </li>
+            </ol>
+          </section>
+          <!-- 버전 이름 정리(10/22 디자이너) — v2.2 → v3, v3 → v4. 화면 파일 이름(*-v2-2.html · *-v3.html)은 그대로 두고 인덱스 표기만 바꿨다. -->
+          <section class="ver-group" aria-label="v3">
+            <p class="ver-group-label">v3</p>
+            <ol class="ver-list is-stack">
+              <li class="ver-card">
+                <a class="ver-link" href="./screens/main-v2-2.html"><span class="ver-name">v3</span><span class="ver-tag">미션 기준 화면</span></a>
+                <span class="ver-date">2026.10.12</span>
+                <a class="ver-ask" href="#ask">확인 2</a>
+                <!-- v3(예전 이름 v2.2 · 파일은 *-v2-2.html 그대로) 는 화면이 여럿이라 카드 안에 목록으로 둔다(10/20 디자이너). 번호는 쓰는 차례 — 준비(1 · 2) → 건물 전체(3) → 미션(4),
+                     4-n 은 미션 관제에서 여는 화면(상단 바 "전체 건물 › 미션" 과 같은 차례). -->
+                <ul class="ver-pages">
+                  <li><a href="./screens/mission-setup.html"><span class="ver-no">1</span>미션 설정</a></li>
+                  <li><a href="./screens/mission-precheck.html"><span class="ver-no">2</span>사전 점검</a></li>
+                  <li><a href="./screens/building-v2-2.html"><span class="ver-no">3</span>통합 순회 현황</a></li>
+                  <li><a href="./screens/main-v2-2.html"><span class="ver-no">4</span>미션 관제</a></li>
+                  <li class="is-sub"><a href="./screens/alert-center.html"><span class="ver-no">4-1</span>알림 센터</a></li>
+                </ul>
+              </li>
+            </ol>
+          </section>
+          <section class="ver-group" aria-label="v4">
+            <p class="ver-group-label">v4</p>
+            <ol class="ver-list is-stack">
+              <!-- v4(예전 이름 v3 · 파일 *-v3.html) — 10/21 부터 작업 화면(디자이너). v3(예전 v2.2) 다섯 장을 복제해 시작했고 v3 은 멈췄다. -->
+              <!-- Delta 꼴(10/21 디자이너) — 같은 v4 화면을 Delta 꼴만 바꿔 연다(delta-form.js). 고른 꼴은 기억해 화면을 오가도 그대로라,
+                   카드의 모든 링크에 ?form= 을 달아 어느 카드로 들어와도 그 꼴로 시작한다. -->
+              <li class="ver-card">
+                <a class="ver-link" href="./screens/main-v3.html?form=widget"><span class="ver-name">v4</span><span class="ver-tag">Delta 위젯형</span></a>
+                <span class="ver-date">2026.10.21</span>
+                <ul class="ver-pages">
+                  <li><a href="./screens/mission-setup-v3.html"><span class="ver-no">1</span>미션 설정</a></li>
+                  <li><a href="./screens/mission-precheck-v3.html"><span class="ver-no">2</span>사전 점검</a></li>
+                  <li><a href="./screens/building-v3.html?form=widget"><span class="ver-no">3</span>통합 순회 현황</a></li>
+                  <li><a href="./screens/main-v3.html?form=widget"><span class="ver-no">4</span>미션 관제</a></li>
+                  <li class="is-sub"><a href="./screens/alert-center-v3.html"><span class="ver-no">4-1</span>알림 센터</a></li>
+                </ul>
+              </li>
+              <!-- Delta 가로형 — Figma DS 1335:21707. Delta 가 있는 두 화면만. -->
+              <li class="ver-card">
+                <a class="ver-link" href="./screens/main-v3.html?form=bar"><span class="ver-name">v4</span><span class="ver-tag">Delta 가로형</span></a>
+                <span class="ver-date">2026.10.21</span>
+                <ul class="ver-pages">
+                  <li><a href="./screens/building-v3.html?form=bar"><span class="ver-no">3</span>통합 순회 현황</a></li>
+                  <li><a href="./screens/main-v3.html?form=bar"><span class="ver-no">4</span>미션 관제</a></li>
+                </ul>
+              </li>
+            </ol>
+          </section>
+          <section class="ver-group" aria-label="v5">
+            <p class="ver-group-label">v5</p>
+            <ol class="ver-list is-stack">
+              <!-- v5(파일 *-v5.html) — 10/29 부터 작업 화면(디자이너). v4(*-v3.html) 다섯 장을 Delta 위젯형 기준으로 복제했고 v4 는 멈췄다.
+                   Delta 는 위젯형만 쓴다(가로형 카드 없음). -->
+              <li class="ver-card">
+                <a class="ver-link" href="./screens/main-v5.html"><span class="ver-name">v5</span><span class="ver-tag">Delta 위젯형</span></a>
+                <span class="ver-date">2026.10.29</span>
+                <ul class="ver-pages">
+                  <li><a href="./screens/mission-setup-v5.html"><span class="ver-no">1</span>미션 설정</a></li>
+                  <li><a href="./screens/mission-precheck-v5.html"><span class="ver-no">2</span>사전 점검</a></li>
+                  <li><a href="./screens/building-v5.html"><span class="ver-no">3</span>통합 순회 현황</a></li>
+                  <li><a href="./screens/main-v5.html"><span class="ver-no">4</span>미션 관제</a></li>
+                  <li class="is-sub"><a href="./screens/alert-center-v5.html"><span class="ver-no">4-1</span>알림 센터</a></li>
+                </ul>
+              </li>
+            </ol>
+          </section>
+          <section class="ver-group" aria-label="v6">
+            <p class="ver-group-label">v6</p>
+            <ol class="ver-list is-stack">
+              <!-- v6(파일 *-v6.html) — 10/30 부터 작업 화면(디자이너). v5(*-v5.html) 일곱 장을 복제했고 v5 는 멈췄다. -->
+              <li class="ver-card is-latest">
+                <a class="ver-link" href="./screens/main-v6.html"><span class="ver-name">v6</span><span class="ver-tag">Delta 위젯형</span></a>
+                <span class="ver-date">2026.10.30</span>
+                <span class="ver-badge">최신</span>
+                <a class="ver-ask" href="#ask">확인 4</a>
+                <ul class="ver-pages">
+                  <li><a href="./screens/mission-setup-v6.html"><span class="ver-no">1</span>미션 설정</a></li>
+                  <li><a href="./screens/mission-precheck-v6.html"><span class="ver-no">2</span>사전 점검</a></li>
+                  <li><a href="./screens/building-v6.html"><span class="ver-no">3</span>통합 순회 현황</a></li>
+                  <li><a href="./screens/main-v6.html"><span class="ver-no">4</span>미션 관제</a></li>
+                  <li class="is-sub"><a href="./screens/alert-center-v6.html"><span class="ver-no">4-1</span>알림 센터</a></li>
+                </ul>
+              </li>
+            </ol>
+          </section>
+        </div>
+      </article>
+
+      <!-- 안전진단(GNB [안전진단]) — 10/29 디자이너 와이어프레임 "UI_전주기 안전진단 탭"을 디자인 시스템으로 옮겼다. 주소 #table · #all · #detail 로 장면을 바로 연다. -->
+      <article class="screen-row">
+        <header class="screen-head">
+          <span class="screen-code">SD-01</span>
+          <a class="screen-title" href="./screens/safety-v6.html">안전진단</a>
+        </header>
+        <ol class="ver-list">
+          <li class="ver-card">
+            <a class="ver-link" href="./screens/safety-v5.html"><span class="ver-name">v5</span><span class="ver-tag">감지 6종 · 자세히 보기</span></a>
+            <span class="ver-date">2026.10.29</span>
+            <ul class="ver-pages">
+              <li><a href="./screens/safety-v5.html"><span class="ver-no">1</span>미션 카드</a></li>
+              <li><a href="./screens/safety-v5.html#table"><span class="ver-no">2</span>미션 표</a></li>
+              <li><a href="./screens/safety-v5.html#all"><span class="ver-no">3</span>전체 미션</a></li>
+              <li><a href="./screens/safety-v5.html#detail"><span class="ver-no">4</span>자세히 보기</a></li>
+            </ul>
+          </li>
+          <li class="ver-card is-latest">
+            <a class="ver-link" href="./screens/safety-v6.html"><span class="ver-name">v6</span><span class="ver-tag">감지 6종 · 자세히 보기</span></a>
+            <span class="ver-date">2026.10.30</span>
+            <span class="ver-badge">최신</span>
+            <a class="ver-ask" href="#ask">확인 1</a>
+            <ul class="ver-pages">
+              <li><a href="./screens/safety-v6.html"><span class="ver-no">1</span>미션 카드</a></li>
+              <li><a href="./screens/safety-v6.html#table"><span class="ver-no">2</span>미션 표</a></li>
+              <li><a href="./screens/safety-v6.html#all"><span class="ver-no">3</span>전체 미션</a></li>
+              <li><a href="./screens/safety-v6.html#detail"><span class="ver-no">4</span>자세히 보기</a></li>
+            </ul>
+          </li>
+        </ol>
+      </article>
+
+      <!-- 보고서(GNB [보고서]) — 10/29 디자이너 시안 "UI_전주기 보고서 탭"을 디자인 시스템으로 옮겼다. 주소 #day · #month · #cal · #modal 로 장면을 바로 연다. -->
+      <article class="screen-row">
+        <header class="screen-head">
+          <span class="screen-code">RP-01</span>
+          <a class="screen-title" href="./screens/report-v6.html">보고서</a>
+        </header>
+        <ol class="ver-list">
+          <li class="ver-card">
+            <a class="ver-link" href="./screens/report-v5.html"><span class="ver-name">v5</span><span class="ver-tag">보고서 목록 · 뷰어</span></a>
+            <span class="ver-date">2026.10.29</span>
+            <ul class="ver-pages">
+              <li><a href="./screens/report-v5.html"><span class="ver-no">1</span>미션 보고서</a></li>
+              <li><a href="./screens/report-v5.html#day"><span class="ver-no">2</span>일일 보고서</a></li>
+              <li><a href="./screens/report-v5.html#month"><span class="ver-no">3</span>월 보고서</a></li>
+              <li class="is-sub"><a href="./screens/report-v5.html#modal"><span class="ver-no">3-1</span>관제에서 열기(모달)</a></li>
+            </ul>
+          </li>
+          <li class="ver-card is-latest">
+            <a class="ver-link" href="./screens/report-v6.html"><span class="ver-name">v6</span><span class="ver-tag">보고서 목록 · 뷰어</span></a>
+            <span class="ver-date">2026.10.30</span>
+            <span class="ver-badge">최신</span>
+            <ul class="ver-pages">
+              <li><a href="./screens/report-v6.html"><span class="ver-no">1</span>미션 보고서</a></li>
+              <li><a href="./screens/report-v6.html#day"><span class="ver-no">2</span>일일 보고서</a></li>
+              <li><a href="./screens/report-v6.html#month"><span class="ver-no">3</span>월 보고서</a></li>
+              <li class="is-sub"><a href="./screens/report-v6.html#modal"><span class="ver-no">3-1</span>관제에서 열기(모달)</a></li>
+            </ul>
+          </li>
+        </ol>
+      </article>
+    </section>
+
+    <!-- 영문판(11/03) — 한글판(스플래시 · 로그인 · v6 일곱 장)을 tools/build-en.mjs 로 복사하고 화면 글자를 사전(tools/i18n/*.tsv)으로 바꾼다.
+         비밀번호 변경 강제는 뺐다. 한글판을 고친 뒤 node tools/build-en.mjs → python tools/stamp-assets.py. -->
+    <section class="screens" aria-labelledby="en-title">
+      <article class="screen-row">
+        <header class="screen-head">
+          <span class="screen-code">EN</span>
+          <a class="screen-title" id="en-title" href="./screens/main-v6-en.html">영문판 (English) · v6</a>
+        </header>
+        <ol class="ver-list">
+          <li class="ver-card is-latest">
+            <a class="ver-link" href="./screens/main-v6-en.html"><span class="ver-name">v6 EN</span><span class="ver-tag">자동 번역</span></a>
+            <span class="ver-date">2026.11.03</span>
+            <ul class="ver-pages">
+              <li><a href="./screens/splash-en.html"><span class="ver-no">CM-01</span>Splash</a></li>
+              <li><a href="./screens/login-en.html"><span class="ver-no">CM-02</span>Sign in</a></li>
+              <li><a href="./screens/mission-setup-v6-en.html"><span class="ver-no">1</span>Mission Setup</a></li>
+              <li><a href="./screens/mission-precheck-v6-en.html"><span class="ver-no">2</span>Pre-check</a></li>
+              <li><a href="./screens/building-v6-en.html"><span class="ver-no">3</span>Patrol Overview</a></li>
+              <li><a href="./screens/main-v6-en.html"><span class="ver-no">4</span>Mission Control</a></li>
+              <li class="is-sub"><a href="./screens/alert-center-v6-en.html"><span class="ver-no">4-1</span>Alert Center</a></li>
+              <li><a href="./screens/safety-v6-en.html"><span class="ver-no">SD</span>Safety Diagnosis</a></li>
+              <li><a href="./screens/report-v6-en.html"><span class="ver-no">RP</span>Reports</a></li>
+            </ul>
+          </li>
+        </ol>
+      </article>
+    </section>
+
+    <!-- 내부 문서 — 디자인 시스템 검토 · 효과 시험. 클라이언트 확인용이 아니라 접어 둔다. -->
+    <details class="internal">
+      <summary>내부 문서</summary>
+      <!-- 네 묶음 — 기준 문서 · 자문 자료 · 리서치(10/23) · 실험(10/20 디자이너). -->
+      <div class="internal-groups">
+        <section class="internal-group" aria-label="기준 문서">
+          <p class="internal-label">기준 문서</p>
+          <ul class="internal-list">
+            <li><a href="./policy.html">화면 정책</a></li>
+            <li><a href="./figma-sync.html">디자인 시스템 기록</a></li>
+            <li><a href="./token-names.html">토큰 이름 대조표</a></li>
+          </ul>
+        </section>
+        <section class="internal-group" aria-label="자문 자료">
+          <p class="internal-label">자문 자료</p>
+          <ul class="internal-list">
+            <li><a href="./sian1-to-v22.html">[자문] 26.10.16</a></li>
+            <li><a href="./advisory-261020.html">[자문] 26.10.20</a></li>
+            <li><a href="./advisory-261028.html">[자문] 26.10.28</a></li>
+            <li><a href="./advisory-261030.html">[자문] 26.10.30</a></li>
+            <li><a href="./advisory-261103.html">[자문] 26.11.03</a></li>
+          </ul>
+        </section>
+        <section class="internal-group" aria-label="리서치">
+          <p class="internal-label">리서치</p>
+          <ul class="internal-list">
+            <li><a href="./robot-display.html">로봇 디스플레이</a></li>
+          </ul>
+        </section>
+        <section class="internal-group" aria-label="실험">
+          <p class="internal-label">실험</p>
+          <ul class="internal-list">
+            <li><a href="./tone-lab.html">톤 실험실</a></li>
+            <li><a href="./screens/deid-lab.html">비식별화 패턴 비교</a></li>
+            <li><a href="./screens/lab-map-render-v5.html">지도 렌더 실험</a></li>
+            <li><a href="./screens/lab-map-render-v6.html">지도 렌더 실험 v6 — AO 굽기</a></li>
+            <li><a href="./screens/lab-bld-render-v6.html">통합 순회 연출 실험</a></li>
+            <li><a href="./screens/lab-twin-v6.html">디지털 트윈 모듈 실험 (지하 4층 기계실)</a></li>
+            <li><a href="./map-bake-guide.html">지도 조명 굽기 안내서</a></li>
+          </ul>
+        </section>
+      </div>
+    </details>
+  </main>
+
+  <footer class="site-footer">
+    <span>APRISM · 공장 환경점검 로봇 관제 대시보드</span>
+  </footer>
+
+  <script src="./assets/js/theme.js?v=c86093d9"></script>
+  <!-- 지난 판 카드 접기(10/30) -->
+  <script src="./assets/js/index-fold.js?v=fb4ca6f3"></script>
+</body>
+</html>

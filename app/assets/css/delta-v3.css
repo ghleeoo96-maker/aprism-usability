@@ -1,0 +1,764 @@
+/*
+ * 시안 3 · Delta — Figma UI_00 826:8887 ver.2 의 Delta 두 판을 그대로 옮긴 것이다.
+ *   접힘  997:20173  지도 왼쪽 위 모서리. 빛이 모서리에서 번지고 그 안에 220 카드가 있다.
+ *   펼침  997:21163  395×295 창. 지도 가운데에 뜨고 머리를 잡아 옮긴다.
+ *
+ * screens/sian-3.html 에서만 쓴다(body.v2.v3). app-shell.css · monitor.css 위에 얹는다.
+ *
+ * 왜 .ai-panel 을 안 쓰나:
+ *   1차 · ver.2 의 Delta 는 지도 왼쪽 아래에 붙는 가로 패널이라 규칙이 통째로 다르다.
+ *   여기서는 클래스를 새로 쓰고(.delta3), screen.js · monitor.js 가 잡는 자리만 남겼다 —
+ *   [data-ai-panel] · [data-ai-toggle] · .ai-line-1 · .ai-line-2 · [data-ai-actions] ·
+ *   [data-ai-ask-open] · #ai-ask. 그래서 알림 단계 · 문구 · 행동 버튼은 ver.2 와 같이 돈다.
+ *
+ * 빛은 Figma 에서 받은 SVG 세 장 그대로다(assets/img/delta-light-*.svg).
+ * 다시 그리지 않았다 — 흐림 · 하드라이트 · 색 정지점이 전부 그 안에 들어 있다.
+ */
+
+/* ------------------------------------------------------------------ *
+ * 공통 — 두 판이 같은 요소다. .is-open 하나로 갈아입는다.
+ * ------------------------------------------------------------------ */
+
+.v3 .delta3 {
+  /*
+   * 스펙트럼 램프 — prism-orb.js 의 코사인 팔레트를 한 바퀴 훑어 8등분한 값이다.
+   *   pal(t) = a + b * cos(2PI * (c*t + d))
+   * 기본값은 PALETTES.info 로, app-shell.css 의 --ai-spectrum-ramp 와 같은 수다.
+   * 단계가 오르면 그 단계 팔레트로 갈아 낀다 — 프리즘이 그 대역만 통과시키는 셈이다.
+   * 오브 팔레트를 고치면 여기 네 벌도 같이 다시 뽑아야 한다.
+   */
+  --d3-ramp: #1B77EE 0%, #0A49D7 12.5%, #1E2FB0 25%, #493891 37.5%, #74608B 50%, #858DA3 62.5%, #71A7C9 75%, #459EE9 87.5%, #1B77EE 100%;
+
+  /* 광원에서 멀어질수록 빛이 옅다 — 세기는 delta-v3.js 가 --d3-power 로 넣는다. */
+  --d3-primary: color-mix(in srgb,
+    var(--delta3-glow-primary, var(--comp-alert-default-glow-core)) calc(var(--d3-power, 1) * 100%), transparent);
+  --d3-secondary: color-mix(in srgb,
+    var(--delta3-glow-secondary, var(--comp-alert-default-glow-halo)) calc(var(--d3-power, 1) * 100%), transparent);
+
+  position: absolute;
+  z-index: 6;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  overflow: hidden;
+}
+
+/*
+ * 접힘 — Two Column 왼쪽 위 모서리에 딱 붙는다(Figma Delta x0 y0, 260×268).
+ * 안쪽 여백은 위 12 · 오른쪽 8 · 아래 8, 왼쪽은 0 이다. 카드가 왼쪽 32 에서 시작한다.
+ */
+.v3 .delta3:not(.is-open) {
+  left: 0;
+  top: 0;
+  width: 260px;
+  height: 260px;
+  gap: 0;
+  padding: var(--space-20);
+  /* 모서리는 엣지 글로우의 깎인 선이 맡는다 — 둥글리면 삼각판 끝에 어두운 호가 비친다. */
+  border-radius: 0;
+
+  /*
+   * 모서리에서 번지는 빛. Figma 는 반지름 10 짜리 radial 을 matrix(14.676 17.721 -14.676 17.721)
+   * 로 늘린 것인데, 두 축 길이가 같아서 결국 원점 기준 반지름 230 원이다.
+   */
+  background-image: radial-gradient(
+    circle 226px at 0 0,
+    var(--color-gray-600) 0%,
+    rgb(44 51 64 / 50%) 50%,
+    rgb(10 14 21 / 0%) 100%
+  );
+}
+
+/*
+ * 펼침 — 395×295 창. 자리는 delta-v3.js 가 잡는다(처음엔 지도 한가운데).
+ * 면은 위에서 아래로 slate -> 하늘 -> 흰빛이다. Figma 실측 정지점 그대로다
+ * (bg/surface/selected 50% · #98BDED 83.654% · bg/inverse 100%).
+ */
+.v3 .delta3.is-open {
+  width: 395px;
+  /*
+   * Figma 는 295 고정인데, 조치 버튼 문구가 실제 알림에서 길어지면 두 줄이 된다
+   * (Figma 는 "조치 버튼 1" 같은 자리표시자라 한 줄에 들어간다).
+   * 높이를 295 아래로는 안 내려가게 두고, 넘치면 창이 자란다 — 버튼이 창 밖으로 새는 것보다 낫다.
+   */
+  min-height: 295px;
+  gap: 0;
+  padding: var(--space-4);
+  border-radius: 12px;
+  /*
+   * 굴절 — 판을 조금 비워 뒤의 지도가 비치게 하고, 비치는 것을 흐린다.
+   * Figma 면은 불투명인데(디자이너 확인 필요) 유리판이라면 뒤가 비쳐야 한다.
+   * 끌고 다니는 동안에는 흐림을 끈다 — 3D 지도 위에서 매 프레임 흐리면 프레임이 깎인다.
+   */
+  background-image: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--bg-selected) 90%, transparent) 50%,
+    color-mix(in srgb, var(--d3-face-mid, #98BDED) 90%, transparent) 83.654%,
+    color-mix(in srgb, var(--d3-face-end, var(--bg-inverse)) 88%, transparent) 100%
+  );
+  backdrop-filter: blur(12px) saturate(1.12);
+  -webkit-backdrop-filter: blur(12px) saturate(1.12);
+
+  /*
+   * 빛은 왼쪽 위 Delta 자리 한 곳에서 온다. 창이 어디로 가든 그쪽에서 받는다 —
+   * 자리에 따라 방향과 세기가 달라지므로 값은 delta-v3.js 가 계산해 넣는다.
+   * 짜임은 Figma 카드와 같다. 광원 쪽으로 새는 바깥 빛 한 겹,
+   * 빛이 빠져나가는 변에 강한 띠, 들어오는 변에 옅은 띠.
+   */
+  box-shadow:
+    var(--d3-ox, 0px) var(--d3-oy, 8px) 24px -12px var(--d3-secondary),
+    inset var(--d3-ix, 0px) var(--d3-iy, -6px) 20px -8px var(--d3-primary),
+    inset var(--d3-ex, 0px) var(--d3-ey, 4px) 10px -6px var(--d3-secondary);
+}
+
+/* 끌고 있는 동안은 흐림을 끈다. */
+.v3 .delta3.is-dragging { backdrop-filter: none; -webkit-backdrop-filter: none; }
+
+/*
+ * 분광 — 창 윗변 1px. 화면에서 무지개가 뜨는 곳은 여기 하나뿐이다.
+ * 빛이 이 판을 통과했다는 표시라, 여러 군데 두면 뜻이 사라진다.
+ */
+.v3 .delta3.is-open::after {
+  content: "";
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  top: 0;
+  height: 1px;
+  background-image: linear-gradient(90deg, var(--d3-ramp));
+  opacity: 0.9;
+  pointer-events: none;
+}
+
+/* ------------------------------------------------------------------ *
+ * 빛 — Figma Group 34(Light-Circle + Ellipse 16 · 17). 접힘에만 있다.
+ * 자리는 Delta 프레임 기준이고, 프레임이 잘라 내는 만큼만 보인다.
+ *
+ * 층은 Figma 그대로 아래에서 위로 [카드] - [빛] - [표식+삼각탭] 이다.
+ * 그래서 빛은 카드 위를 지나고, 하드라이트가 카드 면에 섞인다.
+ * 차례는 HTML 의 DOM 순서로만 잡았다 — 여기에 z-index 를 주면 빛이 제 층에
+ * 갇혀(쌓임 맥락) 아래 카드와 섞이지 못한다. 섞임이 곧 이 그림의 전부다.
+ * ------------------------------------------------------------------ */
+
+.v3 .delta3-light {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.v3 .delta3.is-open .delta3-light { display: none; }
+
+.v3 .delta3-light img {
+  position: absolute;
+  display: block;
+  max-width: none;
+}
+
+/*
+ * Light-Circle 480 — 프레임 바깥 (-224, -228) 에서 시작한다(Figma 1069:17323).
+ * 480 짜리 옅은 원이라 빛 전체의 뿌연 기운은 거의 이 한 장에서 나온다.
+ * Figma 는 0.5 인데 0.4 를 더 곱해 두 단계 걷었다(실효 0.2) — 디자이너 요청이다.
+ * 방향을 만드는 덩이 둘은 그대로 두었다. 빛줄기는 살리고 안개만 뺀 셈이다.
+ */
+.v3 .delta3-light .lc { left: -224px; top: -228px; opacity: 0.4; }
+
+/*
+ * 두 덩이는 하드라이트로 카드 · 프레임 면에 섞인다(Figma Ellipse 16 · 17 의 블렌드).
+ * SVG 안에도 같은 블렌드가 적혀 있지만 <img> 는 제 문서 안에서만 섞이므로,
+ * 바깥 면까지 닿게 하려면 여기 CSS 쪽이 있어야 한다. 둘 다 둔다.
+ * Figma 는 감싼 상자 안에서 회전시키는데,
+ * 여기서는 그 상자의 중심에 SVG 를 놓고 같은 각도로 돌린다 — 결과가 같다.
+ *   Ellipse 16  상자 (-27, -61) 202.536×221.955 · 30°
+ *   Ellipse 17  상자 (-70, -5)  209.052×171.536 · 75°
+ */
+/*
+ * 투명도 — 디자이너 요청으로 한 번 더 걷었다(원 0.6 -> 0.4, 덩이 1 -> 0.65).
+ * 묶음(.delta3-light)에 opacity 를 주면 쌓임 맥락이 생겨 하드라이트가 카드에 안 닿는다.
+ * 그래서 한 장씩 준다.
+ */
+.v3 .delta3-light .blob {
+  opacity: 0.65;
+  mix-blend-mode: hard-light;
+  transform-origin: center;
+}
+
+.v3 .delta3-light .b1 {
+  left: -29px;
+  top: -67px;
+  margin: 10.0265px 26.8445px;   /* (221.955-201.902)/2 · (202.536-148.847)/2 */
+  transform: rotate(30deg);
+}
+
+.v3 .delta3-light .b2 {
+  left: -72px;
+  top: -11px;
+  margin: -15.183px 30.1025px;   /* (171.536-201.902)/2 · (209.052-148.847)/2 */
+  transform: rotate(75deg);
+}
+
+/* ------------------------------------------------------------------ *
+ * 이름 줄 — 접힘은 카드 위에, 펼침은 창 머리에 있다. 같은 줄이 자리만 옮긴다.
+ * ------------------------------------------------------------------ */
+
+.v3 .delta3-name {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  width: 100%;
+  flex: none;
+}
+
+/* ------------------------------------------------------------------ *
+ * Delta 표식 — 세 상태 도트
+ *
+ * 디자이너 핸드오프("세 상태 도트 모션 그래픽")의 연출을 그대로 옮긴 것이다.
+ * 끊긴 고리(Icon / Delta) 를 대신한다. 20 칸에 8 짜리 모난 점 셋이 ㄴ 자로 앉는다.
+ *
+ *   정상  흰 점 셋이 가만히 있다.
+ *   주의  1 - 2 - 3 순으로 번갈아 켜진다. 켜질 때 한 번 튀고 가라앉는다(탄성).
+ *   위험  셋이 한꺼번에 깜빡인다. 가운데로 움츠렸다 튕겨 나오고 모서리가 날카로워진다.
+ *
+ * 단계는 body[data-level] 이다(monitor.js). 단계가 바뀌면 애니메이션 이름이 바뀌므로
+ * 브라우저가 알아서 처음부터 다시 돌린다 — 전환이 끊겨 보이지 않게 하는 장치다.
+ * 1 - 2 - 3 팝인은 이름이 그대로라 다시 안 돌아서, delta-v3.js 가 클래스로 다시 건다.
+ *
+ * 색은 핸드오프의 #FFC93C · #FF3B30 대신 디자인 토큰을 썼다(거의 같은 색이다) —
+ * 알림 색은 화면 곳곳에서 같은 값이어야 한다.
+ * ------------------------------------------------------------------ */
+
+.v3 .delta-dots {
+  --dd-dim: color-mix(in srgb, var(--text-primary) 35%, transparent);
+  flex: none;
+  display: block;
+  width: var(--size-icon-20);
+  height: var(--size-icon-20);
+}
+
+.v3 .delta-dots svg { display: block; width: 100%; height: 100%; overflow: visible; }
+
+.v3 .delta-dots g,
+.v3 .delta-dots rect { transform-box: fill-box; transform-origin: center; }
+
+/* 정상 — 흰 점 셋. 움직이지 않는다. */
+.v3 .delta-dots rect { fill: var(--text-primary); }
+
+/* 움츠러드는 쪽 — 각 점이 가운데(10, 10)를 향한다. */
+.v3 .delta-dots .dd-1 { --tx: 1.4px; --ty: -1.4px; }
+.v3 .delta-dots .dd-2 { --tx: 1.4px; --ty: 1.4px; }
+.v3 .delta-dots .dd-3 { --tx: -1.4px; --ty: 1.4px; }
+
+/* 주의 — 한 바퀴 1.8초, 점마다 0.6초씩 밀려 켜진다. */
+.v3[data-level="warning"] .delta-dots rect {
+  fill: var(--dd-dim);
+  animation: dd-caution 1.8s cubic-bezier(.3, 0, .2, 1) infinite backwards;
+}
+.v3[data-level="warning"] .delta-dots .dd-1 { animation-delay: 0.35s; }
+.v3[data-level="warning"] .delta-dots .dd-2 { animation-delay: 0.95s; }
+.v3[data-level="warning"] .delta-dots .dd-3 { animation-delay: 1.55s; }
+
+/* 위험 — 셋이 같이, 0.6초마다. */
+.v3[data-level="critical"] .delta-dots rect {
+  fill: var(--dd-dim);
+  animation: dd-danger 0.6s cubic-bezier(.2, .7, .3, 1) 0.35s infinite backwards;
+}
+
+@keyframes dd-caution {
+  0% { fill: var(--dd-dim); transform: scale(1); }
+  7% { fill: var(--status-warning-icon); transform: scale(1.2); }
+  13% { transform: scale(0.94); }
+  19% { transform: scale(1.05); }
+  25%, 30% { fill: var(--status-warning-icon); transform: scale(1); }
+  42%, 100% { fill: var(--dd-dim); transform: scale(1); }
+}
+
+@keyframes dd-danger {
+  0% { fill: var(--status-critical-icon); transform: translate(var(--tx), var(--ty)) scale(0.84); rx: 1px; }
+  14% { transform: translate(0, 0) scale(1.1); }
+  26% { transform: translate(0, 0) scale(1); }
+  44% { fill: var(--status-critical-icon); rx: 1.5px; }
+  50%, 100% { fill: var(--dd-dim); transform: translate(0, 0) scale(1); rx: 2px; }
+}
+
+/* 전환 — 점 셋이 1 - 2 - 3 순으로 팝인한다. delta-v3.js 가 단계가 바뀔 때 건다. */
+.v3 .delta-dots.is-enter g {
+  animation: dd-enter 0.45s cubic-bezier(.2, .8, .2, 1) backwards;
+}
+.v3 .delta-dots.is-enter g:nth-child(2) { animation-delay: 0.06s; }
+.v3 .delta-dots.is-enter g:nth-child(3) { animation-delay: 0.12s; }
+
+@keyframes dd-enter {
+  0% { transform: scale(0.3); opacity: 0; }
+  60% { transform: scale(1.14); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+/* 움직임을 줄이라는 설정이면 색만 바꾼다 — 깜빡임은 멀미와 발작의 원인이 된다. */
+@media (prefers-reduced-motion: reduce) {
+  .v3 .delta-dots rect,
+  .v3 .delta-dots.is-enter g { animation: none; }
+  .v3[data-level="warning"] .delta-dots rect { fill: var(--status-warning-icon); }
+  .v3[data-level="critical"] .delta-dots rect { fill: var(--status-critical-icon); }
+}
+
+.v3 .delta3-name b {
+  flex: 1 1 0;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: "JetBrains Mono", var(--font-family-mono, monospace);
+}
+
+/*
+ * 접힘 — 이름 줄이 모서리 표식이 된다(Figma 1069:17536).
+ * 프레임 왼쪽 위 모서리에 56 삼각 탭이 깔리고 그 위 4, 4 에 Delta 가 앉는다.
+ * "DELTA" 글자는 2차에서 빠졌다 — 표식 하나로 충분하다는 판단이다.
+ */
+.v3 .delta3:not(.is-open) .delta3-name {
+  position: absolute;
+  left: 0;
+  top: 0;
+  /*
+   * 빗변은 Figma 56 그대로고, 두 끝은 엣지 글로우 모서리(아래 .edge-corner)의
+   * 라운드 이음매(반지름 16)에 맞춰 변에 접하며 가늘어진다. 그래서 칸이 64 다.
+   */
+  width: 64px;
+  height: 64px;
+  padding: var(--space-4);
+  /*
+   * 표식은 직각 모서리에 붙는다 — 삼각판은 왼쪽 위로 갈수록 넓으니
+   * 가운데에 두면 빗변 쪽 좁은 데로 밀려 어정쩡해진다. Figma 의 4, 4 자리다.
+   * (.delta3-name 은 펼침의 창 머리를 위해 세로 가운데 정렬이라 여기서 되돌린다.)
+   */
+  align-items: flex-start;
+}
+
+/*
+ * 삼각판 면 — 옆 관제 프레임(.content-surface)과 같은 bg/surface/subtle 이다.
+ * 깎인 선 바깥이 관제 프레임에 이어져 보이게 한다(디자이너 요청 — 검정 바탕색은 아니다).
+ * 모양만 SVG 에서 빌리고(마스크) 색은 토큰으로 칠한다.
+ */
+.v3 .delta3:not(.is-open) .delta3-name::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-color: var(--bg-cell);
+  -webkit-mask: url("data:image/svg+xml,%3Csvg preserveAspectRatio='none' overflow='visible' style='display: block;' width='64' height='64' viewBox='0 0 64 64' fill='none' xmlns='http://www.w3.org/2000/svg'%3E %3Cpath id='Rectangle 180' d='M0 0H62.627A16 16 0 0 0 51.314 4.686L4.686 51.314A16 16 0 0 0 0 62.627V0Z' fill='%232C3443'/%3E %3C/svg%3E") 0 0 / 64px 64px no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg preserveAspectRatio='none' overflow='visible' style='display: block;' width='64' height='64' viewBox='0 0 64 64' fill='none' xmlns='http://www.w3.org/2000/svg'%3E %3Cpath id='Rectangle 180' d='M0 0H62.627A16 16 0 0 0 51.314 4.686L4.686 51.314A16 16 0 0 0 0 62.627V0Z' fill='%232C3443'/%3E %3C/svg%3E") 0 0 / 64px 64px no-repeat;
+  pointer-events: none;
+}
+
+/*
+ * 펼치면 삼각판(.delta3-name)이 창 머리로 옮겨 가 모서리가 빈다. 모서리는 접혔을 때와
+ * 같은 판이 그대로 남아야 한다(디자이너 요청) — 지도 위에 늘 깔린 판 하나를 둔다.
+ * Delta(z 6) 아래라 접혔을 때는 같은 모양의 Delta 쪽 판에 가려 겹쳐 보이지 않는다.
+ * 엣지 글로우 선(.edge-corner, z 7)은 그 위에 선다.
+ */
+.v3 .corner-tab {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 5;
+  width: 64px;
+  height: 64px;
+  pointer-events: none;
+  background-color: var(--bg-cell);
+  -webkit-mask: url("data:image/svg+xml,%3Csvg preserveAspectRatio='none' overflow='visible' style='display: block;' width='64' height='64' viewBox='0 0 64 64' fill='none' xmlns='http://www.w3.org/2000/svg'%3E %3Cpath id='Rectangle 180' d='M0 0H62.627A16 16 0 0 0 51.314 4.686L4.686 51.314A16 16 0 0 0 0 62.627V0Z' fill='%232C3443'/%3E %3C/svg%3E") 0 0 / 64px 64px no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg preserveAspectRatio='none' overflow='visible' style='display: block;' width='64' height='64' viewBox='0 0 64 64' fill='none' xmlns='http://www.w3.org/2000/svg'%3E %3Cpath id='Rectangle 180' d='M0 0H62.627A16 16 0 0 0 51.314 4.686L4.686 51.314A16 16 0 0 0 0 62.627V0Z' fill='%232C3443'/%3E %3C/svg%3E") 0 0 / 64px 64px no-repeat;
+}
+
+/* 표식이 판 위에 앉도록 — 판(::before)이 positioned 라 표식도 positioned 여야 뒤에 그려진다. */
+.v3 .delta3-name .delta3-name-in { position: relative; }
+
+.v3 .delta3:not(.is-open) .delta3-name b { display: none; }
+
+/* 펼침 — 창 머리. 아이콘 16, Mono/Data/2 13/18, 오른쪽 끝에 닫기. */
+.v3 .delta3.is-open .delta3-name .delta-dots { width: var(--size-icon-16); height: var(--size-icon-16); }
+.v3 .delta3.is-open .delta3-name {
+  /* DOM 은 카드가 먼저다(접힘의 쌓임 순서). 펼침에서는 이 줄이 창 머리라 맨 위로 올린다. */
+  order: -1;
+  padding: var(--space-4) var(--space-4) 0 var(--space-8);
+  gap: var(--space-8);
+  cursor: grab;
+  user-select: none;
+}
+.v3 .delta3.is-open .delta3-name:active { cursor: grabbing; }
+.v3 .delta3.is-open .delta3-name b {
+  font-size: var(--font-size-13);
+  line-height: var(--font-line-height-18);
+  font-weight: 400;
+}
+
+/* 이름 줄 안쪽 묶음 — 아이콘과 이름은 붙어 다니고 닫기만 끝으로 간다. */
+.v3 .delta3-name .delta3-name-in {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+/* 닫기 — Icon Button 24 · Ghost. 접힘에는 없다. */
+.v3 .delta3-close {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-control);
+  background: transparent;
+  cursor: pointer;
+}
+.v3 .delta3-close:hover { background-color: rgb(255 255 255 / 10%); }
+.v3 .delta3-close .i { --i: var(--ic-close); background-color: var(--text-primary); }
+.v3 .delta3:not(.is-open) .delta3-close { display: none; }
+
+/* ------------------------------------------------------------------ *
+ * 카드 — 접힘에서는 220 정사각 카드고, 펼침에서는 창 자체가 카드라 껍데기가 없다.
+ * ------------------------------------------------------------------ */
+
+.v3 .delta3-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  min-height: 0;
+}
+
+/*
+ * 카드 — 2차에서 유리판이 됐다(Figma 1069:17326).
+ * 면을 비우고 뒤를 흐린다. 빛은 아래 변에서 올라오는 한 겹만 남는다 —
+ * 1차의 바깥 번짐과 위쪽 띠는 걷혔다.
+ */
+.v3 .delta3:not(.is-open) .delta3-card {
+  width: 220px;
+  height: 220px;
+  padding: var(--space-4);
+  overflow: hidden;
+  border-radius: 12px;
+  background-color: color-mix(in srgb, var(--bg-cell) 55%, transparent);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  box-shadow: inset 0 -6px 20px -8px var(--delta3-glow-primary, var(--comp-alert-default-glow-core));
+}
+
+.v3 .delta3.is-open .delta3-card {
+  flex: 1 1 auto;
+  width: 100%;
+}
+
+/* 본문 높이는 Figma 창(181) 을 기준으로 잡는다. 창이 자라면 본문이 같이 자란다. */
+.v3 .delta3.is-open .delta3-body { min-height: 173px; }
+
+/* 제목 줄 */
+.v3 .delta3-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
+  flex: none;
+}
+
+.v3 .delta3-head p {
+  flex: 1 1 0;
+  opacity: 1;                     /* app-shell 의 .ai-line-1 은 0.8 로 흐린다 — 제목은 또렷해야 한다. */
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-primary);
+  font-weight: 700;
+}
+
+/* 접힘 — Title/2 16/24, 오른쪽에 [+]. */
+.v3 .delta3:not(.is-open) .delta3-head {
+  padding: var(--space-4) var(--space-4) var(--space-8) var(--space-8);
+}
+.v3 .delta3:not(.is-open) .delta3-head p {
+  font-size: var(--font-size-16);
+  line-height: var(--font-line-height-24);
+}
+
+/* 펼침 — Title/1 18/26, [+] 는 사라진다(닫기가 머리로 갔다). */
+.v3 .delta3.is-open .delta3-head {
+  padding: var(--space-4) var(--space-8) var(--space-8);
+}
+.v3 .delta3.is-open .delta3-head p {
+  font-size: var(--font-size-18);
+  line-height: var(--font-line-height-26);
+}
+.v3 .delta3.is-open .delta3-plus { display: none; }
+
+/* [+] — Icon Button 24 · Ghost. */
+.v3 .delta3-plus {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-control);
+  background: transparent;
+  cursor: pointer;
+}
+.v3 .delta3-plus:hover { background-color: rgb(255 255 255 / 10%); }
+.v3 .delta3-plus .i { --i: var(--ic-plus); background-color: var(--text-primary); }
+
+/*
+ * 본문 — 두 판이 같다. 위 변에 선 하나, 면은 bg/surface/disabled, 위쪽에서 떨어지는 그림자.
+ * Figma 의 면은 반투명이라 아래로 갈수록 창의 빛이 비쳐 올라온다(펼침에서 뚜렷하다).
+ */
+.v3 .delta3-body {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+  padding: var(--space-8);
+  border-top: var(--border-width-thin) solid var(--comp-input-border);
+  border-radius: var(--radius-container);
+  background-color: color-mix(in srgb, var(--bg-cell) 72%, transparent);
+  box-shadow: inset 0 10px 8px 0 rgb(0 0 0 / 25%);
+}
+
+.v3 .delta3-body p {
+  margin: 0;
+  color: var(--text-primary);
+  font-weight: var(--font-weight-regular);   /* app-shell 의 .ai-line-2 는 Bold 다 — Figma 본문은 Regular. */
+  font-size: var(--font-size-14);
+  line-height: var(--font-line-height-22);
+  /* 한국어는 낱말 안에서 끊으면 읽기 나빠진다 — "묶음 점 / 검" 처럼 갈라졌다. 낱말째 내린다. */
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
+/* 접힘은 카드가 작아 넘치는 만큼 잘린다 — Figma 도 잘려 있다. */
+.v3 .delta3:not(.is-open) .delta3-body p { overflow: hidden; }
+
+/* ------------------------------------------------------------------ *
+ * 조치 줄 — 펼침에만 있다. monitor.js 가 버튼을 채우고, 맨 끝은 묻기 [돋보기] 다.
+ * ------------------------------------------------------------------ */
+
+.v3 .delta3-suggest {
+  flex: none;
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-8);
+  padding: var(--space-8);
+}
+
+.v3 .delta3:not(.is-open) .delta3-suggest { display: none; }
+
+.v3 .delta3-suggest .ai-actions { flex: 1 1 auto; min-width: 0; }
+
+/* Btn / Secondary · 높이 24 · 좌우 8 · Label/2 Medium 13/18 (Figma Suggestions). */
+.v3 .delta3-suggest .btn {
+  height: 24px;
+  min-height: 24px;
+  padding: 0 var(--space-8);
+  border-radius: var(--radius-control);
+  border: var(--border-width-thin) solid var(--comp-button-secondary-border-default);
+  background-color: var(--comp-button-secondary-bg-default);
+  color: var(--comp-button-secondary-text-default);
+  font-size: var(--font-size-13);
+  line-height: var(--font-line-height-18);
+  font-weight: 500;
+}
+
+.v3 .delta3-ask {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  margin-left: auto;
+  padding: 0;
+  border-radius: var(--radius-control);
+  border: var(--border-width-thin) solid var(--comp-button-secondary-border-default);
+  background-color: var(--comp-button-secondary-bg-default);
+  cursor: pointer;
+}
+.v3 .delta3-ask .i { --i: var(--ic-search); background-color: var(--comp-button-secondary-text-default); }
+.v3 .delta3-ask[aria-expanded="true"] .i { --i: var(--ic-close); }
+
+/*
+ * 묻기 칸 — Figma 에는 없다. ver.2 의 [돋보기] 동작을 그대로 살려 둔 것이라
+ * 누르기 전에는 자리를 차지하지 않는다.
+ */
+.v3 .delta3 .ai-input { margin: 0 var(--space-8) var(--space-8); }
+
+/*
+ * 초점 — 면은 쉴 때와 같고(bg/surface/overlay-dark), 바깥에 선만 두른다(디자이너 요청).
+ * app-shell 은 면을 단계 색(--ai-input-focus-bg)으로 바꾸고 선을 안쪽에 그린다 — 여기서 둘 다 되돌린다.
+ * 선은 같은 ::before 를 상자 밖으로 2px 키워 그린다. 색은 그대로 --ai-input-edge(단계 색)다.
+ */
+.v3 .delta3 .ai-input:focus-within { background-color: var(--bg-map-chip); }
+
+/*
+ * 선 색 — app-shell 은 --ai-input-edge 를 .ai-box 에만 둔다. Delta 창은 .ai-box 가 아니라
+ * 변수가 비어 선이 안 그려졌다(초점 면도 비어 뒤의 단계 색이 비쳤다). 여기서 단계마다 준다.
+ * 값은 AI 패널의 일반 · 주의 · 위험 입력창 선과 같다.
+ */
+.v3 .delta3 {
+  --ai-input-edge: linear-gradient(90deg,
+    var(--color-blue-700) 0%, var(--color-blue-300) 25%, var(--color-blue-400) 46%,
+    var(--color-blue-700) 72%, var(--color-blue-300) 100%);
+}
+.v3 .delta3.is-warning {
+  --ai-input-edge: linear-gradient(90deg,
+    var(--status-warning-border) 0%, #f7cd36 25%, var(--color-yellow-500) 46%,
+    var(--status-warning-border) 72%, #f7cd36 100%);
+}
+.v3 .delta3.is-critical {
+  --ai-input-edge: linear-gradient(90deg,
+    var(--status-critical-border) 0%, #f4463f 25%, var(--color-red-500) 46%,
+    var(--status-critical-border) 72%, #f4463f 100%);
+}
+.v3 .delta3 .ai-input:focus-within::before {
+  inset: calc(var(--border-width-strong) * -1);
+  border-radius: calc(var(--radius-control) + var(--border-width-strong));
+}
+.v3 .delta3 .ai-input:focus-within .ai-input-ph { color: var(--text-primary); }
+.v3 .delta3 .ai-input:focus-within .ai-input-ph::placeholder { color: var(--text-secondary); }
+.v3 .delta3:not(.is-open) .ai-input { display: none; }
+
+/* ------------------------------------------------------------------ *
+ * 알림 단계 — 빛 색이 단계를 따라간다(엣지 글로우와 같은 규칙).
+ * screen.js 가 .is-warning · .is-critical · .is-safe 를 붙인다.
+ * ------------------------------------------------------------------ */
+
+/*
+ * 펼친 창의 면 — 아래로 갈수록 단계 색으로 물든다(--d3-face-mid · -end).
+ * 기본은 Figma 의 하늘 -> 흰빛이고, 단계가 오르면 AI 패널 Gradient/Warning · Danger 의
+ * 끝 색으로 바꾼다. 위험은 흰 끝을 두지 않는다 — 빨강이 분홍으로 바래 보인다.
+ * 단계 색은 어두운 gray-900 에 섞어 명도를 누른다(가운데 55% · 끝 70%) —
+ * 창이 회색 화면에 묻히고, 위험은 어두운 빨강으로 남는다(디자이너 요청).
+ * 밝은 gray-600 에 섞으면 색이 바래 뿌옇고, 단계 색을 덜 넣으면 칙칙하다.
+ * 어두운 바탕에 색을 넉넉히 넣어 명도는 낮게, 채도는 살린다.
+ */
+.v3 .delta3.is-safe {
+  --d3-face-mid: color-mix(in srgb, #7FCFA3 55%, var(--color-gray-900));
+  --d3-face-end: color-mix(in srgb, #2AD982 70%, var(--color-gray-900));
+  --delta3-glow-primary: var(--comp-alert-safe-glow-core);
+  --delta3-glow-secondary: var(--comp-alert-safe-glow-halo);
+  --d3-ramp: #2AD982 0%, #0EBB57 12.5%, #10893B 25%, #2F603E 37.5%, #5A595F 50%, #77778A 62.5%, #75A9A6 75%, #55D2A2 87.5%, #2AD982 100%;
+}
+.v3 .delta3.is-warning {
+  --d3-face-mid: color-mix(in srgb, #C9A23A 55%, var(--color-gray-900));
+  --d3-face-end: color-mix(in srgb, #F7CD36 70%, var(--color-gray-900));
+  --delta3-glow-primary: var(--comp-alert-warning-glow-core);
+  --delta3-glow-secondary: var(--comp-alert-warning-glow-halo);
+  --d3-ramp: #F2B020 0%, #D38210 12.5%, #A5521A 25%, #813D39 37.5%, #7D4F5A 50%, #9C7D6B 62.5%, #CBAD61 75%, #EEC242 87.5%, #F2B020 100%;
+}
+.v3 .delta3.is-critical {
+  --d3-face-mid: color-mix(in srgb, #B8443B 55%, var(--color-gray-900));
+  --d3-face-end: color-mix(in srgb, #F4463F 70%, var(--color-gray-900));
+  --delta3-glow-primary: var(--comp-alert-critical-glow-core);
+  --delta3-glow-secondary: var(--comp-alert-critical-glow-halo);
+  --d3-ramp: #F05937 0%, #D9321D 12.5%, #A3121E 25%, #6D0B3B 37.5%, #572262 50%, #6D487C 62.5%, #A3687B 75%, #D96F5E 87.5%, #F05937 100%;
+}
+
+/*
+ * 빛 세 장(SVG)도 단계를 따라간다 — 위험은 빨강, 주의는 금빛, 그 밖은 Figma 의 파랑.
+ * 색을 돌리면(hue-rotate) 파랑이 주황으로 뭉개지므로, 정지점 색만 바꾼 SVG 를
+ * 따로 두고(delta-light-*-critical · -warning.svg) delta-v3.js 가 src 를 갈아 낀다.
+ * 흰 중심 · 흐림 · 투명도 정지점은 Figma 그대로다.
+ */
+
+/* ------------------------------------------------------------------ *
+ * (마스크 SVG 는 CSS 에 data URI 로 박았다 — mask-image 는 CORS 로 받아서 file:// 에서는
+ *  파일 경로가 막힌다. 원본은 assets/img 의 세 장이고, 고치면 여기도 다시 넣는다.)
+ *
+ * 엣지 글로우 모서리 — 테두리의 왼쪽 위 모서리는 Delta 삼각판의 빗변을 따라
+ * 45도로 깎여(chamfer) 있다. 깎인 선이 위 · 왼쪽 변과 만나는 두 이음매는
+ * 반지름 16 으로 둥글린다. 기하는 SVG 세 장이 같이 쓴다.
+ *   빗변  x + y = 56 (Figma 삼각판)
+ *   이음매 원 중심 (62.627, 16) · (16, 62.627) — 변에 닿는 자리가 62.627 이다.
+ *
+ *   delta-corner.svg       삼각판(깎인 바깥). Delta 표식이 앉는다.
+ *   delta-corner-line.svg  깎인 선. .edge-corner 가 단계 색으로 칠한다.
+ *   delta-corner-fill.svg  깎인 안쪽. 테두리 맥박을 모서리에서 잘라 낸다.
+ * ------------------------------------------------------------------ */
+
+.v3 .edge-corner { display: none; }
+
+/* 모서리는 깎인 선이 대신하므로 상자의 8 라운드는 뺀다 — 남겨 두면 삼각판 끝이 둥글게 패여 어두운 호가 비친다. */
+.v3 .two-col { border-top-left-radius: 0; }
+
+.v3 .two-col.is-warning > .edge-corner,
+.v3 .two-col.is-critical > .edge-corner {
+  display: block;
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 7;                    /* Delta(6) 의 삼각판 위에 선다. */
+  width: 64px;
+  height: 64px;
+  pointer-events: none;
+  /* 바깥으로 아주 조금 새는 빛 — 다른 변의 0 0 8px -3px 와 같은 결이다. */
+  filter: drop-shadow(0 0 3px var(--glow-color-60));
+}
+
+.v3 .two-col > .edge-corner::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-color: var(--glow-color);
+  -webkit-mask: url("data:image/svg+xml,%3Csvg width='64' height='64' viewBox='0 0 64 64' fill='none' xmlns='http://www.w3.org/2000/svg'%3E %3Cpath d='M64 0H62.627A16 16 0 0 0 51.314 4.686L4.686 51.314A16 16 0 0 0 0 62.627V64' stroke='%23000' stroke-width='2'/%3E %3C/svg%3E") 0 0 / 64px 64px no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg width='64' height='64' viewBox='0 0 64 64' fill='none' xmlns='http://www.w3.org/2000/svg'%3E %3Cpath d='M64 0H62.627A16 16 0 0 0 51.314 4.686L4.686 51.314A16 16 0 0 0 0 62.627V64' stroke='%23000' stroke-width='2'/%3E %3C/svg%3E") 0 0 / 64px 64px no-repeat;
+}
+
+/*
+ * 네모난 모서리는 걷는다. 테두리(::after)는 모서리 62 칸을 비우고 깎인 선이 그 자리를 잇는다.
+ * 바깥 1px 테(box-shadow)는 상자 밖이라 clip-path 로만 잘린다 — 모서리 바깥 두 변만 덜어 낸다.
+ */
+.v3 .two-col.is-warning,
+.v3 .two-col.is-critical {
+  clip-path: polygon(
+    62px -20px, calc(100% + 20px) -20px, calc(100% + 20px) calc(100% + 20px),
+    -20px calc(100% + 20px), -20px 62px, 0 62px, 0 0, 62px 0
+  );
+}
+
+.v3 .two-col.is-warning::after,
+.v3 .two-col.is-critical::after {
+  -webkit-mask:
+    conic-gradient(at 62px 62px, #000 0 75%, transparent 0),
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: source-in, xor;
+  mask:
+    conic-gradient(at 62px 62px, #000 0 75%, transparent 0),
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  mask-composite: intersect, exclude;
+}
+
+/*
+ * 주의는 노란 선만 남긴다 — 안으로 뛰는 맥박(두근대는 글로우)은 위험에만 둔다.
+ * 맥박이 있고 없고로 두 단계가 한눈에 갈린다. 테두리 · 깎인 선은 그대로다.
+ */
+.v3 .two-col.is-warning > .edge-light { display: none; }
+
+/* 안으로 뛰는 맥박도 깎인 선 바깥(삼각판 자리)으로는 번지지 않는다 — 창을 펼쳐 모서리가 비었을 때 보인다. */
+.v3 .two-col.is-warning > .edge-light,
+.v3 .two-col.is-critical > .edge-light {
+  -webkit-mask:
+    url("data:image/svg+xml,%3Csvg width='64' height='64' viewBox='0 0 64 64' fill='none' xmlns='http://www.w3.org/2000/svg'%3E %3Cpath d='M62.627 0H64V64H0V62.627A16 16 0 0 1 4.686 51.314L51.314 4.686A16 16 0 0 1 62.627 0Z' fill='%23000'/%3E %3C/svg%3E") 0 0 / 64px 64px no-repeat,
+    conic-gradient(at 64px 64px, #000 0 75%, transparent 0);
+  mask:
+    url("data:image/svg+xml,%3Csvg width='64' height='64' viewBox='0 0 64 64' fill='none' xmlns='http://www.w3.org/2000/svg'%3E %3Cpath d='M62.627 0H64V64H0V62.627A16 16 0 0 1 4.686 51.314L51.314 4.686A16 16 0 0 1 62.627 0Z' fill='%23000'/%3E %3C/svg%3E") 0 0 / 64px 64px no-repeat,
+    conic-gradient(at 64px 64px, #000 0 75%, transparent 0);
+}
+
+/* ------------------------------------------------------------------ *
+ * 왼쪽 패널 접기 버튼 — 시안 3 에서만 줄 왼쪽으로 옮긴다.
+ * 오른쪽 끝은 지도 왼쪽 위 모서리, 곧 Delta 의 삼각판 바로 옆이다.
+ * 둘 다 작은 아이콘이라 나란히 서면 어느 쪽이 Delta 인지 읽히지 않는다.
+ * ------------------------------------------------------------------ */
+
+.v3 .panel-head button { order: -1; }
