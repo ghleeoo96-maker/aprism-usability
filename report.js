@@ -376,6 +376,7 @@
     sec.innerHTML = '<div class="rp">' +
       '<div class="rp-head"><h1>사용성 평가 결과 리포트' + (isSample ? '<span class="rp-badge">샘플 데이터</span>' : "") + "</h1>" +
       '<div class="rp-noprint row" style="margin:0"><a class="btn btn-line" href="#" style="text-decoration:none;color:inherit">처음으로</a>' +
+      (U.SHEET_LINK ? '<a class="btn btn-line" href="' + U.SHEET_LINK + '" target="_blank" rel="noopener" style="text-decoration:none;color:inherit">구글 시트 열기</a>' : '') +
       '<button type="button" class="btn btn-line" onclick="window.print()">인쇄, PDF</button></div></div>' +
       '<p class="rp-meta">에이프리즘 관제 화면 v6, 미션 정기 순회 점검. 참가자 ' + R.people.length + "명. 만든 시각 " + stamp + "</p>" +
 
