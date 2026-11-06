@@ -557,7 +557,7 @@
   ];
 
   var SCEN = [
-    { no: 1, title: "로봇의 업무 파악", ask: "로봇이 어떤 업무를 하고 있는지 화면에서 확인해 주세요!", done: "확인완료", doneAfter: 15000, doneClicks: 0,
+    { no: 1, title: "로봇의 업무 파악", ask: "로봇이 어떤 업무를 하고 있는지 화면에서 확인해 주세요!", done: "확인완료", doneAfter: 10000, doneClicks: 0,
       desc: "당신은 관제 업무를 인계받아 진행하고 있습니다.<br>현재 로봇은 A설비시설 현장에서 [M1 정기 순회 점검] 미션을 수행하고 있습니다.<br>화면을 자유롭게 살펴보고 로봇이 어떤 업무를 하고 있는지 확인해 주세요.",
       tasks: [
         { id: "1-1", qs: ["로봇이 수행 중인 미션의 이름은 무엇인가요?", "로봇은 지금 몇 번 지점에 있나요?"] },
@@ -1155,7 +1155,7 @@
   var DONE_AFTER = 10000, DONE_CLICKS = 3, doneTimer = null, runClicks = 0, hintTimer = null;
   function armDone() {
     clearTimeout(doneTimer); runClicks = 0;
-    var ms = curScen().doneAfter || DONE_AFTER;   // 시나리오 1 은 15초
+    var ms = curScen().doneAfter || DONE_AFTER;   // 시나리오 1 은 시간으로만(클릭으로는 안 나옴)
     doneTimer = setTimeout(function () { revealDone(Math.round(ms / 1000) + "초"); }, ms);
   }
   function revealDone(why) {
