@@ -550,7 +550,7 @@
     { sel: ".context-panel .ah-sec:not(.done-sec)", also: ".delta3", title: "알림 센터", text: T("로봇이 점검 중 감지한 이상징후를 모아 보여 줍니다.", ["알림마다 어떤 문제가 났는지 표시","<b>빨간 삼각형</b>은 위험, <b>노란 삼각형</b>은 주의","알림이 오면 <b>Delta</b>도 함께 바뀜"]),
       // 기본 판은 알림이 없다 — 이 단계부터 주의 알림을 들여와 보여 준다(튜토리얼이 끝나면 다시 정상 판으로 연다)
       act: function (d, w) { w.history.replaceState(w.history.state, "", w.location.pathname + w.location.search + "#warning"); w.dispatchEvent(new w.HashChangeEvent("hashchange")); return function () { return !!firstWarnRow(d); }; } },
-    { sel: ".map-alert", title: "조치 팝업 창", text: T("알림을 누르면 지도 위에 열리는 창입니다. 감지된 문제를 보고 조치를 고릅니다.", ["Delta가 제안한 대응 방법 선택","<b>[조치 요청]</b>으로 현장에 요청","AI 제안은 참고, 최종 판단은 관제사","더 볼 정보는 <b>[진단 상세]</b>"]),
+    { sel: ".map-alert", title: "조치 팝업 창", text: "<p>알림을 누르면 열리는 창으로, 빠르게 조치를 취할 수 있습니다. 더 자세한 정보를 보려면 <b>[진단 상세]</b>를 누르면 됩니다.</p>",
       act: function (d) { realClick(d, firstWarnRow(d)); return function () { var m = d.querySelector(".map-alert"); return !!m && m.getBoundingClientRect().width > 0; }; } },
     { sel: "main.sf", pop: "bottom", title: "안전진단 상세 화면", text: T("로봇이 감지한 이상징후를 자세히 보고 대응 방법을 정하는 화면입니다.", ["측정 결과","현장 영상","과거 측정 기록","<b>오른쪽</b>에서 조치를 골라 요청"]),
       act: function (d, w) { var a = d.querySelector(".map-alert a[href*='safety-v6']"); w.location.href = a ? a.href : "safety-v6.html?mission=" + encodeURIComponent(MISSION); return "load"; } }
