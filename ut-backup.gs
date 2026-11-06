@@ -4,34 +4,38 @@
  * 하는 일
  *   doPost  사이트가 보낸 참가자 기록 하나를 받아
  *           1) 구글 드라이브 "aprism-ut-records" 폴더에 <기록ID>.json 으로 저장(있으면 덮어씀, 판(rev)이 더 새로울 때만)
- *           2) 이 시트의 "기록" 탭에 한 줄 요약(참가자, 상태, 시나리오 시간 등)
+ *              — 불러오기, 저장 확인은 이 파일로 한다(시트는 읽지 않는다)
+ *           2) 이 시트의 "응답" 탭에 참가자 한 줄. 열은 사이트가 보낸 것(요약 CSV 와 같다): 참가자, 기록ID, 기본정보,
+ *              단계별 시간, 선호 화면, 7점 척도, 주관식, 시나리오 인터뷰 답. 같은 기록ID 줄이 있으면 덮어쓴다
  *   doGet   action=has&id=…   그 기록의 저장된 판(rev)을 알려 준다(사이트가 저장됐는지 확인)
- *           action=list        저장된 기록 전부를 돌려준다(사이트 기록 화면의 [구글 시트에서 불러오기])
+ *           action=list        저장된 기록 전부를 돌려준다(사이트 기록 화면, 리포트가 노트북 4대 기록을 합칠 때)
  *
  * 노트북 여러 대가 동시에 보내도 잠금(LockService)으로 하나씩 처리한다.
  */
 var FOLDER_NAME = "aprism-ut-records";
-var SHEET_NAME = "기록";
-var HEAD = ["기록ID", "참가자", "판(rev)", "마지막 저장", "상태", "성별", "연령대", "담당 업무",
-  "S1 수행(초)", "S2 수행(초)", "S3 수행(초)", "선호 화면 모드", "드라이브 파일"];
+var SHEET_NAME = "응답";
 
 function folder_() {
   var it = DriveApp.getFoldersByName(FOLDER_NAME);
   return it.hasNext() ? it.next() : DriveApp.createFolder(FOLDER_NAME);
 }
 
-function sheet_() {
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var sh = ss.getSheetByName(SHEET_NAME) || ss.insertSheet(SHEET_NAME);
-  if (sh.getLastRow() === 0) { sh.appendRow(HEAD); sh.setFrozenRows(1); }
-  return sh;
-}
-
 function storedRev_(file) {
   try { return JSON.parse(file.getBlob().getDataAsString()).rev || 0; } catch (e) { return 0; }
 }
 
-function sec_(s) { return s && s.start && s.done ? Math.round((s.done - s.start) / 1000) : ""; }
+// 응답 탭 — 머리줄은 사이트가 보낸 것으로 맞추고, 기록ID 로 줄을 찾아 덮어쓴다
+function writeRow_(head, row) {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sh = ss.getSheetByName(SHEET_NAME) || ss.insertSheet(SHEET_NAME);
+  head = ["마지막 저장"].concat(head); row = [new Date()].concat(row);
+  var cur = sh.getLastRow() ? sh.getRange(1, 1, 1, Math.max(sh.getLastColumn(), 1)).getValues()[0] : [];
+  if (cur.join("\u0001") !== head.join("\u0001")) { sh.getRange(1, 1, 1, head.length).setValues([head]); sh.setFrozenRows(1); }
+  var idCol = head.indexOf("기록ID") + 1, id = row[idCol - 1], hit = null;
+  if (idCol > 0 && sh.getLastRow() > 1) { hit = sh.getRange(2, idCol, sh.getLastRow() - 1, 1).createTextFinder(String(id)).matchEntireCell(true).findNext(); }
+  var cells = [row.map(function (v) { return v == null ? "" : v; })];
+  if (hit) { sh.getRange(hit.getRow(), 1, 1, row.length).setValues(cells); } else { sh.getRange(sh.getLastRow() + 1, 1, 1, row.length).setValues(cells); }
+}
 
 function doPost(e) {
   var lock = LockService.getScriptLock();
@@ -49,12 +53,7 @@ function doPost(e) {
     } else {
       file = f.createFile(name, JSON.stringify(a), "application/json");
     }
-    var p = a.profile || {}, sc = a.scenarios || {};
-    var state = a.stopped ? "중단" : (a.post ? "완료" : "진행 중");
-    var row = [a.id, a.participant, a.rev, new Date(), state, p.gender || "", p.age || "", p.job || "",
-      sec_(sc[1]), sec_(sc[2]), sec_(sc[3]), a.post ? (a.post.mode || "") : "", file.getUrl()];
-    var sh = sheet_(), hit = sh.getRange("A:A").createTextFinder(a.id).matchEntireCell(true).findNext();
-    if (hit) { sh.getRange(hit.getRow(), 1, 1, row.length).setValues([row]); } else { sh.appendRow(row); }
+    if (body.sheet && body.sheet.head && body.sheet.row) { writeRow_(body.sheet.head, body.sheet.row); }
     return out_({ ok: true, rev: a.rev });
   } finally {
     lock.releaseLock();

@@ -656,7 +656,8 @@
     }
     function sendOne(a) {
       var rev = a.rev || 0;
-      return fetch(url(), { method: "POST", mode: "no-cors", body: JSON.stringify({ attempt: a, rev: rev }) })
+      var sheet = null; try { sheet = { head: summaryHead(), row: summaryRow(a) }; } catch (e) { }   // 시트 "응답" 탭에 적을 한 줄(요약 CSV 와 같은 열)
+      return fetch(url(), { method: "POST", mode: "no-cors", body: JSON.stringify({ attempt: a, rev: rev, sheet: sheet }) })
         .then(function () { return new Promise(function (r) { setTimeout(r, 2500); }); })
         .then(function () { return jsonp({ action: "has", id: a.id }); })
         .then(function (d) { if (d && d.rev >= rev) { a.synced = Math.max(a.synced || 0, d.rev); save(true); } });
@@ -1954,28 +1955,32 @@
     return rows.map(function (r) { return r.map(function (v) { v = v == null ? "" : String(v); return /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; }).join(","); }).join("\r\n");
   }
   function stamp() { var d = new Date(); return d.getFullYear() + String(d.getMonth() + 1).padStart(2, "0") + String(d.getDate()).padStart(2, "0") + "-" + String(d.getHours()).padStart(2, "0") + String(d.getMinutes()).padStart(2, "0"); }
-  $("csv-sum").addEventListener("click", function () {
-    var rows = [["참가자", "기록ID", "개인정보 동의", "성별", "연령대", "담당 업무", "시작", "상태", "튜토리얼(초)", "튜토리얼 닫은 단계", "자유 탐색(초)", "자유 탐색 클릭",
+  // 요약 — 요약 CSV 와 구글 시트(응답 탭)가 같은 열을 쓴다. 한 줄이 참가자 한 명(기본정보, 시간, 7점, 주관식, 인터뷰 답)
+  function summaryHead() {
+    return ["참가자", "기록ID", "개인정보 동의", "성별", "연령대", "담당 업무", "시작", "상태", "튜토리얼(초)", "튜토리얼 닫은 단계", "자유 탐색(초)", "자유 탐색 클릭",
       "S1 수행(초)", "S1 클릭", "S1 인터뷰(초)", "S2 수행(초)", "S2 클릭", "S2 인터뷰(초)", "S3 수행(초)", "S3 클릭", "S3 인터뷰(초)",
       "S2 알림 발생부터 수행 완료(초)", "S3 조치 버튼 첫 클릭(초, S3 시작부터)"]
       .concat(["선호 화면 모드"]).concat(LIKERT.map(function (q) { return q.replace(/<[^>]+>/g, "").split(":")[0] + "(1~7)"; }))
       .concat(OPEN.map(function (q, i) { return "주관식" + (i + 1) + " " + q; }))
-      .concat(QLIST.map(function (q) { return "TASK " + q[0] + " 문항" + (q[1] + 1) + " " + q[2]; }))];
-    function sec(ms) { return ms != null ? (ms / 1000).toFixed(1) : ""; }
-    DB.attempts.forEach(function (a) {
+      .concat(QLIST.map(function (q) { return "TASK " + q[0] + " 문항" + (q[1] + 1) + " " + q[2]; }));
+  }
+  function sec(ms) { return ms != null ? (ms / 1000).toFixed(1) : ""; }
+  function summaryRow(a) {
       var ss = [1, 2, 3].map(function (n) { return scenStat(a, n); });
       var s2 = a.scenarios[2], s3 = a.scenarios[3];
       var alertIn2 = a.events.filter(function (e) { return e.phase === "s2" && e.type === "alert-in"; })[0];
       var conf = s3 ? a.events.filter(function (e) { return e.phase === "s3" && e.confirm; })[0] : null;
       var pf = a.profile || {};
-      rows.push([a.participant, a.id, pf.consent || "", pf.gender || "", pf.age || "", pf.job || "", clock(a.startedAt), doneAll(a) ? "완료" : a.stopped ? "중단" : "진행 중",
+      return [a.participant, a.id, pf.consent || "", pf.gender || "", pf.age || "", pf.job || "", clock(a.startedAt), doneAll(a) ? "완료" : a.stopped ? "중단" : "진행 중",
         a.tutorial && a.tutorial.end ? sec(a.tutorial.end - a.tutorial.start) : "", a.tutorial ? a.tutorial.skipped || "" : "", a.explore && a.explore.end ? ((a.explore.end - a.explore.start) / 1000).toFixed(1) : "", a.events.filter(function (e) { return e.phase === "explore" && e.type === "click"; }).length]
         .concat([].concat.apply([], ss.map(function (s) { return [sec(s.ms), s.clicks, sec(s.iv)]; })))
         .concat([alertIn2 && s2 && s2.done ? sec(s2.done - alertIn2.t) : "", conf && s3 ? sec(conf.t - s3.start) : ""])
         .concat([a.post ? a.post.mode : ""]).concat(LIKERT.map(function (q, i) { return a.post ? a.post.likert[i] : ""; }))
         .concat(OPEN.map(function (q, i) { return a.post && a.post.open ? a.post.open[i] || "" : ""; }))
-        .concat(QLIST.map(function (q) { return answerOf(a, q[0], q[1]); })));
-    });
+        .concat(QLIST.map(function (q) { return answerOf(a, q[0], q[1]); }));
+  }
+  $("csv-sum").addEventListener("click", function () {
+    var rows = [summaryHead()].concat(DB.attempts.map(summaryRow));
     download("aprism-ut-요약-" + stamp() + ".csv", csv(rows), "text/csv;charset=utf-8");
   });
   $("csv-ev").addEventListener("click", function () {
