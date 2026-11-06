@@ -429,12 +429,12 @@
       d.querySelector(".context-panel .ah-sec:not(.done-sec) .ah-list > *");
   }
   var TOUR = [
-    { sel: ".sb-tabs", title: "미션 탭", text: "로봇이 수행 중인 미션이 탭으로 나열됩니다. 알림이 생기면 미션 이름 옆에 삼각형이 붙습니다." },
-    { sel: ".delta3", rect: [436, 80, 296, 972], title: "Delta", text: "알림을 종합해 지금 먼저 볼 것을 알려 주는 AI입니다. 누르면 이렇게 대화창이 열려 원인과 조치를 물어볼 수 있습니다.",
+    { sel: ".sb-tabs", title: "미션 탭", text: "미션이란 발전소를 순찰하는 로봇에게 지정한 점검 업무를 뜻합니다. 예를 들어 ‘1층 설비 순회 점검’이 하나의 미션입니다. 각 탭은 로봇이 수행중인 점검 업무를 나타내며, 탭을 클릭하면 해당 업무의 진행 상황과 로봇 상태를 확인할 수 있습니다. 탭에 삼각형 아이콘이 나타나면 해당 업무에서 위험 또는 주의 알림이 발생했다는 의미입니다." },
+    { sel: ".delta3", rect: [436, 80, 296, 972], title: "Delta | AI 관제 도우미", text: "델타는 에이프리즘의 AI 도우미입니다. 로봇이 점검 중 보내는 여러 알림을 모아 현재 상황을 요약하고, 먼저 확인해야 할 문제와 그 이유를 알려줍니다."+"\n"+"델타를 클릭하면 대화창이 열립니다. 궁금한 내용을 입력하거나 추천 질문을 눌러보세요. 문제의 원인과 위치, 필요한 조치를 안내받아 다음 행동을 판단할 수 있습니다.",
       act: function (d) { var t = d.querySelector(".delta3 [data-ai-toggle]"); if (t && !d.querySelector(".delta3.is-open")) { t.click(); } return function () { return !!d.querySelector(".delta3.is-open"); }; },
       after: function (d) { var t = d.querySelector(".delta3 [data-ai-toggle]"); if (t && d.querySelector(".delta3.is-open")) { t.click(); } } },
-    { sel: ".map-panel", title: "설비 배치도", text: "로봇의 위치와 순회 경로, 점검 지점 번호가 표시됩니다. 빨간 핀과 노란 핀은 알림이 난 지점입니다." },
-    { sel: ".right-panel", title: "로봇과 미션 진행", text: "위는 로봇 상태와 자동복귀, 긴급정지 버튼, 아래는 미션 진행률과 지점별 순서입니다." },
+    { sel: ".map-panel", pop: [16, 200], title: "발전소 현장 지도", text: "발전소 현장의 공간 구조와 설비 위치를 보여주는 입체지도입니다. 로봇이 지금 어디에 있는지, 어떤 경로로 이동하며 어디를 점검하는지 한 눈에 확인할 수 있습니다. 지도에 표시된 숫자는 로봇이 점검하는 지점의 번호입니다. 빨간색 핀은 위험, 노란색 핀은 주의 알람이 발생한 위치를 나타냅니다." },
+    { sel: ".right-panel", title: "로봇 상태와 점검 진행 현황", text: "점검 중인 로봇 상태와 미션 진행 상황을 확인하는 영역입니다. 위쪽에는 로봇의 상태, 아래쪽에는 미션을 보다 자세히 보여줍니다. 현재 수행중인 업무, 전체 진행률, 남은 시간과 종료 시각을 확인할 수 있습니다." },
     { sel: ".context-panel .ah-sec:not(.done-sec)", also: ".delta3", title: "알림 센터", text: "로봇이 점검 중 감지한 이상징후를 모아 보여주는 영역입니다. 최신 순으로 나열되며 각 알림에서 어떤 문제가 발생했는지 확인할 수 있습니다.",
       // 기본 판은 알림이 없다 — 이 단계부터 주의 알림을 들여와 보여 준다(튜토리얼이 끝나면 다시 정상 판으로 연다)
       act: function (d, w) { w.history.replaceState(w.history.state, "", w.location.pathname + w.location.search + "#warning"); w.dispatchEvent(new w.HashChangeEvent("hashchange")); return function () { return !!firstWarnRow(d); }; } },
@@ -455,7 +455,7 @@
       desc: "정기 순회 점검 중 위험 알람이 발생했습니다. 관제 담당자로서 어떤 상황이 발생했는지 확인해 주세요.",
       tasks: [
         { id: "2-1", qs: ["새로 발생한 위험 알림의 상세 내용을 확인해주세요.", "어떤 이상이 감지되었나요?"] },
-        { id: "2-2", qs: ["발생 위치는 어디인가요?", "위험 등급은 무엇인가요?"] }
+        { id: "2-2", qs: ["발생 위치는 어디인가요?", "알림 등급은 무엇인가요?"] }
       ] },
     { no: 3, title: "위험 대응 수행", ask: "위험 상황에 필요한 조치를 진행해 주세요!", done: "조치 완료",
       desc: "앞서 확인한 위험 상황에 대해 대응이 필요합니다. 화면에서 제공하는 정보를 바탕으로 필요한 조치를 진행해 주세요.",
@@ -608,6 +608,7 @@
   // ================================================================
   var rec = null, phase = null, step = null, taskIdx = 0;
   var alertPending = false, alertIn = false;
+  var alertDone = null;   // 참가자가 새 위험 알림을 조치했나({time, how}) — 관제 쪽지의 [조치 요청] 또는 안전진단의 [현장 조치 요청]. 화면을 다시 열면 다시 반영한다
   var frame = $("app");
 
   function now() { return Date.now(); }
@@ -709,7 +710,7 @@
         w.dispatchEvent(new w.HashChangeEvent("hashchange"));
       }
       if (alertPending) { alertPending = false; alertIn = true; injectAlert(ALERT_AFTER, ALERT_LEAD); }
-      else if (alertIn) { injectAlert(0); }
+      else if (alertIn) { injectAlert(0, 0, function () { if (alertDone) { try { w.document.dispatchEvent(new w.CustomEvent("aprism:ut-resolve", { detail: alertDone })); } catch (e) { } } }); }
     }
     var cb = onReady; onReady = null;
     if (cb) { cb(); }
@@ -755,7 +756,7 @@
     })();
   }
 
-  function injectAlert(after, lead) {
+  function injectAlert(after, lead, onIn) {
     var w = frame.contentWindow, t0 = Date.now();
     (function wait() {
       if (frame.contentWindow !== w) { return; }   // 그새 다른 화면으로 갔다
@@ -770,6 +771,7 @@
           }, (after || 0) + 1500);
         } catch (e) { }
         if (after) { setTimeout(function () { log("alert-in", { label: "새 위험 알림 발생" }); }, after); }
+        if (onIn) { setTimeout(onIn, (after || 2000) + 400); }   // monitor.js 는 after 가 0 이면 2초 뒤에 넣는다
       }, lead || 0);
     })();
   }
@@ -790,6 +792,10 @@
   function onAppClick(e, w) {
     if (autoClick) { return; }
     freshApp = false;
+    var tgt = e.target.nodeType === 1 ? e.target : e.target.parentElement;
+    if (alertIn && tgt && (tgt.closest("[data-ma-confirm]") || tgt.closest("[data-req]"))) {
+      alertDone = { time: new Date().toTimeString().slice(0, 5), how: tgt.closest("[data-req]") ? "현장 조치 요청(안전진단)" : "조치 요청" };
+    }
     if (step === "run" && ++runClicks >= DONE_CLICKS) { setTimeout(function () { revealDone("클릭 " + DONE_CLICKS + "번"); }, 0); }
     var el = e.target.nodeType === 1 ? e.target : e.target.parentElement;
     if (!el) { return; }
@@ -798,7 +804,7 @@
     log("click", {
       area: areaOf(el), label: labelOf(el), page: w.location.pathname.split("/").pop(),
       x: Math.round(e.clientX), y: Math.round(e.clientY), dead: a ? 1 : 0,
-      confirm: el.closest("[data-ma-confirm]") ? 1 : 0
+      confirm: el.closest("[data-ma-confirm], [data-req]") ? 1 : 0
     });
   }
 
@@ -883,7 +889,8 @@
     if (r.height > 600 && x !== r.left) { y = r.top + 40; }
     // pop: "bottom" — 화면을 거의 다 비추는 단계는 오른쪽 아래 빈 자리에 둔다
     if (s.pop === "bottom") { x = 1920 - 40 - W; y = 1080 - 40 - H; }
-    pop.style.left = Math.max(20, Math.min(1500, x)) + "px";
+    if (Array.isArray(s.pop)) { x = s.pop[0]; y = s.pop[1]; }
+    pop.style.left = Math.max(16, Math.min(1500, x)) + "px";
     pop.style.top = Math.max(20, Math.min(1060 - H, y)) + "px";
     log("tutorial-step", { label: (tourAt + 1) + " " + s.title });
   }
@@ -1080,7 +1087,9 @@
     armDone();
     // 1: 새로 연다(주의 쌓인 판). 2: 새로 열고 3초 뒤 위험 1건. 3: 2의 상태 그대로 이어서
     if (sc.no === 1) { alertIn = false; if (!freshApp) { loadApp(); } freshApp = false; robotWalk(); }
-    if (sc.no === 2) { alertIn = false; alertPending = true; loadApp(); }
+    if (sc.no === 2) { alertIn = false; alertDone = null; alertPending = true; loadApp(); }
+    // 시나리오 3 은 관제 화면에서 시작 — 안전진단 등 다른 화면에 있으면 관제로 다시 연다(위험 알림은 그대로 다시 띄운다)
+    if (sc.no === 3) { var pth = ""; try { pth = frame.contentWindow.location.pathname; } catch (e) { } if (!/main-v6.html$/.test(pth)) { loadApp(); } }
   }
 
   // [수행 완료] — 시나리오 시간이 여기서 끝나고 TASK 인터뷰가 열린다
