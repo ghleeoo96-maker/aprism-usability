@@ -68,12 +68,13 @@
   .sv-band { margin: 24px 0 12px; padding: 14px 24px; border-radius: 10px; background: #2b8fd8; color: #fff; font-size: 16px; font-weight: 700; }
   .sv-intro-t { margin: 8px 0 12px; font-size: 18px; font-weight: 700; }
   /* 소개 화면 — 설문 폭(680)을 벗어나 화면 너비를 꽉 채운다 */
-  .sv-live { width: calc(100vw - 48px); max-width: 1920px; margin: 0 0 16px 50%; transform: translateX(-50%); }
+  .sv-live { width: calc(100vw - 96px); max-width: 1920px; margin: 0 0 16px 50%; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; }
+  .sv-live .mode-tabs { align-self: stretch; justify-content: center; }
   .mode-tabs { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
   .mode-tabs button { padding: 10px 20px; border: 2px solid var(--line); border-radius: 10px; background: #fff; font-size: 16px; font-weight: 800; }
   .mode-tabs button[aria-pressed="true"] { border-color: var(--blue); background: var(--blue); color: #fff; }
   .mode-tabs span { margin-left: 8px; font-size: 15px; color: var(--ink-2); }
-  .mode-full { margin-left: 8px; padding: 10px 16px; border: 0; border-radius: 10px; background: #16191f; color: #fff; font-size: 15px; font-weight: 700; }
+  .mode-tabs .mode-full, .mode-full { margin-left: 8px; padding: 10px 16px; border: 0; border-radius: 10px; background: #16191f; color: #fff; font-size: 15px; font-weight: 700; }
   /* 전체 화면 — 모니터 전체를 검정 바탕으로, 화면은 가운데 */
   .sv-live:fullscreen { width: 100vw; max-width: none; margin: 0; transform: none; background: #05070b; display: flex; flex-direction: column; justify-content: center; align-items: center; }
   .sv-live:fullscreen .mode-tabs { position: absolute; top: 12px; left: 12px; z-index: 2; }
@@ -182,6 +183,11 @@
   .pickbar .pick-n { color: var(--blue); font-size: 15px; }
   .pickmarks { position: absolute; inset: 0; z-index: 24; pointer-events: none; }
   /* 고르는 동안 화면을 덮는 투명한 막 — 화면에는 클릭, 마우스 올림, 휠이 하나도 가지 않는다 */
+  /* 시나리오 2 목표 도달 뒤 — 화면을 더 누를 수 없게(보기만) */
+  .lock-cover { position: absolute; inset: 0; z-index: 15; cursor: not-allowed; }
+  .goal-toast { position: absolute; left: 50%; top: 24px; transform: translateX(-50%); z-index: 26; padding: 14px 22px; border-radius: 14px; background: #fff; color: #16191f;
+    font-size: 18px; box-shadow: 0 0 0 3px #1baf7a, 0 10px 30px rgba(0,0,0,.45); white-space: nowrap; }
+  .goal-toast b { color: #0b8a5c; margin-right: 6px; }
   .pick-cover { position: absolute; inset: 0; z-index: 23; cursor: crosshair; background: rgba(42, 120, 214, .06); }
   .pick-mark { position: absolute; width: 34px; height: 34px; margin: -17px 0 0 -17px; border-radius: 50%; background: var(--blue); color: #fff; border: 3px solid #fff;
     display: grid; place-items: center; font-size: 16px; font-weight: 800; box-shadow: 0 2px 8px rgba(0,0,0,.4); }
@@ -191,7 +197,9 @@
   .task-lead { margin: -4px 0 12px; font-size: 16px; color: var(--ink-2); }
   #post-form.is-wide { max-width: none; }
   /* 공통질문 쪽 이동 — [이전] 은 왼쪽, [다음] [제출] 은 오른쪽 */
-  .pg-row #pg-next, .pg-row #pg-submit { margin-left: auto; }
+  .pg-row { justify-content: flex-end; }
+  .pg-row.is-wait { visibility: hidden; }
+  .pg-row #pg-prev { margin-right: auto; }
   .op-wrap { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(360px, 1fr); gap: 20px; align-items: start; }
   .op-screen { position: sticky; top: 12px; }
   .op-hint { margin: 0 0 8px; padding: 8px 12px; border-radius: 8px; background: #fff; font-size: 15px; color: var(--ink-2); }
@@ -359,11 +367,11 @@
       <div class="sv-frame" id="mode-box"><iframe id="mode-frame" title="에이프리즘 관제 화면"></iframe></div>
     </div>
     <fieldset class="sv-card" data-q="mode">
-      <legend>플랫폼 화이트모드와 블랙모드 중 선호하는 화면은 어떤건가요?</legend>
+      <legend>플랫폼 화이트모드와 블랙모드 중 선호하는 화면은 어떤건가요? <i>*</i></legend>
       <label><input type="radio" name="mode" value="화이트 모드"> 화이트 모드</label>
       <label><input type="radio" name="mode" value="블랙 모드"> 블랙 모드</label>
       <label><input type="radio" name="mode" value="상관없다"> 상관없다</label>
-      <button type="button" class="sv-clear" data-clear="mode">선택해제</button>
+      <p class="sv-err">필수 질문입니다.</p>
     </fieldset>
     </section>
 
@@ -480,10 +488,12 @@
       <button type="button" class="stop" id="rb-stop">중단하기</button>
     </div>
 
+    <div class="lock-cover" id="lock-cover" hidden></div>
+    <div class="goal-toast" id="goal-toast" hidden role="status"><b>성공!</b> 위험 알림의 상세 내용을 확인했습니다. 아래 [확인완료]를 눌러 주세요.</div>
     <div class="pick-cover" id="pick-cover" hidden></div>
     <div class="pickmarks" id="pickmarks"></div>
     <div class="pickbar" id="pickbar" hidden role="status">
-      <span>판단에 쓴 정보를 화면에서 눌러 주세요. 여러 곳을 눌러도 됩니다.</span>
+      <span id="pick-say">판단에 쓴 정보를 화면에서 눌러 주세요. 여러 곳을 눌러도 됩니다.</span>
       <span class="pick-n" id="pick-n"></span>
       <button type="button" class="btn btn-line" id="pick-undo">마지막 취소</button>
       <button type="button" class="btn btn-primary" id="pick-done">다 골랐어요</button>
@@ -578,7 +588,7 @@
         { id: "2-2", title: "위험 상황 이해", lead: "방금 확인한 위험 알림을 바탕으로 다음 질문에 답해 주세요.",
           qs: ["로봇이 위험을 감지한 현장 위치(측정 포인트)는 어디인가요?", "현재 위험 수준은 어느 정도라고 생각하시나요?", "그렇게 판단한 이유는 무엇인가요?"] },
         { id: "2-3", title: "후속 인터뷰",
-          qs: ["위험 알림이 발생했다는 것을 무엇을 보고 처음 알았나요?", "알림을 확인할 때 가장 먼저 살펴본 정보는 무엇인가요?",
+          qs: ["위험 알림이 발생했다는 것을 무엇을 보고 처음 알았나요?", "알림을 확인할 때 가장 먼저 살펴본 정보는 무엇인가요? 눈에 들어온 순서대로 3곳까지 골라 주세요.",
             "위험 위치를 찾는 과정에서 어려운 점은 없었나요?", "현재 화면만으로 위험 상황을 충분히 이해할 수 있었나요?"] }
       ] },
     { no: 3, title: "위험 대응 수행", ask: "위험 상황에 필요한 조치를 진행해 주세요!", done: "조치완료",
@@ -871,6 +881,29 @@
     })();
   }
   // 시나리오 2 시작 — 로봇이 걸어가 S2_WP 번에 도착(지점 측정 중)하면 멈추고, 그 자리에서 델타 시뮬레이션(위험 1건)을 보낸다
+  // 시나리오 2 목표 — 위험 알림의 상세(팝오버) 또는 안전진단 화면에 닿으면 성공. 화면을 잠가 [조치 요청] 등을 더 누를 수 없게
+  var goalTimer = null;
+  function watchGoal() {
+    clearInterval(goalTimer);
+    goalTimer = setInterval(function () {
+      if (phase !== "s2" || step !== "run") { clearInterval(goalTimer); return; }
+      if (!alertInAt) { return; }   // 위험 알림이 뜨기 전에는 세지 않는다
+      var ok = false;
+      try {
+        var w = frame.contentWindow, d = w.document;
+        if (/safety-v6/.test(w.location.pathname)) { ok = true; }
+        else { var m = d.querySelector(".map-alert"); ok = !!m && m.getBoundingClientRect().width > 0 && getComputedStyle(m).visibility !== "hidden" && /위험/.test(m.textContent); }
+      } catch (e) { }
+      if (!ok) { return; }
+      clearInterval(goalTimer);
+      rec.scenarios[2].goal = now();
+      log("goal", { label: "시나리오 2 목표 도달(상세 확인)", ms: now() - alertInAt });
+      $("lock-cover").hidden = false;
+      $("goal-toast").hidden = false;
+      revealDone("목표 도달");
+    }, 300);
+  }
+  function unlockGoal() { clearInterval(goalTimer); $("lock-cover").hidden = true; $("goal-toast").hidden = true; }
   function walkThenAlert() {
     var t0 = Date.now(), sent = false;
     (function wait() {
@@ -1133,6 +1166,7 @@
     //   2: 정상 판으로 새로 연다. 3: 관제 화면이 아니면(안전진단 등) 관제로 다시 연다(위험 알림은 load 에서 다시 띄운다)
     if (n === 2) { alertIn = false; alertLive = false; alertDone = null; alertPending = false; loadApp(); }
     if (n === 3) {
+      unlockGoal();
       var pth = ""; try { pth = frame.contentWindow.location.pathname; } catch (e) { }
       // 시나리오 2 에서 미리 조치했으면 처리 전 알림으로 다시 연다 — 시나리오 3 에서 조치할 알림이 남게
       if (alertDone && alertDone.inS2) { alertDone = null; loadApp(); }
@@ -1204,7 +1238,9 @@
           return '<li><div class="qt"><span class="n">' + (i + 1) + '</span><span>' + q + "</span></div>" +
             '<div class="choice" role="radiogroup">' + ch.map(function (c) {
               return '<button type="button" role="radio" aria-checked="' + (st.answers[i] === c) + '" data-act="choose" data-q="' + i + '" data-v="' + c + '">' + c + "</button>";
-            }).join("") + "</div></li>";
+            }).join("") + "</div>" +
+            // 이유 칸 — 고른 뒤에 나온다(REASON)
+            ((REASON[t.id] || []).indexOf(i) >= 0 && st.answers[i] ? '<textarea data-r="' + i + '" placeholder="그렇게 고른 이유를 적어 주세요" aria-label="문항 ' + (i + 1) + ' 이유">' + esc(st.reasons && st.reasons[i] || "") + "</textarea>" : "") + "</li>";
         }
         return '<li><div class="qt"><span class="n">' + (i + 1) + '</span><span>' + q + "</span></div>" +
           // 고르기 문항은 [화면에서 눌러 고르기] 와 고른 곳을 먼저, 답변 적기는 그 아래
@@ -1238,6 +1274,8 @@
 
   // 답변 — 적는 대로 저장, 칸을 떠날 때 기록에 한 줄
   $("task-body").addEventListener("input", function (e) {
+    var rr = e.target.closest("[data-r]");
+    if (rr) { var sc0 = curScen(), st0 = rec.scenarios[sc0.no].tasks[sc0.tasks[taskIdx].id]; st0.reasons = st0.reasons || []; st0.reasons[Number(rr.getAttribute("data-r"))] = rr.value; save(); return; }
     var ta = e.target.closest("[data-a]"); if (!ta) { return; }
     var sc = curScen(), st = rec.scenarios[sc.no].tasks[sc.tasks[taskIdx].id];
     st.answers[Number(ta.getAttribute("data-a"))] = ta.value;
@@ -1261,6 +1299,7 @@
       var gone = sq.picks[qi2].splice(k2, 1)[0];
       log("unpick", { label: "TASK " + tq.id + " 문항 " + (qi2 + 1) + " 고른 곳 지움", area: gone && gone.area });
       save(); paintTask();
+      var rbox = document.querySelector('#task-body textarea[data-r="' + qi + '"]'); if (rbox) { rbox.focus(); }
     }
     else if (act === "choose") {
       var t = sc.tasks[taskIdx], st = rec.scenarios[sc.no].tasks[t.id], qi = Number(b.getAttribute("data-q"));
@@ -1275,10 +1314,11 @@
    * 카드를 잠시 숨기고 위쪽 안내 띠를 띄운다. 그동안 테스트 화면을 눌러도 화면은 반응하지 않고(맨 먼저 받아 막는다)
    * 누른 자리에 번호를 찍는다. [다 골랐어요] 를 누르면 고른 곳을 답변 칸에 적고 카드로 돌아간다.
    */
-  var PICK = { "1-2": [2], "2-2": [2], "2-3": [0, 1] };   // 판단 근거 문항 — 적거나 화면에서 눌러 고르기
+  var PICK = { "1-2": [2], "2-2": [2], "2-3": [0, 1], "3-2": [0] };   // 판단 근거 문항 — 적거나 화면에서 눌러 고르기
   // 고르는 문항 — 답변 칸 대신 단추로 고른다
   // 고르는 문항 — 배열이면 단추, scale 이면 1~n 척도(양 끝 글)
   var CHOICE = { "3-1": { 0: ["예", "아니오"] }, "2-2": { 1: ["정상", "주의", "위험"] }, "2-3": { 2: { scale: 7, lo: "매우 어려웠다", hi: "전혀 어렵지 않았다" }, 3: ["예", "아니오"] } };
+  var REASON = { "2-3": [3] };   // 예/아니오를 고르면 이유 칸이 열리는 문항
   function choicesOf(id, i) { return (CHOICE[id] || {})[i] || null; }
   function isPick(id, i) { return (PICK[id] || []).indexOf(i) >= 0; }
   var pick = null;   // { q: 문항 번호, list: [{area, label, x, y, t}] }
@@ -1302,16 +1342,22 @@
     try { p.page = frame.contentWindow.location.pathname.split("/").pop(); } catch (x2) { }
     onPickPoint(p);
   });
+  var PICK_MAX = { "2-3": { 1: 3 } };   // 순서대로 n곳까지
+  function pickMax() { var t = curScen().tasks[taskIdx]; return pick && (PICK_MAX[t.id] || {})[pick.q] || 0; }
   function startPick(q) {
     var t = curScen().tasks[taskIdx], st = rec.scenarios[curScen().no].tasks[t.id];
     st.picks = st.picks || [];
     pick = { q: q, list: [] };
+    var mx = (PICK_MAX[t.id] || {})[q] || 0, had = (st.picks[q] || []).length;
+    pick.max = mx ? Math.max(0, mx - had) : 0;
+    $("pick-say").textContent = mx ? "눈에 들어온 순서대로 " + mx + "곳까지 눌러 주세요." + (had ? " (이미 " + had + "곳 고름)" : "") : "판단에 쓴 정보를 화면에서 눌러 주세요. 여러 곳을 눌러도 됩니다.";
     $("task").hidden = true;
     $("pickbar").hidden = false; $("pickmarks").innerHTML = ""; $("pick-n").textContent = "";
     $("pick-cover").hidden = false;
     log("pick-start", { label: "TASK " + t.id + " 문항 " + (q + 1) + " 화면에서 고르기 시작" });
   }
   function onPickPoint(p) {
+    if (pick.max !== undefined && pickMax() && pick.list.length >= pick.max) { $("pick-n").textContent = "더 고를 수 없습니다. [다 골랐어요]를 눌러 주세요."; return; }
     pick.list.push(p);
     var m = document.createElement("span"); m.className = "pick-mark"; m.style.left = p.x + "px"; m.style.top = p.y + "px"; m.textContent = pick.list.length;
     $("pickmarks").appendChild(m);
@@ -1338,13 +1384,13 @@
     // 1: 새로 연다(주의 쌓인 판). 2: 새로 열고 3초 뒤 위험 1건. 3: 2의 상태 그대로 이어서
     if (sc.no === 1) { alertIn = false; if (!freshApp) { loadApp(); } freshApp = false; robotWalk(); }
     // 시나리오 2: 화면은 안내 카드가 뜰 때 이미 새로 열어 두었다(goScenario) — 여기서는 알림 흐름만 시작한다
-    if (sc.no === 2) { alertIn = true; alertDone = null; alertPending = false; walkThenAlert(); }
+    if (sc.no === 2) { alertIn = true; alertDone = null; alertPending = false; walkThenAlert(); watchGoal(); }
   }
 
   // [수행 완료] — 시나리오 시간이 여기서 끝나고 TASK 인터뷰가 열린다
   $("rb-done").addEventListener("click", function () {
     if (step !== "run") { return; }
-    clearTimeout(doneTimer); clearTimeout(hintTimer); $("rb-hint").hidden = true;
+    clearTimeout(doneTimer); clearTimeout(hintTimer); $("rb-hint").hidden = true; $("goal-toast").hidden = true;
     var sc = curScen(), s = rec.scenarios[sc.no];
     s.done = now();
     log("run-done", { label: "시나리오 " + sc.no + " 수행 완료", ms: s.done - s.start });
@@ -1405,6 +1451,9 @@
   function lkVal(i) { var r = document.querySelector('#post-form input[name="lk' + i + '"]:checked'); return r ? r.value : ""; }
   function lkDone(gi) { return LK_GROUPS[gi].items.every(function (i) { return lkVal(i); }); }
   function paintLikert() {
+    // 7점 척도 쪽은 묶음이 저절로 넘어가므로, 다 답하기 전에는 [이전] [다음] 을 숨긴다
+    var allDone = LK_GROUPS.every(function (g, gi) { return lkDone(gi); });
+    var row = document.querySelector(".pg-row"); if (row) { row.classList.toggle("is-wait", postPg === 2 && !allDone); }
     var firstOpen = LK_GROUPS.findIndex(function (g, gi) { return !lkDone(gi); });   // 아직 답하지 않은 첫 묶음 — 늘 보인다
     Array.prototype.forEach.call(document.querySelectorAll(".lk-group"), function (el) {
       var gi = Number(el.getAttribute("data-g")), g = LK_GROUPS[gi], done = lkDone(gi);
@@ -1531,6 +1580,7 @@
     if (n === 1) { openModeFrame(); } else { $("mode-frame").src = "about:blank"; }
     if (n === 3) { openOpFrame(); } else { $("op-frame").src = "about:blank"; setOpPick(null); }
     $("post-form").classList.toggle("is-wide", n === 3);
+    if (n !== 2) { var pr = document.querySelector(".pg-row"); if (pr) { pr.classList.remove("is-wait"); } }
     if (n === 2) { var nx = LK_GROUPS.findIndex(function (g, k) { return !lkDone(k); }); lkOpen = nx < 0 ? -1 : nx; paintLikert(); }
     window.scrollTo(0, 0);
     if (rec) { log("post-page", { label: n + " " + PG_NAME[n] }); }
@@ -1543,6 +1593,7 @@
     return true;
   }
   $("pg-next").addEventListener("click", function () {
+    if (postPg === 1 && !document.querySelector('#post-form input[name="mode"]:checked')) { var mc = document.querySelector('.sv-card[data-q="mode"]'); mc.classList.add("is-err"); mc.scrollIntoView({ behavior: "smooth", block: "center" }); return; }
     if (postPg === 2 && !checkLikert()) { return; }
     goPg(postPg + 1);
   });
@@ -1569,7 +1620,7 @@
     var live = $("mode-live"), box = $("mode-box"), fr = $("mode-frame"); if (!box || box.offsetParent === null) { return; }
     var full = document.fullscreenElement === live;
     var tabs = full ? 0 : live.querySelector(".mode-tabs").offsetHeight + 10;
-    var w = full ? window.innerWidth : Math.min(window.innerWidth - 48, 1920), h = window.innerHeight - tabs - (full ? 0 : 24);
+    var w = full ? window.innerWidth : Math.min(window.innerWidth - 96, 1920), h = window.innerHeight - tabs - (full ? 0 : 24);
     var sc = Math.min(w / 1920, h / 1080);
     box.style.width = Math.round(1920 * sc) + "px";
     fr.style.transform = "scale(" + sc + ")";
@@ -1599,6 +1650,15 @@
         (d.head || d.documentElement).appendChild(st);
         d.documentElement.setAttribute("data-theme", modeNow);
         fr.contentWindow.open = function () { return null; };   // 새 창은 열지 않는다
+        // 지도는 휠, 드래그로 확대 축소, 이동하지 않게 — 지도 영역에서 눌러 끌기와 휠을 맨 먼저 막는다(버튼, 알림은 그대로)
+        var w = fr.contentWindow;
+        ["wheel", "pointerdown", "mousedown", "touchstart", "dblclick", "contextmenu"].forEach(function (type) {
+          w.addEventListener(type, function (e) {
+            var t = e.target && e.target.closest ? e.target : null;
+            if (type === "wheel") { if (t && t.closest(".map-panel")) { e.preventDefault(); e.stopImmediatePropagation(); } return; }
+            if (t && t.closest(".map-panel") && !t.closest(".map-tools, .map-alert, .map-floors, button, a")) { e.preventDefault(); e.stopImmediatePropagation(); }
+          }, { capture: true, passive: false });
+        });
       } catch (e) { }
     };
     fr.src = APP + "?mission=" + encodeURIComponent(MISSION) + "&floor=B4&theme=light#warning";
@@ -1678,6 +1738,7 @@
   });
   function leave() {
     save(true);
+    unlockGoal();
     $("runbar").hidden = true;
     rec = null; phase = null;
     frame.src = "about:blank";
@@ -1769,13 +1830,14 @@
     if (!t || !t.answers) { return ""; }
     var txt = t.answers[i] || "", pk = t.picks && t.picks[i] || [];
     var picked = pk.map(function (p) { return "[화면] " + pickName(p); }).join("\n");
-    return [txt, picked].filter(Boolean).join("\n");
+    var why = t.reasons && t.reasons[i] ? "(이유: " + t.reasons[i] + ")" : "";
+    return [txt, why, picked].filter(Boolean).join("\n");
   }
   var PHASE_KO = { tutorial: "튜토리얼", explore: "자유 탐색", s1: "시나리오 1", s2: "시나리오 2", s3: "시나리오 3", post: "공통질문", done: "끝" };
   var TYPE_KO = { page: "화면 열림", open: "새 창 대신 이동", click: "클릭", check: "문항 체크", "alert-in": "알림 발생",
     "hello": "인사 카드", "tutorial-start": "튜토리얼 시작", "tutorial-step": "튜토리얼 단계", "tutorial-end": "튜토리얼 끝",
     "scenario-start": "시나리오 시작", "scenario-end": "시나리오 끝", "task-done": "TASK 완료", "task-skip": "TASK 건너뜀",
-    "run-done": "수행 완료", "done-shown": "수행 완료 버튼 나옴", "pick-start": "화면 고르기 시작", unpick: "고른 곳 지움", "detail-open": "알림 상세 처음 엶", "explore-start": "자유 탐색 시작", "explore-end": "자유 탐색 끝", "s2-early-action": "시나리오 2에서 미리 조치", "post-page": "공통질문 쪽 이동", "mode-view": "모드 보기", "mode-full": "전체 화면 보기", pick: "화면에서 고름", "pick-end": "화면 고르기 끝", "alert-measure": "위험 지점 측정 시작", "post-start": "공통질문 시작", answer: "답변", "card-fold": "카드 접기", "card-open": "카드 펼치기", "card-move": "카드 옮기기", "test-end": "테스트 끝", "test-stop": "테스트 중단" };
+    "run-done": "수행 완료", "done-shown": "수행 완료 버튼 나옴", "pick-start": "화면 고르기 시작", unpick: "고른 곳 지움", "detail-open": "알림 상세 처음 엶", goal: "목표 도달", "explore-start": "자유 탐색 시작", "explore-end": "자유 탐색 끝", "s2-early-action": "시나리오 2에서 미리 조치", "post-page": "공통질문 쪽 이동", "mode-view": "모드 보기", "mode-full": "전체 화면 보기", pick: "화면에서 고름", "pick-end": "화면 고르기 끝", "alert-measure": "위험 지점 측정 시작", "post-start": "공통질문 시작", answer: "답변", "card-fold": "카드 접기", "card-open": "카드 펼치기", "card-move": "카드 옮기기", "test-end": "테스트 끝", "test-stop": "테스트 중단" };
   var STAGE_KO = { intro: "설명", run: "수행", task: "인터뷰" };
   function ko(map, k) { return map[k] || k || ""; }
   // 내보내기 · 가져오기
