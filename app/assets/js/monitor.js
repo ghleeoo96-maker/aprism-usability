@@ -103,6 +103,11 @@
   var R01_MORE = [];
   if (V5) {
     CRITICAL.sum = "N₂ 배관 압력 0.86 MPa 로 정상 범위(0.60 ~ 0.80)를 넘었습니다. 최근 3회 측정이 잇달아 올라 NG 로 판정했습니다.";
+    // [11/06 v6] 결론을 Delta("현장 점검부터 요청하세요") · 안전진단 상세와 하나로 — 현장 점검이 첫 줄, 작업 중지는 함께 고르는 두 번째 추천
+    if (body.classList.contains("ver-6")) {
+      CRITICAL.lead = "현장 점검부터 요청하세요."; CRITICAL.brief = ["WP-04 압력계가 NG예요.", "현장 점검부터 요청하세요."];
+      CRITICAL.acts = [{ t: "로봇 정지 · 현장 점검 요청", ai: true }, { t: "현장 무전 연락 · 작업 중지 요청", ai: true }, { t: "재측정 후 판단" }];
+    }
     WARNINGS[0].sum = "밸브 이음부에서 누출 의심도 62% 로 기준 55% 를 넘었습니다. 연속 2프레임에서 나왔습니다.";
     WARNINGS[0].lead = "구역 출입을 통제하고 설비팀에 밸브 확인을 요청하세요.";
     WARNINGS[0].acts = [{ t: "구역 출입 통제", ai: true }, { t: "설비팀 밸브 확인 요청", ai: true }, { t: "현장 확인" }];
@@ -152,7 +157,7 @@
   if (V5) {
     [
       [CRITICAL, "N₂ 압력계", "기준 초과", { mname: "압력", val: "0.86", std: "0.80", next: "현장 점검부터 요청하세요.", btn: "현장 점검 요청", trend: "최근 3회 측정 계속 오름",
-        hist: ["0.78", "0.82", "0.86"], cause: ["감압 밸브 설정 이상", "하류 밸브 닫힘", "주변 온도 상승"],
+        hist: ["0.77", "0.79", "0.86"], cause: ["감압 밸브 설정 이상", "하류 밸브 닫힘", "주변 온도 상승"],
         fixFirst: "감압 밸브 설정부터 보는 게 가장 빨라요.", fix: ["감압 밸브 설정값 확인(기준 0.80)", "하류 밸브 열림 확인", "계속 오르면 공급 밸브 잠금"] }],
       [WARNINGS[0], "냉각수 밸브", "누출", { btn: "구역 출입 통제" }],
       [WARNINGS[1], "수배전반", "부분방전", { btn: "재진단 예약" }],
@@ -307,6 +312,8 @@
   function handleOrder(all, mine) {
     var here = function (a) { return mine.indexOf(a) >= 0; };
     var crit = function (a) { return a.sev === "critical"; };
+    // [11/06] 같은 칸 안은 늘 오래된 알림부터 — 왼쪽 최신 알림 목록의 정렬([오래된 순 | 최신 순])을 바꿔도 Delta 가 먼저 말하는 알림은 바뀌지 않는다
+    all = all.slice().sort(function (a, b) { return a.time < b.time ? -1 : a.time > b.time ? 1 : 0; });
     return all.filter(function (a) { return here(a) && crit(a); })
       .concat(all.filter(function (a) { return !here(a) && crit(a); }))
       .concat(all.filter(function (a) { return here(a) && !crit(a); }))
@@ -376,32 +383,26 @@
           // [11/05 v6] 2줄 = {waypoint 번호}{waypoint 이름}부터 확인하세요. 번호는 경로 목록 번호 모양, 이름만 흰색 굵게(나머지는 2줄 회색) — 문형표 5
           if (V6) {
             var wpn = /\d+/.exec(first.wp || ""), wpName = first.eq || first.title;
-            var wpTok = wpn ? [{ wp: parseInt(wpn[0], 10) }] : [];
+            var wpTok = wpn ? [{ wp: parseInt(wpn[0], 10), sev: first.sev }] : [];
             say.parts = {
               ko: [[say.l[0]], wpTok.concat([{ wpName: wpName }, "부터 확인하세요."])],
               en: [[say.l[0]], ["Check "].concat(wpTok, [{ wpName: wpName }, " first."])]
             };
           }
         } else {
-          // 주의만 있을 때 — 한 문장(굵은 1줄 없이), 근거 줄에 먼저 볼 설비(10/30 디자이너 문구)
+          // 주의만 있을 때 — v5 이하는 한 문장(10/30 디자이너 문구), v6 은 아래에서 위험과 같은 두 줄로
           say = { l: ["지금 미션에서 " + mc + "건" + (oc ? ", 다른 미션에서 " + oc + "건" : "") + "의 확인해야 할 주의 단계 알림이 있어요."],
             clue: "먼저: " + (first.eq || first.title), yes: "처리 순서 보기", act: "order", open: "처리 순서 알려 줘" };
           if (V6) {
-            // 보는 미션 먼저, 나머지는 처리 순서에 처음 나온 차례로 — "정기 순회 점검에 2건, 설비 집중 점검에 1건"
-            var per = {}, names = [];
-            ord.forEach(function (a) {
-              if (a.sev !== sev) { return; }
-              var n = missionOf(a) || "미션 밖";
-              if (!(n in per)) { per[n] = 0; names.push(n); }
-              per[n]++;
-            });
-            say.l = ["확인해야 할 주의 단계 알림이 " + names.map(function (n) { return n + "에 " + per[n] + "건"; }).join(", ") + " 있어요."];
-            var ko = ["확인해야 할 주의 단계 알림이 "], en = ["Warnings to check: "];
-            names.forEach(function (n, i) {
-              ko.push({ m: n }, "에 " + per[n] + "건" + (i < names.length - 1 ? ", " : " 있어요."));
-              en.push({ m: n }, " " + per[n] + (i < names.length - 1 ? ", " : "."));
-            });
-            say.parts = { ko: [ko], en: [en] };
+            // [11/06 v6] 위험(F4)과 같은 짜임 — 1줄 "주의 n건이 있어요.", 2줄 {waypoint 번호}{waypoint 이름}부터 확인하세요(디자이너).
+            //   미션별 건수 한 문장(예전 F5)은 길고 위험 문형과 짜임이 달랐다. 미션별 나눔은 펼친 Delta 가 맡는다.
+            var wn = /\d+/.exec(first.wp || ""), wName = first.eq || first.title;
+            var wTok = wn ? [{ wp: parseInt(wn[0], 10), sev: first.sev }] : [];
+            say.l = ["주의 " + j.warn + "건이 있어요.", wName + "부터 확인하세요."];
+            say.parts = {
+              ko: [[say.l[0]], wTok.concat([{ wpName: wName }, "부터 확인하세요."])],
+              en: [[say.l[0]], ["Check "].concat(wTok, [{ wpName: wName }, " first."])]
+            };
           }
         }
       }
@@ -540,6 +541,7 @@
   var extra = [];          // E-STOP 처럼 화면에서 생긴 알림
   var filter = "all";
   var picked = null;       // 고른 알림(객체) — 지도에 쪽지가 열려 있는 알림
+  var pickedDone = null;   // [11/06 v6] 고른 확인된 알림(객체) — 알림을 고르면 놓는다
   var resolved = [];       // 확인 처리한 알림 — 목록에서 빠지고 오늘 확인 완료로 간다
   var cleared = [];        // [11/05] 확인 처리한 알림 전부(화면에서 생긴 것 포함) — 지도 번호를 회색으로 남긴다(markWaypoints)
 
@@ -567,6 +569,7 @@
     node.type = "button";
     node.setAttribute("role", "listitem");
     node.setAttribute("aria-pressed", a === picked ? "true" : "false");
+    if (a.wp) { node.setAttribute("data-wp", a.wp); }   // [11/06] 지도가 호버한 알림의 지점을 짚는다(map-v6.js rrHot)
 
     var where = el("span", "ah-where t-caption");
     // v2.2 — 위치 줄 앞 표적 아이콘은 뺐다(10/19 디자이너). 층 꼬리표가 이미 "위치" 신호다.
@@ -574,7 +577,10 @@
     // v2.2 — 층 꼬리표는 웨이포인트 이름 앞(10/19 디자이너). 미션이 여러 층을 지나므로 줄마다 층을 말한다.
     if (scoped && a.floor) { where.appendChild(el("span", "floor-tag num", a.floor)); }
     // v2.2 — 위치는 웨이포인트만 "WP-nn 웨이포인트명"(10/19 디자이너). 로봇 · 설비 단위 앞말은 뺀다.
-    where.appendChild(el("span", "ah-wp", scoped ? wpPlace(a) : a.where));
+    // [11/06 v6] 번호(WP-nn)는 뺐다(디자이너) — 층 꼬리표 + 지점 이름만. 줄을 누르면 지도가 그 지점을 가리킨다.
+    var place = scoped ? wpPlace(a) : a.where;
+    if (scoped && body.classList.contains("ver-6")) { place = String(place || "").replace(/^WP-\d+\s*/, ""); }
+    where.appendChild(el("span", "ah-wp", place));
     if (!scoped) { where.appendChild(el("span", "num", a.time)); }
 
     // 알림 제목은 Label/2(13/500) 다 — 한 단계 내렸다(디자이너 요청).
@@ -589,7 +595,15 @@
     if (scoped) {
       // v2.2 — 무슨 일(위험도 + 알림명)이 첫 줄, 어디서가 둘째 줄(10/19 디자이너). 타임라인 · 오늘 확인 완료처럼 이름이 먼저다.
       // 시각은 첫 줄 오른쪽 — 목록이 "오래된 순" 이라 정렬 기준이 위에 보이게.
-      title.appendChild(el("span", "ah-time t-caption num", a.time));
+      // [11/06 v6] 시 · 분만 늘 보이고 초는 줄에 올라가거나 고를 때 붙는다(v6.css .ah-time-s) — 처리 필요 목록은 얼마나 지났는지가 한눈에 보여야 한다.
+      var tm = el("span", "ah-time t-caption num");
+      var hm = /^(\d{1,2}:\d{2})(:\d{2})$/.exec(a.time || "");
+      if (hm && body.classList.contains("ver-6")) {
+        tm.appendChild(document.createTextNode(hm[1]));
+        tm.appendChild(el("span", "ah-time-s", hm[2]));
+        tm.title = a.time;
+      } else { tm.textContent = a.time; }
+      title.appendChild(tm);
       node.appendChild(title);
       node.appendChild(where);
     } else {
@@ -634,18 +648,43 @@
   }
 
   function doneItem(d) {
-    var node = el("div", "done-item");
+    var V6 = body.classList.contains("ver-6");
+    // [11/06 v6] 확인된 알림도 고를 수 있다 — 누르면 그 줄이 골라지고 지도가 그 지점으로 간다(쪽지는 열지 않는다, 이미 처리된 것).
+    var node = el(V6 ? "button" : "div", "done-item");
+    if (V6) {
+      node.type = "button";
+      node.setAttribute("aria-pressed", d === pickedDone ? "true" : "false");
+      node.addEventListener("click", function () {
+        if (pickedDone === d) { pickedDone = null; render(); return; }
+        note.close();
+        pickedDone = d;
+        if (d.wp) { document.dispatchEvent(new CustomEvent("aprism:waypoint", { detail: { id: d.wp, from: "panel", done: true } })); }
+        render();
+      });
+    }
     node.setAttribute("role", "listitem");
     if (d.fresh) { node.classList.add("is-new"); }
 
     var head = el("span", "done-title");
     // 확인 완료 제목도 알림 제목과 같은 Label/2 다 — 처리 끝난 것이 처리할 것보다 크면 위계가 뒤집힌다.
     head.appendChild(el("span", "t-label-2", d.title));
-    head.appendChild(el("span", "t-caption num", d.time));
+    // [11/06 v6] 시각은 줄에 올라가거나 고를 때만 보인다(v6.css .done-time) — 확인된 기록은 시각보다 무엇을 어떻게 처리했는지가 먼저다.
+    head.appendChild(el("span", "t-caption num done-time", d.time));
 
     var how = el("span", "done-how t-caption");
     how.appendChild(icon("check"));
-    how.appendChild(el("span", null, d.how + (d.wp && body.classList.contains("ver-6") ? " · " + d.wp : "")));   // [11/02 v6] 끝에 지점 번호
+    if (V6) {
+      // [11/06 v6] 처리 줄은 문구 하나 — "조치 · 결과" 중 결과(이상 없음 · 정상 · 다음 순회 재측정)만 늘 보이고,
+      //   조치(현장 점검 요청 · 추이 관찰)는 호버 · 초점 · 고를 때 앞에 붙는다(v6.css .done-act).
+      //   지점 번호(WP-03)는 줄에서 뺐다(11/06 디자이너) — 줄을 누르면 지도가 그 지점으로 간다(d.wp 는 그대로 쓴다).
+      var parts = String(d.how || "").split(/\s*·\s*/);
+      var txt = el("span", "done-res");
+      if (parts.length > 1) { txt.appendChild(el("span", "done-act", parts[0])); }
+      txt.appendChild(document.createTextNode(parts[parts.length - 1]));
+      how.appendChild(txt);
+    } else {
+      how.appendChild(el("span", null, d.how));
+    }
     how.appendChild(el("span", null, d.who));
 
     node.appendChild(head);
@@ -828,7 +867,10 @@
    * 주소 ?alert=시각&wp=WP-nn, 관제 껍데기는 APRISM_OPEN_ALERT 를 부른다. 두 화면의 알림 데이터가 따로라 시각으로 찾고, 없으면 지점으로 찾는다.
    * 미션이 바뀌고 지도 번호가 깔린 뒤라야 쪽지가 제자리를 찾으므로 그때까지 기다린다.
    */
+  var openAlert = window.APRISM_OPEN_ALERT;
   window.APRISM_OPEN_ALERT = function (mission, time, wp) {
+    // [11/06] 알림 자체를 넘기는 쪽(펼친 Delta 의 [위치 보기] · [위험 상세 확인], 접힘 답 단추)은 위 정의 그대로 — 이 정의가 덮어써 눌러도 열리지 않았다
+    if (mission && typeof mission === "object") { openAlert(mission); return; }
     var tries = 0;
     (function go() {
       var d = window.APRISM_DELTA_ALERTS;
@@ -868,10 +910,12 @@
    * 다른 모니터 자리를 알려면 브라우저의 창 관리(Window Management) 권한이 필요하다 — 처음 한 번 묻는다.
    * 권한이 없거나 모니터가 하나면 새 탭으로 연다. 같은 이름의 창이 있으면 그 창을 다시 쓴다.
    */
-  var allBtn = $("[data-ah-all]");
-  if (allBtn) {
-    allBtn.addEventListener("click", function () {
-      var url = (window.aprismHref || String)(document.body.classList.contains("ver-6") ? "./alert-center-v6.html" : document.body.classList.contains("ver-5") ? "./alert-center-v5.html" : document.body.classList.contains("ver-3") ? "./alert-center-v3.html" : "./alert-center.html");
+  // [11/06 v6] 오늘 확인된 알림 머리에도 [전체보기](data-ah-all="done") — 알림 센터를 조치 요청됨 탭으로 연다(?tab=done).
+  $$("[data-ah-all]").forEach(function (allBtn) {
+    allBtn.addEventListener("click", function (event) {
+      event.stopPropagation();   // 확인된 알림 머리 줄은 누르면 접힌다(v3-panel.js) — 이 버튼만 예외
+      var tab = allBtn.getAttribute("data-ah-all") === "done" ? "?tab=done" : "";
+      var url = (window.aprismHref || String)((document.body.classList.contains("ver-6") ? "./alert-center-v6.html" : document.body.classList.contains("ver-5") ? "./alert-center-v5.html" : document.body.classList.contains("ver-3") ? "./alert-center-v3.html" : "./alert-center.html") + tab);
       var name = "aprism-alert-center";
       if (!window.screen.isExtended || !window.getScreenDetails) {
         window.open(url, name);
@@ -884,7 +928,7 @@
           ",width=" + other.availWidth + ",height=" + other.availHeight);
       }).catch(function () { window.open(url, name); });
     });
-  }
+  });
 
   // 비상정지는 위험 알림이다(알림 정책) — 목록에 쌓고 그것을 고른다.
   document.addEventListener("aprism:estop", function () {
@@ -1048,10 +1092,28 @@
           title.appendChild(document.createTextNode(rs[0] + " "));
           var vb = document.createElement("b"); vb.className = "ma-val"; vb.textContent = rs[1];
           title.appendChild(vb);
+          // [11/06 디자이너] 값 뒤 판정 — 안전진단 상세와 같은 글(verdict-v6.js)
+          var vd = window.APRISM_VERDICT && window.APRISM_VERDICT(kind.textContent, rs[1]);
+          if (vd) { var vs = document.createElement("span"); vs.className = "ma-vd"; vs.textContent = vd; title.appendChild(document.createTextNode(" ")); title.appendChild(vs); }
           title.title = a.title;
         }
       }
       stamp.textContent = stampOf(a);
+      // [11/06 디자이너] v6 — 지점은 글(WP-05) 대신 지도 핀 머리와 같은 번호 원, 시각은 오른쪽 끝. 설비 이름이 길면 이름만 줄인다
+      if (body.classList.contains("ver-6") && a.wp) {
+        var wn = parseInt(String(a.wp).replace(/\D+/g, ""), 10), ph = !isNaN(wn) && document.querySelector('.rr-pin-head[data-n="' + wn + '"]');
+        var st6 = stampOf(a), cut = st6.lastIndexOf(" · "), where6 = cut < 0 ? st6 : st6.slice(0, cut), when6 = cut < 0 ? "" : st6.slice(cut + 3);
+        if (where6.indexOf(a.wp) === 0) { where6 = where6.slice(a.wp.length).trim(); }
+        stamp.textContent = "";
+        stamp.classList.add("ma-stamp6");
+        var pin6 = document.createElement("span"); pin6.className = "mbt-pin"; pin6.setAttribute("data-n", isNaN(wn) ? "" : String(wn));
+        pin6.setAttribute("role", "img"); pin6.setAttribute("aria-label", a.wp);
+        // [11/06 디자이너] 번호 원은 세 팝오버 · Delta 와 같은 꼴(지도 핀 색, 16px · 1px 테 — v6.css .mbt-pin). 지도 핀이 없으면(다른 층) 회색 기본 꼴
+        if (ph) { pin6.setAttribute("style", ph.getAttribute("style") || ""); } else { pin6.classList.add("is-plain"); }
+        var pl6 = document.createElement("span"); pl6.className = "ma-st-place"; pl6.textContent = where6;
+        var tm6 = document.createElement("span"); tm6.className = "ma-st-time num"; tm6.textContent = when6;
+        stamp.appendChild(pin6); stamp.appendChild(pl6); stamp.appendChild(tm6);
+      }
 
       $("[data-ma-wp]", box).textContent = a.wp || "";
       $("[data-ma-place]", box).textContent = placeOf(a);
@@ -1167,6 +1229,8 @@
       "차압 NG · HEPA Filter 차압계": "alert/wp02-gauge-hepa.webp",
       "압력 편차 · N₂ 배관 압력계": "alert/wp04-gauge-n2.webp"
     };
+    // [11/06 v6] WP-04 N₂ 압력계 위험은 안전진단 상세와 같은 사진(N₂ 배관 · MPa 계기 · "gauge 0.86 MPa") — 예전 그림은 Spiral Casing psi 계기에 "NG 90, 기준 87" 라벨이라 제목(0.86 MPa)과 어긋났다
+    if (body.classList.contains("ver-6")) { SHOT["지하발전소 B3 터빈 2 NG 1건 발견"] = SHOT["지하발전소 터빈 2 NG 1건 발견"] = "safety/gauge_crit.jpg"; }
     function liveSrc(a) {
       if (SHOT[a.title]) { return "../assets/img/" + SHOT[a.title]; }
       if (useDeid && a.live === "ppe") { return "../assets/img/alert-live-deid-grid.webp?v=12"; }   // 그림을 바꾸면 v 를 올린다(캐시)
@@ -1283,6 +1347,7 @@
         if (card) { card.click(); }
       }
       picked = a;
+      pickedDone = null;   // [11/06 v6] 알림을 고르면 확인된 알림 고름은 놓는다
       fill(a);
       box.setAttribute("data-wp", a.wp);
       box.hidden = false;
@@ -1501,6 +1566,7 @@
   document.addEventListener("aprism:waypoint", function (event) {
     var d = event.detail || {};
     if ((d.from !== "map" && d.from !== "panel") || !d.id) { return; }
+    if (d.done) { return; }   // [11/06 v6] 확인된 알림을 고른 것 — 지도만 그 지점으로, 그 자리 남은 알림 쪽지는 열지 않는다
     if (d.from === "panel" && picked && picked.wp === d.id) { return; }   // 쪽지가 열리며 우측 줄을 누른 것이다 — 다시 열지 않는다
     var robot = activeRobot();
     var here = items().filter(function (a) { return a.wp === d.id && a.robot === robot; });

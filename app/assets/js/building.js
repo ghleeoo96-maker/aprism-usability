@@ -365,12 +365,21 @@
     title.appendChild(icon(a.sev === "critical" ? "error" : "warning"));
     var A6 = V6 && window.APRISM_ALERT6, r6 = A6 && A6.of(a.title);
     title.appendChild(el("span", null, A6 ? A6.title(a.title) : a.title));   // [11/02 v6] 제목 = 감지 · 측정 항목 + 값(alert-text-v6.js)
-    title.appendChild(el("span", "ah-time t-caption num", a.time));
+    // [11/06 v6] 시 · 분만 늘, 초는 호버 · 고를 때(관제 최신 알림과 같다, v6.css .ah-time-s)
+    var tm = el("span", "ah-time t-caption num");
+    var hm = V6 && /^(\d{1,2}:\d{2})(:\d{2})$/.exec(a.time || "");
+    if (hm) {
+      tm.appendChild(document.createTextNode(hm[1]));
+      tm.appendChild(el("span", "ah-time-s", hm[2]));
+      tm.title = a.time;
+    } else { tm.textContent = a.time; }
+    title.appendChild(tm);
 
     var where = el("span", "ah-where t-caption");
     where.appendChild(el("span", "floor-tag num", a.floor));   // 층 꼬리표는 웨이포인트 이름 앞(10/19)
     var wp = /WP-\d+.*$/.exec(a.where);   // 위치는 웨이포인트만(10/19, 메인 v2.2 와 같다)
-    where.appendChild(el("span", "ah-wp", wp ? wp[0] : a.where));
+    // [11/06 v6] 번호(WP-nn)는 뺐다 — 관제 최신 알림과 같이 층 꼬리표 + 지점 이름만
+    where.appendChild(el("span", "ah-wp", wp ? (V6 ? wp[0].replace(/^WP-\d+\s*/, "") : wp[0]) : a.where));
     // [11/05] 측정 채널(CH1)은 목록 줄에서 뺐다 — 관제 최신 알림(monitor.js)과 같다. 채널은 상세가 말한다
 
     // 어느 층 · 미션의 알림인지 — 미션을 고르기 전 화면이라 이 줄이 하나 더 붙는다.
@@ -385,8 +394,10 @@
     node.appendChild(title);
     // v3(10/21 디자이너) — 미션(상위)이 장소(하위)보다 먼저: 무슨 일 → 어느 미션 → 어디서. v2.2 는 장소 → 미션.
     if (V3) { node.appendChild(scope); node.appendChild(where); } else { node.appendChild(where); node.appendChild(scope); }
-    node.addEventListener("mouseenter", function () { setHot(a.floor, null, true); });
-    node.addEventListener("mouseleave", function () { setHot(null); });
+    if (!V6) {
+      node.addEventListener("mouseenter", function () { setHot(a.floor, null, true); });
+      node.addEventListener("mouseleave", function () { setHot(null); });
+    }
     node.addEventListener("click", function () { enter(a.floor, a.mission, V6 ? a : null); });   // [11/05 v6] 그 알림의 팝오버까지 연다
 
     // [안전진단] — 메인 v2.2 목록과 같은 자리 · 모양(monitor.js). 화면은 아직 없다.
@@ -412,6 +423,11 @@
     go.appendChild(el("span", "ah-report-label", (document.body.classList.contains("ver-6") ? "진단 상세" : "안전진단")));
     row.appendChild(node);
     row.appendChild(go);
+    // [11/06 v6] 호버는 줄 하나 — [진단 상세] 위로 옮겨가도 층 강조가 꺼지지 않게 줄(.ah-row)에서 듣는다(관제 최신 알림과 같은 호버, v6.css)
+    if (V6) {
+      row.addEventListener("mouseenter", function () { setHot(a.floor, null, true); });
+      row.addEventListener("mouseleave", function () { setHot(null); });
+    }
     return row;
   }
 
@@ -420,10 +436,20 @@
     node.setAttribute("role", "listitem");
     var head = el("span", "done-title");
     head.appendChild(el("span", "t-label-2", d.title));
-    head.appendChild(el("span", "t-caption num", d.time));
+    // [11/06 v6] 관제 오늘 확인된 알림(monitor.js doneItem)과 같은 줄 — 시각은 호버 때만(v6.css .done-time),
+    //   처리 줄은 결과 하나, 조치는 호버 때 앞에(.done-act), 지점 번호(WP-nn)는 뺐다
+    head.appendChild(el("span", "t-caption num" + (V6 ? " done-time" : ""), d.time));
     var how = el("span", "done-how t-caption");
     how.appendChild(icon("check"));
-    how.appendChild(el("span", null, d.how + (V6 && d.wp ? " · " + d.wp : "")));
+    if (V6) {
+      var parts = String(d.how || "").split(/\s*·\s*/);
+      var txt = el("span", "done-res");
+      if (parts.length > 1) { txt.appendChild(el("span", "done-act", parts[0])); }
+      txt.appendChild(document.createTextNode(parts[parts.length - 1]));
+      how.appendChild(txt);
+    } else {
+      how.appendChild(el("span", null, d.how));
+    }
     how.appendChild(el("span", null, d.who));
     node.appendChild(head);
     node.appendChild(how);
@@ -473,8 +499,14 @@
   $$("[data-ah-filter]").forEach(function (b) {
     b.addEventListener("click", function () { filter = b.getAttribute("data-ah-filter"); renderLeft(); });
   });
-  var allBtn = $("[data-ah-all]");
-  if (allBtn) { allBtn.addEventListener("click", function () { location.href = (window.aprismHref || String)(document.body.classList.contains("ver-6") ? "alert-center-v6.html" : document.body.classList.contains("ver-5") ? "alert-center-v5.html" : document.body.classList.contains("ver-3") ? "alert-center-v3.html" : "alert-center.html"); }); }
+  // [11/06 v6] 오늘 확인된 알림 머리에도 [전체보기](data-ah-all="done") — 알림 센터를 조치 요청됨 탭으로(관제 monitor.js 와 같다)
+  $$("[data-ah-all]").forEach(function (allBtn) {
+    allBtn.addEventListener("click", function (event) {
+      event.stopPropagation();   // 확인된 알림 머리 줄은 누르면 접힌다(v3-panel.js) — 이 버튼만 예외
+      var tab = allBtn.getAttribute("data-ah-all") === "done" ? "?tab=done" : "";
+      location.href = (window.aprismHref || String)((document.body.classList.contains("ver-6") ? "alert-center-v6.html" : document.body.classList.contains("ver-5") ? "alert-center-v5.html" : document.body.classList.contains("ver-3") ? "alert-center-v3.html" : "alert-center.html") + tab);
+    });
+  });
 
   /* ==================================================================
    * 오른쪽 — 로봇 현황 · 운행 흐름 · 다음 일정
@@ -549,7 +581,7 @@
     var steps = el("span", "bld-rc-steps");
     var wp = STEPS[r.n];
     if (r.st === "run" && wp) {
-      steps.appendChild(rcStep(r.now, wp[0][1] + " " + wp[0][0], true, "way"));
+      steps.appendChild(rcStep(r.now, (V6 ? wp[0][0] : wp[0][1] + " " + wp[0][0]), true, "way"));
       steps.appendChild(rcStep(wp[1][0], wp[1][1], false, "target", "is-no"));
     } else {
       var where = r.st === "done" ? (r.mission || "") + " 끝"
@@ -629,6 +661,12 @@
    *   진행   맨 아래 막대 하나 + 지나온 수
    * 상태 배지(Mission 줄) · 다음 웨이포인트 번호 · 오른쪽 칸은 뺐다.
    */
+  // [11/06 v6] 로봇 카드 지금 줄 — 하는 일("케미컬 공급 캐비닛 CDS-02 판독")과 지점 이름이 겹쳐 뭐가 뭔지 읽히지 않았다(사용자).
+  //   굵은 줄은 지점 이름, 아래는 짧은 하는 일(판독 중 · 이동 중), 다음 줄은 다음 지점 — 두 지점이 위아래로 경로처럼 이어진다(시안 A 확정)
+  function rcVerb(s) {
+    var m = /(이동 중|측정|판독|촬영|점검|순회)$/.exec(s || "");
+    return !m ? s : m[1] === "이동 중" ? "이동 중" : m[1] + " 중";
+  }
   function fleetCardSlim(r) {
     var node = el("button", "bld-robot bld-rc2 is-" + r.st);
     node.type = "button";
@@ -691,11 +729,16 @@
     nm.appendChild(icon(ic, 16));
     nowRow.appendChild(nm);
     var nt = el("span", "bld-rc2-txt");
+    if (wp && V6) {
+      nt.appendChild(el("span", "bld-rc2-now", wp[0][0]));
+      nt.appendChild(el("span", "bld-rc2-wp t-caption", rcVerb(r.now)));
+    } else {
     nt.appendChild(el("span", "bld-rc2-now", r.now));
-    if (wp) { nt.appendChild(el("span", "bld-rc2-wp t-caption", wp[0][1] + " " + wp[0][0])); }
+    if (wp) { nt.appendChild(el("span", "bld-rc2-wp t-caption", V6 ? wp[0][0] : wp[0][1] + " " + wp[0][0])); }   // [11/06 v6] 번호(WP-nn)는 뺐다 — 지점 이름만
     else {
       nt.appendChild(el("span", "bld-rc2-wp t-caption", r.st === "done" ? (r.mission || "") + " 끝"
         : r.st === "off" ? FNAME[r.floor] + " · 마지막 위치" : FNAME[r.floor] + (r.dock ? " · 도크" : "")));
+    }
     }
     nowRow.appendChild(nt);
     bodyEl.appendChild(nowRow);
@@ -1111,6 +1154,7 @@
     var l1 = $(".ai-line-1"), l2 = $(".ai-line-2");
     if (deltaFirst === null && l2) { deltaFirst = { line1: l1 ? l1.textContent : "", line2: l2.textContent }; }
     window.APRISM_DELTA_SCOPE = floorView;
+    window.APRISM_DELTA_SAY = null;   // 두 줄 문형(v3-panel.js)은 쌓인 건물(전체 미션)에서만 — 층 · 미션을 펼치면 예전 한 문장
     if (scopeMission && !floorView) {
       var fl = MISSION_FLOORS[scopeMission];
       d.line1 = scopeMission;
@@ -1126,7 +1170,22 @@
         // 건수는 목록에서 센다 — HTML 문장의 숫자가 알림 데이터와 어긋나지 않게(10/28, Robot 11 알림 두 건 추가)
         var nc = list.filter(function (a) { return a.sev === "critical"; }).length;
         if (!V6) { d.line2 = deltaFirst.line2.replace(/위험 알림 \d+건, 주의 알림 \d+건/, "위험 알림 " + nc + "건, 주의 알림 " + (list.length - nc) + "건"); }
-        else d.line2 = list.length ? sevSay(list) + " 있어요. " + (list.some(function (a) { return a.sev === "critical"; }) ? "위험 미션부터 확인하세요." : "왼쪽 목록에서 확인하세요.") : "알림이 없어요. 순회는 정상이에요.";
+        else if (!list.length) { d.line2 = "알림이 없어요. 순회는 정상이에요."; }
+        else {
+          /*
+           * [11/06 v6] 개별 미션(monitor.js COPY.brief)과 같은 두 줄 — 1줄 건수, 2줄 "[M번호 미션]부터 확인하세요."(회색, 미션 표식은 v3-panel.js).
+           *   먼저 볼 미션 = 위험이 있으면 가장 오래된 위험 알림의 미션, 없으면 가장 오래된 주의 알림의 미션.
+           */
+          var crit = list.filter(function (a) { return a.sev === "critical"; });
+          var first = (crit.length ? crit : list).slice().sort(function (a, b) { return a.time < b.time ? -1 : a.time > b.time ? 1 : 0; })[0];
+          var say = { l: [sevSay(list) + " 있어요.", first.mission + "부터 확인하세요."] };
+          say.parts = {
+            ko: [[say.l[0]], [{ m: first.mission }, "부터 확인하세요."]],
+            en: [[say.l[0]], ["Check ", { m: first.mission }, " first."]]
+          };
+          window.APRISM_DELTA_SAY = say;
+          d.line2 = say.l.join("\n");
+        }
       }
       return d;
     }

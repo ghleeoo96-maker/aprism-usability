@@ -11,7 +11,8 @@
   function set(folded) {
     sec.classList.toggle("is-folded", folded);
     btn.setAttribute("aria-expanded", folded ? "false" : "true");
-    btn.setAttribute("aria-label", folded ? "오늘 확인 완료 펼치기" : "오늘 확인 완료 접기");
+    var name = (sec.querySelector("h3") || {}).textContent || "오늘 확인 완료";   // [11/06 v6] 이름은 머리 제목을 따른다(v6 "오늘 확인된 알림")
+    btn.setAttribute("aria-label", name + (folded ? " 펼치기" : " 접기"));
     try { window.localStorage.setItem(KEY, folded ? "1" : "0"); } catch (e) { /* 저장이 막힌 곳 — 이번만 */ }
   }
 
@@ -104,9 +105,11 @@
       });
       return m;
     },
-    wp: function (n) {
+    // [11/06] 지도 핀 머리와 같은 단계 색 원(핀 대는 없음) — sev 가 없으면 예전 어두운 원
+    wp: function (n, sev) {
       var w = document.createElement("span");
       w.className = "dl-wp";
+      if (sev) { w.setAttribute("data-sev", sev); }
       w.textContent = n;
       w.setAttribute("aria-label", "waypoint " + n);
       return w;
@@ -168,9 +171,10 @@
   function part(x) {
     if (typeof x === "string") { return document.createTextNode(x); }
     if (x.m) { return T.mission(x.m); }
-    if (x.wp) { return T.wp(x.wp); }
+    if (x.wp) { return T.wp(x.wp, x.sev); }
     var n = document.createElement("span");
     n.className = "dl-wp-name";
+    // [11/06] waypoint 이름은 괄호 없이 흰색 굵게 — 앞의 단계 색 번호 원이 waypoint 라는 것을 말한다(【 】는 뺐다, 디자이너)
     n.textContent = x.wpName;
     return n;
   }

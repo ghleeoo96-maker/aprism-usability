@@ -298,7 +298,7 @@
     done: 0x9ea8bb, left: 0x9ea8bb, dot: 0xffffff
   };
   ROBOTS[10] = {
-    name: "ROBOT 11", at: 0.15, floor: "B3", walk: 3,   // 전기실 열화상 점검 · 3/20 — WP-03 → WP-04 로 걸어가는 중(10/20, walkTick)
+    name: "ROBOT 11", at: 0.32, floor: "B3", walk: 7,   // 전기실 열화상 점검 · 7/20 — WP-07 → WP-08 로 걸어가는 중(10/20, walkTick · 11/06 패널 7/20 에 맞춤)
     dock: [0.12, 0.90],
     stops: [[0.12, 0.55], [0.45, 0.55], [0.45, 0.20], [0.15, 0.20]],
     done: 0x89b9ed, left: 0x4990e0, dot: 0xc7ddf8
@@ -644,8 +644,7 @@
       stirred = true;
     }
 
-    // [route-rules 10/21] 지도는 끌어서 돌리거나 밀 수 없다 — 시점은 고정(확대는 도구 버튼, 휠). 클릭은 그대로
-    if (mode === "turn" || mode === "slide" || mode === "pinch") { return; }
+    // [route-rules 10/21] 지도는 끌어서 돌리거나 밀 수 없게 막았었다 → [11/06 v6] 다시 연다(디자이너 "드래그로 360도"). 끌면 돌고, Shift · 가운데 · 오른쪽 끌기는 밀기, 두 손가락은 핀치
     if (mode === "pinch") {
       // 손가락 하나가 조용히 사라졌으면(pointerup 을 놓치는 기기가 있다) 남은 하나로 돈다.
       if (down.length < 2) { mode = down.length ? "turn" : ""; paint(); return; }
@@ -1411,7 +1410,7 @@
 
     if (card) {
       card.hidden = !picked;
-      if (picked && cardName) { cardName.textContent = picked.title; }
+      if (picked && cardName) { cardName.textContent = picked.title; card.setAttribute("aria-label", "설비 " + picked.title); }
     }
 
     plan();
@@ -2111,6 +2110,40 @@
     rrCamT = setTimeout(function () { if (onLane && onLane.turns) { layWaypoints(); frame(); } }, 150);
   }
 
+  /*
+   * [11/06 공동작업자] 이름이 아직 없는 지점("waypoint name")은 지도 설비 이름으로 — "설비 13".
+   *   번호를 지점 번호(WP-09 → 설비 09)로 지으면 지도의 설비 09 와 엉뚱한 곳을 가리킨다. 그래서 그 지점에서 가장 가까운 설비의 이름을 쓴다.
+   *   지점 차례대로, 이미 쓴 설비는 건너뛴다(두 지점이 같은 이름이 되지 않게). 우측 목록 · 진행 제목 · 로봇 팝오버가 이 글을 읽는다
+   */
+  var PH_NAME = /^waypoint name$/i, wpNameOf = {};
+  function nameWps() {
+    var rail = document.querySelector("[data-timeline]");
+    if (!rail || !wpSpots.length) { return; }
+    var eq = meshes.filter(function (m) { return m.key === "equipment" && m.title; }).map(function (m) {
+      m.mesh.updateWorldMatrix(true, false);
+      return { title: m.title, at: m.mesh.localToWorld(m.center.clone()) };
+    });
+    if (!eq.length) { return; }
+    var used = {};
+    var near = function (w) { var best = null, bd = Infinity; eq.forEach(function (e) { if (used[e.title]) { return; } var d = e.at.distanceToSquared(w.spot); if (d < bd) { bd = d; best = e; } }); return best; };
+    // 이름이 있는 지점(N₂ 배관 압력계 등)이 서 있는 설비는 먼저 비켜 둔다 — 그 설비를 다른 지점 이름으로 쓰지 않게
+    wpSpots.forEach(function (w) {
+      var row = rail.querySelector('.timeline-item[data-waypoint="' + w.id + '"] .step-title');
+      if (row && !row.hasAttribute("data-ph-name") && !PH_NAME.test(row.textContent.trim())) { var b = near(w); if (b) { used[b.title] = true; } }
+    });
+    wpSpots.slice().sort(function (a, b) { return a.no - b.no; }).forEach(function (w) {
+      var row = rail.querySelector('.timeline-item[data-waypoint="' + w.id + '"] .step-title');
+      if (!row) { return; }
+      var ph = row.hasAttribute("data-ph-name") || PH_NAME.test(row.textContent.trim());
+      if (!ph) { return; }
+      var best = near(w);
+      if (!best) { return; }
+      used[best.title] = true;
+      wpNameOf[w.id] = best.title;
+      if (row.getAttribute("data-ph-name") !== best.title) { row.setAttribute("data-ph-name", best.title); row.textContent = best.title; }   // 영문판은 번역된 글을 다시 덮지 않게 속성으로 본다
+    });
+  }
+
   function layWaypoints() {
     if (!scene) { return; }
     clearWaypoints();
@@ -2169,6 +2202,7 @@
       (bucket[key] = bucket[key] || []).push(spot);
     });
 
+    nameWps();   // [11/06] 이름 없는 지점 → 가까운 설비 이름
     Object.keys(bucket).forEach(function (key) {
       var tone = key.split("|")[1];
       var wk = tone === "upcoming" ? "ring" : "full", ws = 15;
@@ -2473,12 +2507,12 @@
    *   상태 — 걷기(이동 · 위험 감지 · 자동복귀)는 앞 호 점멸, 서기(측정 · 일시정지)는 앞 호를 켠 채 멈춤, 완료는 01 대기(링 12%),
    *   긴급정지 · 끊김은 끈다 — 초록 빛이 "괜찮다"로 읽히면 안 된다. 휠 로봇(Robot 05)은 시안 밖이라 뺀다.
    * [11/05 디자이너] 빗금 원판 · 테 · 겹친 원 넷 · 앞 부채꼴 빛을 걷고 호만 남긴다. 호는 흰색으로 그려 상태색을 입힌다(HALO_TINT) —
-   *   위험 감지 빨강, 자동복귀 회색. 지점 측정은 파란 눈금(.rr-ring, v6.css 가 숨김) 대신 앞 호가 시계방향으로 돈다.
+   *   위험 감지 빨강, 자동복귀 회색. 지점 측정은 파란 눈금(.rr-ring, v6.css 가 숨김) 대신 앞 호가 시야 빔과 함께 좌우를 둘러보며 밝기가 숨 쉰다(11/06).
    */
   var HALO_R = 0.77, HALO_G = "#3BE07A", HALO_GX = 0x3BE07A;
   var HALO_TINT = { alert: 0xff383c, estop: 0xff383c, "return": 0x9ea8bb, pause: 0xffb020 };   // [11/05] 긴급정지도 빨강, 일시정지 노랑(주의 세모 #ffcc00 보다 주황 쪽)
   var HALO_PAUSE = 0xffb020;   // 그 밖은 초록(HALO_GX). 빨강 = danger/500, 회색 = 복귀 회색(RR_GRAY)
-  var HALO_SPIN = 1800;   // 측정 중 앞 호 한 바퀴(ms)
+  var HALO_BREATH = 1800;   // 측정 중 앞 호 밝기 숨 한 번(ms)
   var halo = null;
   function haloArt(light) {
     // 시안 SVG 를 캔버스에 그대로 옮긴다. 한 칸 = 시안 1단위 × k. 둘레 여유는 겹친 원(1.03R)과 빛 번짐 몫.
@@ -2549,8 +2583,11 @@
     var tint = HALO_TINT[st] || HALO_GX;
     halo.base.material.color.setHex(tint); halo.front.material.color.setHex(tint); halo.duo.material.color.setHex(tint); halo.brk.material.color.setHex(tint);
     halo.duo.material.opacity = walk ? 0.55 + 0.45 * (0.5 - 0.5 * Math.cos(now / 2400 * Math.PI * 2)) : 1;   // 걷는 동안 두 줄이 천천히 숨 쉰다
-    // 측정 중 — 앞 호가 시계방향으로 돈다(위에서 볼 때 시계방향 = y 축 음의 회전). 다른 상태는 앞을 본다
-    halo.front.rotation.y = st === "inspect" && !rrReduce ? -((now % HALO_SPIN) / HALO_SPIN) * Math.PI * 2 : 0;
+    // [11/06 리뷰 제안] 측정 중 — 앞 호가 시야 빔과 같은 각도로 좌우를 둘러보고(빔: rrTick 의 sin(t / 650) · 0.42), 1.8초 박자로 밝기가 숨 쉰다.
+    //   예전(11/05)엔 호만 한 바퀴씩 시계방향으로 돌아 빔과 따로 놀았다. 다른 상태는 앞을 본다
+    var look = st === "inspect" && !rrReduce;
+    halo.front.rotation.y = look ? Math.sin(now / 650) * 0.42 : 0;   // 빔과 같은 식 · 같은 축이라 둘이 한 덩어리로 움직인다
+    halo.front.material.opacity = look ? 0.45 + 0.55 * (0.5 - 0.5 * Math.cos(now / HALO_BREATH * Math.PI * 2)) : 1;
     var sz = DOG_PX * baseSize / (view.clientHeight || 1);   // rrDog 와 같은 배율
     halo.g.position.set(onLane.here.x, onLane.here.y + span * 0.0006, onLane.here.z);
     halo.g.scale.setScalar(sz * HALO_R * halo.size * 2);
@@ -2681,11 +2718,81 @@
     return out;
   }
 
+  /*
+   * [11/06 v6] 로봇 팝오버 = 지금 하는 일(디자이너) — 미션 · 배터리 · 시그널은 오른쪽 위 로봇 카드에 늘 있어 뺐다.
+   *   1줄 지금 행동(진행 막대 제목과 같은 글) — 평소와 다른 상태면 그 상태 기호 + 이름(진행 막대 자리 띠와 같은 꼴)
+   *   2줄 지도에서만 쓸모 있는 것 — 지나온 → 가는 지점 번호 · 도착까지(측정 중이면 지점 · 측정 %). 핀 번호와 바로 맞춰 본다
+   *   3줄 예외만 — 배터리 20% 이하 · 신호 약함일 때 경고 한 줄
+   *   글은 모두 우측 패널에서 읽는다(두 곳에 적으면 어긋난다). 열려 있는 동안 0.4초마다 다시 읽는다.
+   */
+  var botNowTimer = 0;
+  function botNow(card) {
+    var en = document.documentElement.lang === "en";
+    var rail = document.querySelector("[data-timeline]");
+    var ban = document.querySelector(".progress-meta > .rr-banner .rr-state");
+    var ttl = document.querySelector("[data-progress-title]"), left = document.querySelector("[data-progress-left]");
+    var run = rail && rail.querySelector(".timeline-item[data-waypoint].is-running");
+    var dones = rail ? rail.querySelectorAll(".timeline-item[data-waypoint].is-done") : [];
+    var from = dones.length ? dones[dones.length - 1].getAttribute("data-waypoint") : "";
+    var to = run ? run.getAttribute("data-waypoint") : "";
+    var eta = run && run.querySelector('[data-rr="eta"]'), pct = run && run.querySelector('[data-rr="pct"]');
+    var measuring = !!(run && run.querySelector(".rr-note.is-measure"));   // [11/06] 측정 % 는 지웠다 — 측정 중 줄이 있는지로 본다
+    var esc = function (t) { return String(t).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); };
+    // [11/06 디자이너] 지점은 글(WP-07) 대신 지도에 그려진 그 번호 원 — 지도 핀 머리의 색 · 테를 그대로 옮겨 와 지도와 바로 맞춰 본다
+    var pinOf = function (wp) {
+      var n = parseInt(String(wp).replace(/\D+/g, ""), 10), h = !isNaN(n) && document.querySelector('.rr-pin-head[data-n="' + n + '"]');
+      return h ? '<span class="mbt-pin" role="img" aria-label="' + esc(wp) + '" data-n="' + n + '" style="' + esc(h.getAttribute("style") || "") + '"></span>' : esc(wp);
+    };
+    var arrow = '<span class="mbt-arrow" aria-hidden="true">→</span>';
+    var route = !to ? "" : measuring ? pinOf(to) + '<span class="mbt-meta">' + (en ? "Measuring" : "측정 중") + "</span>"
+      : (from ? pinOf(from) + arrow : "") + pinOf(to) + (eta && eta.textContent.trim() ? '<span class="mbt-meta">' + esc(eta.textContent.trim()) + "</span>" : "");
+    // [11/06 디자이너] 줄바꿈은 지점 이름 뒤에서 — "HX-1로 / 이동 중"(행동 말이 끊기지 않게 한 덩이로)
+    var actHtml = function (t) {
+      var name = run && run.querySelector(".step-title") ? run.querySelector(".step-title").textContent.trim() : "";
+      var m = !en && /^(.+?)(으로|로) (이동 중)$/.exec(t);
+      if (m) { return esc(m[1] + m[2]) + ' <span class="mbt-nw">' + m[3] + "</span>"; }
+      if (name && t.indexOf(name + " ") === 0) { return esc(name) + ' <span class="mbt-nw">' + esc(t.slice(name.length + 1)) + "</span>"; }
+      return esc(t);
+    };
+    var html = "";
+    if (ban) {
+      var tone = (ban.parentNode.className.match(/rr-tone-\S+/) || [""])[0], is = (ban.parentNode.className.match(/(^|\s)is-\S+/) || [""])[0].trim();
+      html += '<p class="mbt-act rr-banner ' + is + " " + tone + '">' + ban.outerHTML + "</p>";
+      var why = left && left.textContent.trim();
+      if (why) { html += '<p class="mbt-sub">' + esc(why) + "</p>"; }
+      if (route && !/is-(done|lost|estop)/.test(is)) { html += '<p class="mbt-sub mbt-route num">' + route + "</p>"; }
+    } else {
+      if (ttl) { html += '<p class="mbt-act">' + actHtml(ttl.textContent.trim()) + "</p>"; }
+      if (route) { html += '<p class="mbt-sub mbt-route num">' + route + "</p>"; }
+    }
+    // 예외 — 배터리 20% 이하 · 신호 약함(통신 끊김은 위 상태 줄이 말한다)
+    var warn = [];
+    botFacts(card).forEach(function (f) {
+      var k = f[0].toLowerCase(), v = f[1];
+      if (/battery|배터리/.test(k)) { var b = parseInt(v, 10); if (!isNaN(b) && b <= 20) { warn.push((en ? "Battery " : "배터리 ") + b + "%"); } }
+      if (/signal|신호/.test(k) && /^(Weak|약함)$/i.test(v)) { warn.push(en ? "Weak signal" : "신호 약함"); }
+    });
+    if (warn.length) { html += '<p class="mbt-warn"><span class="i i-14" style="--i:var(--ic-warning)" aria-hidden="true"></span>' + esc(warn.join(" · ")) + "</p>"; }
+    return html;
+  }
+
   function tellBot(on) {
     if (!botTip) { return; }
+    clearInterval(botNowTimer);
     if (!on || !onLane) { botTip.hidden = true; botBox.classList.remove("is-picked"); return; }
     var card = document.querySelector(".robot-strip .robot-card[data-robot='" + onLane.id + "']");
-    if (card && botRows) {
+    // 팝오버 로봇이 우측 패널 로봇이면 지금 하는 일을 — 아니면(패널이 다른 로봇) 예전처럼 카드 값
+    var mine = card && card.getAttribute("aria-pressed") === "true" && document.body.classList.contains("ver-6");
+    if (mine && botRows) {
+      var paint = function () {
+        var h = botNow(card);
+        if (botRows.getAttribute("data-now") !== h) { botRows.setAttribute("data-now", h); botRows.innerHTML = h; }
+      };
+      botRows.classList.add("is-now");
+      paint();
+      botNowTimer = setInterval(function () { if (botTip.hidden) { clearInterval(botNowTimer); return; } paint(); }, 400);
+    } else if (card && botRows) {
+      botRows.classList.remove("is-now"); botRows.removeAttribute("data-now");
       botRows.textContent = "";
       botFacts(card).forEach(function (fact) {
         var line = document.createElement("div");
@@ -2698,6 +2805,7 @@
         botRows.appendChild(line);
       });
     }
+    var bn = botTip.querySelector("[data-map-bot-title]"); if (bn) { botTip.setAttribute("aria-label", "로봇 " + bn.textContent.trim()); }
     botTip.hidden = false;
     botBox.classList.add("is-picked");
   }
@@ -2723,6 +2831,7 @@
     return !!(alertBox && !alertBox.hidden && chosenWp && alertBox.getAttribute("data-wp") === chosenWp);
   }
 
+  var wpEtaTimer = 0;
   var WP_WORD = {
     safe: "정상", caution: "주의", danger: "위험",
     current: "측정 중", upcoming: "예정"
@@ -2741,12 +2850,73 @@
     wpBox.setAttribute("data-result", info.tone);
     if (wpChip) { wpChip.textContent = WP_WORD[info.tone] || "예정"; }
     if (wpName) { window.APRISM_TEXT.fill(wpName, [info.id, info.name || "waypoint"]); }
-    if (wpRead) {
+    /*
+     * [11/06 디자이너 v6] 머리 = [상태 꼬리표] [지도 핀과 같은 번호 원] 지점 이름 — "WP-09" 글을 걷는다.
+     *   상태는 원의 색(지도 핀 그대로)과 아래 글("아직 가지 않은 자리입니다.")이 말한다. 이름은 우측 목록과 같은 글(이름 없는 지점은 설비 nn)
+     */
+    if (document.body.classList.contains("ver-6") && wpName) {
+      var n6 = found.no, ph6 = document.querySelector('.rr-pin-head[data-n="' + n6 + '"]');
+      var row6 = document.querySelector('[data-timeline] .timeline-item[data-waypoint="' + info.id + '"] .step-title');
+      var nm6 = (row6 && row6.textContent.trim()) || wpNameOf[info.id] || info.name || info.id;
+      // [11/06 디자이너] 꼬리표(예정 · 정상 · 주의 …)는 남긴다 — 로봇 · 설비 팝오버의 [로봇] · [설비] 꼬리표와 같은 자리. 번호 원은 이름 앞에
+      var pin6 = wpBox.querySelector(".map-wp-pin");
+      if (!pin6) { pin6 = document.createElement("span"); pin6.className = "mbt-pin map-wp-pin"; pin6.setAttribute("role", "img"); wpName.parentNode.insertBefore(pin6, wpName); }
+      pin6.setAttribute("data-n", String(n6)); pin6.setAttribute("aria-label", info.id);
+      pin6.setAttribute("style", ph6 ? (ph6.getAttribute("style") || "") : "");
+      pin6.classList.toggle("is-plain", !ph6);
+      wpName.textContent = nm6;
+      wpBox.setAttribute("aria-label", "웨이포인트 " + info.id + " " + nm6 + ", " + (WP_WORD[info.tone] || "예정"));   // 꼬리표를 감춰도(v6.css) 낭독기는 종류 · 상태를 읽는다
+      var more6 = wpBox.querySelector("[data-map-wp-more]"); if (more6) { more6.hidden = true; }
+      /*
+       * [11/06 디자이너] 세 팝오버 한 차례 — 헤더(꼬리표 · 주체) → 핵심 한 줄 → 상세 목록. 결과는 한 줄 나열이 아니라 설비 팝오버처럼 줄 목록(이름 칸 + 값 왼쪽 정렬).
+       *   핵심 한 줄: 지나온 정상 = "측정 완료 · 정상 범위", 지금 지점 = 측정 중 / 이동 중, 예정 = "아직 가지 않은 자리입니다."
+       *   목록: 측정 결과(온도 31.4℃ · 압력 0.71 MPa → 줄마다) + 측정 시각(09:31 – 09:52 (21분)). 예정 · 이동 중은 목록 없음
+       */
+      if (wpRead) {
+        var runRow = document.querySelector('[data-timeline] .timeline-item[data-waypoint="' + info.id + '"]');
+        var meas6 = !!(runRow && runRow.querySelector(".rr-note.is-measure"));
+        var core6 = info.tone === "safe" ? ""   // [11/06 디자이너] 정상은 따로 말하지 않는다 — 지도에 세모가 없으면 정상이다. 측정값 목록만
+          : /current|next|active|running/.test(info.tone) ? (meas6 ? "측정 항목 확인 중" : "로봇이 오는 중")
+          : info.kind === "upcoming" || info.tone === "upcoming" ? "아직 가지 않은 자리입니다." : (info.read || "");
+        wpRead.textContent = core6;
+        wpRead.hidden = !core6;
+        /*
+         * [11/06 디자이너] 도착 시간은 로봇 · 조치 팝오버처럼 오른쪽 끝 회색 보조 글 — 굵은 핵심 줄은 상태만 말한다.
+         *   우측 목록의 도착 글을 0.4초마다 다시 읽는다(로봇 팝오버와 같은 박자)
+         */
+        clearInterval(wpEtaTimer);
+        if (core6 === "로봇이 오는 중") {
+          var etaEl = document.createElement("span"); etaEl.className = "mbt-meta";
+          wpRead.appendChild(etaEl);
+          var etaPaint = function () { var e = runRow && runRow.querySelector('[data-rr="eta"]'), t = e ? e.textContent.trim() : ""; if (etaEl.textContent !== t) { etaEl.textContent = t; } };
+          etaPaint();
+          wpEtaTimer = setInterval(function () { if (wpBox.hidden || !etaEl.isConnected) { clearInterval(wpEtaTimer); return; } etaPaint(); }, 400);
+        }
+        // 지금 지점 꼬리표 — 서서 재는 중이면 "측정 중", 아직 걸어오는 중이면 "다음 지점"(꼬리표와 핵심 줄이 어긋나지 않게)
+        if (wpChip && /current|next|active|running/.test(info.tone)) { wpChip.textContent = meas6 ? "측정 중" : "다음 지점"; }
+        wpRead.classList.add("mbt-core");
+        var rows6 = [];
+        if (info.tone === "safe") {
+          String(info.read || "").split(/\s*·\s*/).forEach(function (part) {
+            var m = /^(.*?)\s*(-?\d[\d.,]*\s*\S*)$/.exec(part.trim());
+            if (m && m[1]) { rows6.push([m[1], m[2]]); }
+          });
+          if (info.time) { var tm = String(info.time).split(/\s*·\s*/); rows6.push(["측정 시각", tm[0] + (tm[1] ? " (" + tm[1] + ")" : "")]); }
+        }
+        var dl6 = wpBox.querySelector(".mbt-wp-rows");
+        if (!dl6) { dl6 = document.createElement("dl"); dl6.className = "map-card-rows mbt-wp-rows"; wpRead.parentNode.insertBefore(dl6, wpRead.nextSibling); }
+        dl6.textContent = "";
+        rows6.forEach(function (r) { var d = document.createElement("div"), t = document.createElement("dt"), v = document.createElement("dd"); t.textContent = r[0]; v.textContent = r[1]; d.appendChild(t); d.appendChild(v); dl6.appendChild(d); });
+        dl6.hidden = !rows6.length;
+        var tEl = wpBox.querySelector("[data-map-wp-time]"); if (tEl) { tEl.hidden = true; }
+      }
+    }
+    if (wpRead && !document.body.classList.contains("ver-6")) {   // v6 는 위에서 핵심 한 줄 + 목록으로
       window.APRISM_TEXT.fill(wpRead, info.read ||
         (info.kind === "upcoming" ? "아직 가지 않은 자리입니다." : "측정 항목 확인 중"));
     }
     var wpTime = wpBox.querySelector("[data-map-wp-time]");
-    if (wpTime) { wpTime.textContent = info.time || ""; wpTime.hidden = !info.time; }
+    if (wpTime) { wpTime.textContent = info.time || ""; wpTime.hidden = !info.time || document.body.classList.contains("ver-6"); }   // [11/06 v6] 시각은 목록의 "측정 시각" 줄로
     wpBox.hidden = false;
     placeWp();
   }
@@ -3325,6 +3495,7 @@
    *   return 자동복귀 · lost 통신 끊김 · done 미션 완료
    */
   var RRS = { mode: "run", s: null, lane: null, at: 0 };
+  var rrMoved = [];   // 시뮬레이션이 옮긴 길
   function rrNeutral() { return isLight() ? 0x2b3445 : 0xe4e8ef; }   // 복귀 도로색(시안 --rt-return)
   var RR_GRAY = 0x9ea8bb, RR_NEUTRAL = 0xe4e8ef;
   // [10/29 v5] 시안 1022 기준 — 앞으로 갈 길은 로봇색 동그란 점선(2/6, 80%), 번호는 막대 핀(지나온 지점도 옅게). 위 RR 의 ahead "A" · pins "P0" · pastNo "on".
@@ -3768,6 +3939,8 @@
       if (!ln || !ln.rr) { return; }
       if (ln.bot.ended) { rrApply(ln); frame(); return; }   // [10/30 v6] 완료한 미션은 시뮬레이션이 옮기지 않는다
       ln.walk = null;   // 시연용 걸음은 멈춘다 — 이제 시뮬레이션이 자리를 정한다
+      if (ln.rrHome === undefined) { ln.rrHome = ln.rr.s; }   // [11/06] 되돌릴 데이터 자리(reset) — 처음 값 하나만 기억한다
+      if (rrMoved.indexOf(ln) < 0) { rrMoved.push(ln); }
       RRS.lane = ln.id;
       RRS.s = Math.max(0, Math.min(ln.total, s));
       rrPlace(ln, RRS.s, RRS.mode === "return" ? -1 : 1);
@@ -3777,6 +3950,23 @@
       frame();
     },
     mode: function (m) { if (m !== RRS.mode) { RRS.at = performance.now(); } RRS.mode = m; this.set(this.get()); },
+    // [11/06] 미션을 바꾸면 시뮬레이션을 처음으로 — 상태 · 옮긴 자리를 버리고 그 미션의 데이터 자리로 돌아간다
+    reset: function () {
+      RRS.mode = "run"; RRS.s = null; RRS.lane = null; RRS.at = performance.now();
+      rrMoved.splice(0).forEach(function (ln) { ln.rr.s = ln.rrHome; rrPlace(ln, ln.rr.s, 1); });
+      // 로봇 카드가 바뀐 직후라 지도가 아직 앞 미션일 수 있다 — 새 미션으로 넘어간 뒤 한 번 더 맞춘다
+      function settle() {
+        if (onLane) { rrApply(onLane); }
+        // 시뮬레이션 길이 없는 로봇(Robot 05)은 rrApply 가 지나가므로 완료 표시를 여기서 푼다
+        if (botBox && botBox.getAttribute("data-rr") === "done" && onLane && !onLane.bot.ended) {
+          botBox.setAttribute("data-rr", "run");
+          document.dispatchEvent(new CustomEvent("aprism:rr-mode", { detail: { mode: "run" } }));
+        }
+        frame();
+      }
+      settle();
+      setTimeout(settle, 120);
+    },
     ended: function () { return !!(onLane && onLane.bot && onLane.bot.ended); },   // [11/06] 데이터상 이미 끝난 미션의 로봇인가(시뮬레이션 완료와 다르다)
     stops: function () {
       var ln = onLane;
@@ -3867,7 +4057,7 @@
         var ok = past && !was && rrOk[w.id] > now;   // 측정 끝, 정상 — 초록으로 잠깐
         var measuring = next && rrM(onLane) === "inspect";   // [11/05] 측정 중은 채운 파랑, 이동 중 다음 지점은 빈 파랑(흰 판)
         var quiet = !cau && !dan && !next && !was && !ok && t !== "skipped" && !document.body.classList.contains("sian");
-        el.className = "rr-pin" + (w.buried ? " is-buried" : "") + (past ? " is-past" : "") + (next ? " is-next" : "") + (quiet ? " is-quiet" : "") + (cau || dan ? " is-alert" : "") + (w.id === rrHotId ? " is-hot" : "") + (ok ? " is-ok" : "") + (measuring ? " is-measuring" : "");   // [10/28] 알림 지점 — 번호를 비켜 바닥 세모가 보이게(route-rules.css)
+        el.className = "rr-pin" + (w.buried ? " is-buried" : "") + (past ? " is-past" : "") + (next ? " is-next" : "") + (quiet ? " is-quiet" : "") + (cau || dan ? " is-alert" : "") + (w.id === rrHotId ? " is-hot" + (rrHotPoint ? " is-point" : "") : "") + (ok ? " is-ok" : "") + (measuring ? " is-measuring" : "");   // [10/28] 알림 지점 — 번호를 비켜 바닥 세모가 보이게(route-rules.css)
         // [11/04 · 11/05] is-quiet — 관제 기본은 문제 지점(위험 · 주의 · 건너뜀)과 지금 지점만 번호. 지나온 · 앞으로 갈 지점은 감추고(바닥 점은 남는다) 우측 레일 줄 · 지도 점에 손이 닿으면(is-hot) 보인다(디자이너). 미션 설정 · 사전 점검(.sian)은 점검 순서라 그대로 다 보인다
         el.style.setProperty("--pin", col);
         var head = document.createElement("span");
@@ -3937,14 +4127,27 @@
    * [11/03] 손 닿은 지점 — 지도 위 점(wpAt) · 우측 레일 줄([data-waypoint])에 마우스가 오면 그 지점 번호를 보인다.
    * 관제 기본은 문제 지점만 번호를 보이므로(is-quiet), 다른 번호가 필요할 때 찾는 길이다.
    */
-  var rrHotId = null;
-  function rrHot(id) {
-    id = id || null;
-    if (id === rrHotId) { return; }
-    rrHotId = id;
-    wpSpots.forEach(function (w) { if (w.pinEl) { w.pinEl.classList.toggle("is-hot", w.id === id); } });
+  var rrHotId = null, rrHotPoint = false;
+  function rrHot(id, point) {
+    id = id || null; point = !!(id && point);
+    if (id === rrHotId && point === rrHotPoint) { return; }
+    rrHotId = id; rrHotPoint = point;
+    wpSpots.forEach(function (w) { if (w.pinEl) { w.pinEl.classList.toggle("is-hot", w.id === id); w.pinEl.classList.toggle("is-point", point && w.id === id); } });
+    if (rrPinBox) { rrPinBox.classList.toggle("has-point", point && wpSpots.some(function (w) { return w.id === id && w.pinEl && !w.pinEl.hidden; })); }   // 다른 핀은 흐리게
     frame();
   }
+  /*
+   * [11/06 디자이너] 왼쪽 최신 알림 줄에 손이 닿으면 지도에서 그 지점을 짚는다 — "호버한 알림이 이 위치다".
+   *   번호가 숨은 지점이면 보이고(is-hot), 핀 머리가 커지며 고리가 퍼진다(is-point, v6.css). 손이 떠나면 돌아간다
+   */
+  document.addEventListener("pointerover", function (event) {
+    var it = event.target.closest && event.target.closest(".ah-item[data-wp]");
+    if (it) { rrHot(it.getAttribute("data-wp"), true); }
+  });
+  document.addEventListener("pointerout", function (event) {
+    var it = event.target.closest && event.target.closest(".ah-item[data-wp]");
+    if (it && !(event.relatedTarget && it.contains(event.relatedTarget))) { rrHot(null); }
+  });
   document.addEventListener("pointerover", function (event) {
     var row = event.target.closest && event.target.closest("[data-timeline] [data-waypoint]");
     if (row) { rrHot(row.getAttribute("data-waypoint")); }
