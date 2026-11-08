@@ -569,14 +569,17 @@
   // 말풍선 본문 — 한 줄 요약 + 글머리 목록
   function T(lead, items) { return (lead ? "<p>" + lead + "</p>" : "") + "<ul>" + items.map(function (x) { return "<li>" + x + "</li>"; }).join("") + "</ul>"; }
   var TOUR = [
-    { sel: ".sb-tabs", title: "미션은 로봇에게 맡긴 점검 업무입니다.", text: T("", ["예: <b>M1 정기순회점검</b>이 미션 하나","<b>탭 하나</b>는 로봇이 수행 중인 미션 하나","<b>탭을 누르면</b> 그 미션의 진행 상황과 로봇 상태 확인","<b>삼각형</b>이 붙은 탭은 위험 또는 주의 알림 발생"]) },
+    { sel: ".sb-tabs", title: "미션은 1개의 로봇이 맡은 업무입니다.", text: T("", ["<b>탭을 누르면</b> 그 미션의 진행 상황과 로봇 상태 확인","<b>삼각형</b>이 붙은 탭은 위험 또는 주의 알림 발생"]),
+      // 삼각형이 붙은 탭을 실제로 보여 주려고 처음부터 알림이 있는 판(주의)으로 연다. soft — 같은 판을 다시 여는 것뿐이라 [이전] 으로 돌아와도 된다
+      soft: true,
+      act: function (d, w) { w.history.replaceState(w.history.state, "", w.location.pathname + w.location.search + "#warning"); w.dispatchEvent(new w.HashChangeEvent("hashchange")); return function () { return !!firstWarnRow(d); }; } },
     { sel: ".right-panel", title: "하나의 미션에는 로봇이 방문하는 여러개의 측정위치로 구성되어 있습니다.", text: T("", ["<b>위쪽</b>은 로봇 상태, 지금 하는 업무와 전체 진행률","<b>아래쪽</b>은 측정 포인트 목록, 번호는 들르는 순서","<b>강조된 칸</b>은 지금 로봇이 있는 지점"]) },
     { sel: ".map-panel", pop: [16, 200], title: "발전소의 공간 구조와 설비 위치를 보여 주는 입체 지도입니다.", text: T("", ["로봇의 현재 위치와 이동 경로","<b>숫자</b>는 로봇이 점검하는 지점 번호","<b>빨간 핀</b>은 위험, <b>노란 핀</b>은 주의 알림이 난 위치"]) },
     { sel: ".delta3", rect: [436, 80, 296, 972], title: "Delta는 로봇이 보낸 여러 알림을 모아 지금 상황을 요약하는 AI 도우미입니다.", text: T("", ["먼저 확인할 문제와 그 이유 안내","<b>누르면 대화창</b>이 열림","궁금한 내용 입력 또는 추천 질문 선택","문제의 원인, 위치, 필요한 조치 안내"]),
       act: function (d) { var t = d.querySelector(".delta3 [data-ai-toggle]"); if (t && !d.querySelector(".delta3.is-open")) { t.click(); } return function () { return !!d.querySelector(".delta3.is-open"); }; },
       after: function (d) { var t = d.querySelector(".delta3 [data-ai-toggle]"); if (t && d.querySelector(".delta3.is-open")) { t.click(); } } },
     { sel: ".context-panel .ah-sec:not(.done-sec)", also: ".delta3", title: "알림 센터에는 로봇이 점검 중 감지한 이상징후가 모입니다.", text: T("", ["알림마다 어떤 문제가 났는지 표시","<b>빨간 삼각형</b>은 위험, <b>노란 삼각형</b>은 주의","알림이 오면 <b>Delta</b>도 함께 바뀜"]),
-      // 기본 판은 알림이 없다 — 이 단계부터 주의 알림을 들여와 보여 준다(튜토리얼이 끝나면 다시 정상 판으로 연다)
+      // 기본 판은 알림이 없다 — 1단계부터 주의 알림을 들여와 보여 준다(여기서도 한 번 더 확실히 연다. 튜토리얼이 끝나면 자유 탐색에서 다시 연다)
       act: function (d, w) { w.history.replaceState(w.history.state, "", w.location.pathname + w.location.search + "#warning"); w.dispatchEvent(new w.HashChangeEvent("hashchange")); return function () { return !!firstWarnRow(d); }; } },
     { sel: ".map-alert", title: "알림을 누르면 빠르게 조치를 취할 수 있는 창이 열립니다.", text: "<p>더 자세한 정보를 보려면 <b>[진단 상세]</b>를 누르면 됩니다.</p>",
       act: function (d) { realClick(d, firstWarnRow(d)); return function () { var m = d.querySelector(".map-alert"); return !!m && m.getBoundingClientRect().width > 0; }; } },
@@ -1187,7 +1190,7 @@
     $("tour-title").textContent = s.title;
     $("tour-text").innerHTML = s.text;
     $("tour-cnt").textContent = (tourAt + 1) + "/" + TOUR.length;
-    $("tour-prev").hidden = tourAt === 0 || !!s.act || !!TOUR[tourAt - 1].act;
+    $("tour-prev").hidden = tourAt === 0 || (!!s.act && !s.soft) || (!!TOUR[tourAt - 1].act && !TOUR[tourAt - 1].soft);
     $("tour-next").textContent = tourAt === TOUR.length - 1 ? "시나리오 시작하기" : "다음";
     $("tour-next").classList.toggle("is-go", tourAt === TOUR.length - 1);
     // 말풍선 자리 — 오른쪽, 왼쪽, 아래, 위 순으로 들어가는 곳
