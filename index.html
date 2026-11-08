@@ -599,14 +599,14 @@
     { sel: ".right-panel", title: "1개의 미션에 로봇이 측정할 여러 개의 waypoint로 구성되어 있습니다.",
       marks: [".right-panel .panel-card:not(.is-fill)", ".right-panel .mission-header", ".right-panel .rr-flow", ".right-panel .timeline-item.is-active"],
       text: TM(["<b>로봇 카드</b>: 이름, 배터리, 통신 같은 로봇 상태","<b>진행 막대</b>: 지금 하는 업무와 전체 진행률","<b>waypoint(지점) 목록</b>: 로봇이 차례로 방문할 곳, 번호는 방문 순서","<b>흰색 칸</b>: 지금 로봇이 있는 waypoint"]) },
-    { sel: ".delta3", rect: [436, 80, 296, 972], title: "Delta는 로봇이 보낸 여러 알림을 모아 지금 상황을 요약하는 AI 도우미입니다.", text: T("", ["먼저 확인할 문제와 그 이유 안내","<b>누르면 대화창</b>이 열림","궁금한 내용 입력 또는 추천 질문 선택","문제의 원인, 위치, 필요한 조치 안내"]),
-      soft: true,   // 다시 열어도 같은 모습 — [이전] 으로 돌아와도 된다
-      act: function (d) { var t = d.querySelector(".delta3 [data-ai-toggle]"); if (t && !d.querySelector(".delta3.is-open")) { t.click(); } return function () { return !!d.querySelector(".delta3.is-open"); }; },
-      after: function (d) { var t = d.querySelector(".delta3 [data-ai-toggle]"); if (t && d.querySelector(".delta3.is-open")) { t.click(); } } },
-    { sel: ".context-panel .ah-sec:not(.done-sec)", also: ".delta3", title: "알림 센터에는 로봇이 점검 중 감지한 이상징후가 모입니다.", text: T("", ["알림마다 어떤 문제가 났는지 표시","<b>빨간 삼각형</b>은 위험, <b>노란 삼각형</b>은 주의","알림이 오면 <b>Delta</b>도 함께 바뀜"]),
+    { sel: ".context-panel .ah-sec:not(.done-sec)", also: ".delta3", title: "로봇이 점검 중 이상을 감지하면 알림 센터에 알림이 뜹니다.", text: T("", ["알림은 <b>위험</b>과 <b>주의</b> 2단계로 표시","<b>빨간 삼각형</b>은 위험, <b>노란 삼각형</b>은 주의","알림마다 어떤 문제가 났는지 함께 표시"]),
       // 기본 판은 알림이 없다 — 1단계부터 주의 알림을 들여와 보여 준다(여기서도 한 번 더 확실히 연다. 튜토리얼이 끝나면 자유 탐색에서 다시 연다)
       soft: true,
       act: function (d, w) { w.history.replaceState(w.history.state, "", w.location.pathname + w.location.search + "#warning"); w.dispatchEvent(new w.HashChangeEvent("hashchange")); return function () { return !!firstWarnRow(d); }; } },
+    { sel: ".delta3", rect: [436, 80, 296, 972], title: "Delta는 모든 미션에서 감지된 알림을 위급한 순서대로 조치하도록 도와주는 AI 도우미입니다.", text: T("", ["모든 미션의 알림을 모아 <b>가장 급한 문제</b>와 그 이유부터 안내","<b>누르면 대화창</b>이 열림","궁금한 내용 입력 또는 추천 질문 선택","문제의 원인, 위치, 필요한 조치 안내"]),
+      soft: true,   // 다시 열어도 같은 모습 — [이전] 으로 돌아와도 된다
+      act: function (d) { var t = d.querySelector(".delta3 [data-ai-toggle]"); if (t && !d.querySelector(".delta3.is-open")) { t.click(); } return function () { return !!d.querySelector(".delta3.is-open"); }; },
+      after: function (d) { var t = d.querySelector(".delta3 [data-ai-toggle]"); if (t && d.querySelector(".delta3.is-open")) { t.click(); } } },
     { sel: ".map-alert", title: "알림을 누르면 빠르게 조치를 취할 수 있는 창이 열립니다.", text: "<p>더 자세한 정보를 보려면 <b>[진단 상세]</b>를 누르면 됩니다.</p>",
       act: function (d) { realClick(d, firstWarnRow(d)); return function () { var m = d.querySelector(".map-alert"); return !!m && m.getBoundingClientRect().width > 0; }; } },
     { sel: "main.sf", pop: "bottom", title: "안전진단 상세 화면에서는 로봇이 감지한 이상징후를 자세히 보고 대응 방법을 정합니다.", text: T("", ["측정 결과","현장 영상","과거 측정 기록","<b>오른쪽</b>에서 조치를 골라 요청"]),
