@@ -608,14 +608,14 @@
       // 기본 판은 알림이 없다 — 1단계부터 주의 알림을 들여와 보여 준다(여기서도 한 번 더 확실히 연다. 튜토리얼이 끝나면 자유 탐색에서 다시 연다)
       soft: true,
       act: function (d, w) { w.history.replaceState(w.history.state, "", w.location.pathname + w.location.search + "#warning"); w.dispatchEvent(new w.HashChangeEvent("hashchange")); return function () { return !!firstWarnRow(d); }; } },
-    { sel: ".delta3", rect: [436, 80, 296, 972], title: "Delta는 모든 미션에서 감지된 알림을 위급한 순서대로 조치하도록 도와주는 AI 도우미입니다.", text: T("", ["모든 미션의 알림을 모아 <b>가장 급한 문제</b>와 그 이유부터 안내","<b>누르면 대화창</b>이 열림","궁금한 내용 입력 또는 추천 질문 선택","문제의 원인, 위치, 필요한 조치 안내"]),
+    { sel: ".delta3", rect: [436, 80, 296, 972], title: "Delta는 모든 미션의 알림을 위급한 순서대로 조치하도록 돕는 AI입니다.", text: T("", ["모든 미션의 알림을 모아 <b>가장 급한 문제</b>와 그 이유부터 안내","<b>누르면 대화창</b>이 열림","궁금한 내용 입력 또는 추천 질문 선택","문제의 원인, 위치, 필요한 조치 안내"]),
       soft: true,   // 다시 열어도 같은 모습 — [이전] 으로 돌아와도 된다
       act: function (d) { var t = d.querySelector(".delta3 [data-ai-toggle]"); if (t && !d.querySelector(".delta3.is-open")) { t.click(); } return function () { return !!d.querySelector(".delta3.is-open"); }; },
       after: function (d) { var t = d.querySelector(".delta3 [data-ai-toggle]"); if (t && d.querySelector(".delta3.is-open")) { t.click(); } } },
     { sel: ".map-alert", also: ".context-panel .ah-sec:not(.done-sec) .ah-list > *", split: true, title: "알림을 누르면 빠르게 조치를 취할 수 있는 창이 열립니다.",
       // 번호 1 은 눌러 보이는 알림 한 줄(손가락 표시), 나머지는 열린 창 안의 자리
-      marks: [{ sel: ".context-panel .ah-sec:not(.done-sec) .ah-list > *", free: true, cursor: true }, { sel: [".map-alert .ma-head", ".map-alert .ma-snap"] }, { sel: ".map-alert .ma-act" }, { sel: "[data-ma-more]" }],
-      text: TM(["<b>알림 한 줄을 누르면</b> 이 창이 열림","감지된 <b>위험 내용</b>과 <b>촬영된 사진</b> 확인","<b>조치를 골라</b> 바로 요청","<b>[진단 상세]</b>는 더 자세한 정보를 볼 때 누름"]),
+      marks: [{ sel: ".context-panel .ah-sec:not(.done-sec) .ah-list > *", free: true, cursor: true }, { sel: [".map-alert .ma-head", ".map-alert .ma-snap", ".map-alert .ma-act"] }, { sel: "[data-ma-more]" }],
+      text: TM(["<b>알림 한 줄을 누르면</b> 이 창이 열림","감지된 <b>위험 내용</b>과 <b>촬영된 사진</b>을 확인하고, <b>조치를 골라</b> 바로 요청","<b>[진단 상세]</b>는 더 자세한 정보를 볼 때 누름"]),
       again: [800, 2000],   // 사진이 불러와지며 창 크기·자리가 바뀐다 — 안정된 뒤 번호 표시와 비춤 자리를 다시 잰다
       act: function (d) { realClick(d, firstWarnRow(d)); return function () { var m = d.querySelector(".map-alert"), im = d.querySelector(".map-alert .ma-shot"); return !!m && m.getBoundingClientRect().width > 0 && (!im || im.complete); }; } },
     { sel: "main.sf", pop: "bottom", title: "안전진단 상세 화면에서는 로봇이 감지한 이상징후를 자세히 보고 대응 방법을 정합니다.", text: T("", ["측정 결과","현장 영상","과거 측정 기록","<b>오른쪽</b>에서 조치를 골라 요청"]),
@@ -624,12 +624,12 @@
 
   var SCEN = [
     { no: 1, title: "로봇의 업무 파악", ask: "로봇이 어떤 업무를 하고 있는지 화면에서 확인해 주세요!", done: "확인완료", doneAfter: 5000, doneClicks: 0,
-      desc: "당신은 관제 업무를 인계받아 진행하고 있습니다.<br>현재 로봇은 [M1 정기 순회 점검] 미션을 수행하고 있습니다.<br>화면을 자유롭게 살펴보고 로봇이 어떤 업무를 하고 있는지 확인해 주세요.",
+      desc: "현재 로봇은 [M1 정기 순회 점검] 미션을 수행하고 있습니다.<br>화면을 자유롭게 살펴보고 로봇이 어떤 업무를 하고 있는지 확인해 주세요.",
       tasks: [
         { id: "1-1", qs: ["로봇이 수행 중인 미션의 이름은 무엇인가요?", "로봇은 지금 몇 번 지점에 있나요?"] },
         { id: "1-2", qs: ["임무는 현재 몇% 진행되었나요?", "로봇은 현재 무엇을 하고 있나요?", "그렇게 판단한 화면의 정보는 무엇인가요?"] }
       ] },
-    { no: 2, title: "위험 알람 확인", ask: "새로 발생한 위험 알림을 찾아 상세 내용을 열어 보세요!", done: "확인완료",
+    { no: 2, title: "위험 알람 확인", ask: "새로 발생한 위험 알림을 찾아 상세 내용을 열어 보세요!", done: "확인완료", goalOnly: true, doneClicks: 0,   // [확인완료]는 성공(위험 알림 상세를 열기)했을 때만 나온다 — 시간·클릭으로는 안 나옴
       desc: "[M1 정기 순회 점검] 미션 수행 중 로봇이 위험을 발견했습니다.<br>관제 대시보드에서 발견한 위험이 무엇인지 확인하고, 상세 내용을 열어 보세요.",
       tasks: [
         { id: "2-1", title: "위험 알림 발견 및 확인", qs: ["어떤 이상이 감지되었는지 설명해 주세요."] },
@@ -930,6 +930,16 @@
     setFrame(frame, appUrl(hash));   // 바로 바꾼다(빈 화면을 거치면 뒤로가기 기록이 하나 생긴다)
   }
 
+  // 컨트롤바(.rsim)·격자 숨김 — 화면이 되돌아오기(뒤로가기 복원 등)로 불러오기 알림 없이 바뀌어도 1초 안에 다시 건다
+  setInterval(function () {
+    try {
+      var d = frame.contentDocument;
+      if (!d || !d.documentElement || d.getElementById("ut-hide") || !/main-v6|safety-v6|\.html$/.test(frame.contentWindow.location.pathname)) { return; }
+      if (frame.contentWindow.location.href === "about:blank") { return; }
+      var st = d.createElement("style"); st.id = "ut-hide"; st.textContent = ".rsim, .grid-overlay { display: none !important; }";
+      (d.head || d.documentElement).appendChild(st);
+    } catch (e) { }
+  }, 1000);
   // 테스트 화면이 바뀔 때마다(처음 열기, 참가자가 다른 화면으로 이동) — 개발 장치 숨김, 클릭 기록, 상태 맞추기
   frame.addEventListener("load", function () {
     var w = frame.contentWindow, d;
@@ -943,6 +953,7 @@
 
     var css = d.createElement("style");
     css.textContent = ".rsim, .grid-overlay { display: none !important; }";
+    css.id = "ut-hide";
     (d.head || d.documentElement).appendChild(css);
 
     d.addEventListener("click", function (e) { onAppClick(e, w); }, true);
@@ -966,9 +977,10 @@
 
     if (/main-v6\.html$/.test(path)) {
       // 시나리오는 늘 정상 판(알림 없음, Delta 정상)에서 시작 — 다른 화면에 갔다 오면 주소의 #normal 이 빠진다.
-      // 튜토리얼과 자유 탐색은 주의 판을 유지한다(해시가 없으면 관제 화면이 위험 판으로 열려, 안전진단에 갔다 오면 위험 알림이 붙어 보인다)
+      // 튜토리얼은 주의 판, 자유 탐색은 관제 화면의 기본 판(위험 3건 + 주의 여러 건 = #critical)을 처음부터 끝까지 그대로 둔다 —
+      // 다른 화면에 갔다 와서 주소의 해시가 빠져도 같은 판으로 열려, 알림이 늘거나 줄어 보이지 않는다
       if (!w.location.hash) {
-        w.history.replaceState(w.history.state, "", w.location.pathname + w.location.search + ((phase === "tutorial" || phase === "explore") ? "#warning" : "#normal"));
+        w.history.replaceState(w.history.state, "", w.location.pathname + w.location.search + (phase === "tutorial" ? "#warning" : phase === "explore" ? "#critical" : "#normal"));
         w.dispatchEvent(new w.HashChangeEvent("hashchange"));
       }
       if (phase === "s2" && step === "intro") { placeForS2(); }
@@ -1295,8 +1307,8 @@
     phase = "explore"; step = "explore";
     rec.explore = { start: now(), end: null };
     log("explore-start");
-    // 튜토리얼이 안전진단 화면이나 열린 팝오버로 끝났을 수 있다 — 관제 화면을 주의 판으로 다시 연다
-    loadApp(null, "#warning");
+    // 튜토리얼이 안전진단 화면이나 열린 팝오버로 끝났을 수 있다 — 관제 화면을 기본 판(위험 3건 + 주의 여러 건)으로 다시 연다
+    loadApp(null, "#critical");
     $("task").hidden = true; $("runbar").hidden = true;
     $("explorebar").hidden = false;
     clearInterval(exploreTimer);
@@ -1348,10 +1360,11 @@
     }
   }
 
-  // [수행 완료]는 바로 보이지 않는다 — 시작 10초 뒤, 또는 테스트 화면을 3번 누르면 나온다. 나올 때 "바로 누르지 않아도 된다"는 말풍선을 잠깐
+  // [수행 완료]는 바로 보이지 않는다 — 시나리오 1은 시작 5초 뒤, 시나리오 2는 성공했을 때, 시나리오 3은 10초 뒤 또는 테스트 화면을 3번 누르면 나온다. 나올 때 "바로 누르지 않아도 된다"는 말풍선을 잠깐
   var DONE_AFTER = 10000, DONE_CLICKS = 3, doneTimer = null, runClicks = 0, hintTimer = null;
   function armDone() {
     clearTimeout(doneTimer); runClicks = 0;
+    if (curScen().goalOnly) { return; }   // 시나리오 2 — 목표에 닿을 때(watchGoal)만 나온다
     var ms = curScen().doneAfter || DONE_AFTER;   // 시나리오 1 은 시간으로만(클릭으로는 안 나옴)
     doneTimer = setTimeout(function () { revealDone(Math.round(ms / 1000) + "초"); }, ms);
   }
@@ -1404,6 +1417,7 @@
           '<textarea data-a="' + i + '" placeholder="' + (isPick(t.id, i) ? (st.picks && st.picks[i] && st.picks[i].length ? "선택한 화면에 대해 자세한 설명을 기입해 주세요" : "답변 적기 또는 화면에서 눌러 고르기") : "답변 적기") + '" aria-label="문항 ' + (i + 1) + ' 답변">' + esc(st.answers[i] || "") + "</textarea></li>";
       }).join("") + "</ul>" +
       '<div class="task-foot"><span class="grow" id="iv-left"></span>' +
+      (taskIdx > 0 ? '<button type="button" class="btn btn-line" data-act="prev">이전</button>' : "") +
       '<button type="button" class="btn btn-primary" data-act="next" id="iv-next">' +
       (!last ? "다음 TASK" : sc.no < 3 ? "시나리오 " + (sc.no + 1) + "로" : "테스트 마치기") + "</button></div>";
     syncNext();
@@ -1451,6 +1465,7 @@
     var act = b.getAttribute("data-act");
     if (act === "start") { startScenario(sc); }
     else if (act === "next") { if (!b.disabled) { finishTask(sc); } }
+    else if (act === "prev") { prevTask(sc); }
     else if (act === "pick") { startPick(Number(b.getAttribute("data-q"))); }
     else if (act === "unpick") {
       var tq = sc.tasks[taskIdx], sq = rec.scenarios[sc.no].tasks[tq.id], qi2 = Number(b.getAttribute("data-q")), k2 = Number(b.getAttribute("data-k"));
@@ -1558,15 +1573,24 @@
     paintTask();
   });
 
+  // 이전 TASK 로 — 적은 답과 고른 곳은 그대로 보인다. 처음 끝낸 시각·처음 시작한 시각은 그대로 둔다(되돌아와도 시간이 늘지 않게)
+  function prevTask(sc) {
+    if (taskIdx <= 0) { return; }
+    var ta = document.activeElement && document.activeElement.closest && document.activeElement.closest("[data-a]");
+    if (ta) { ta.blur(); }
+    log("task-back", { label: "TASK " + sc.tasks[taskIdx].id + " → TASK " + sc.tasks[taskIdx - 1].id + " 이전으로" });
+    taskIdx--;
+    save(); paintTask();
+  }
   function finishTask(sc) {
     var s = rec.scenarios[sc.no], t = sc.tasks[taskIdx], st = s.tasks[t.id];
     var ta = document.activeElement && document.activeElement.closest && document.activeElement.closest("[data-a]");
     if (ta) { ta.blur(); }
-    st.end = now();
+    if (!st.end) { st.end = now(); }   // 이전으로 돌아갔다 다시 끝내도 처음 끝낸 시각을 지킨다
     log("task-done", { label: "TASK " + t.id });
     if (taskIdx < sc.tasks.length - 1) {
       taskIdx++;
-      s.tasks[sc.tasks[taskIdx].id].start = now();
+      var nx = s.tasks[sc.tasks[taskIdx].id]; if (!nx.start) { nx.start = now(); }
       paintTask();
       return;
     }
@@ -2039,7 +2063,7 @@
   var PHASE_KO = { tutorial: "튜토리얼", explore: "자유 탐색", s1: "시나리오 1", s2: "시나리오 2", s3: "시나리오 3", post: "공통질문", done: "끝" };
   var TYPE_KO = { page: "화면 열림", open: "새 창 대신 이동", click: "클릭", check: "문항 체크", "alert-in": "알림 발생",
     "hello": "인사 카드", "tutorial-start": "튜토리얼 시작", "tutorial-step": "튜토리얼 단계", "tutorial-end": "튜토리얼 끝",
-    "scenario-start": "시나리오 시작", "scenario-end": "시나리오 끝", "task-done": "TASK 완료", "task-skip": "TASK 건너뜀",
+    "scenario-start": "시나리오 시작", "scenario-end": "시나리오 끝", "task-done": "TASK 완료", "task-back": "이전 TASK로", "task-skip": "TASK 건너뜀",
     "run-done": "수행 완료", "done-shown": "수행 완료 버튼 나옴", "pick-start": "화면 고르기 시작", resume: "이어서 시작", unpick: "고른 곳 지움", "detail-open": "알림 상세 처음 엶", goal: "목표 도달", "explore-start": "자유 탐색 시작", "explore-end": "자유 탐색 끝", "s2-early-action": "시나리오 2에서 미리 조치", "post-page": "공통질문 쪽 이동", "mode-view": "모드 보기", "mode-full": "전체 화면 보기", pick: "화면에서 고름", "pick-end": "화면 고르기 끝", "alert-measure": "위험 지점 측정 시작", "post-start": "공통질문 시작", answer: "답변", "card-fold": "카드 접기", "card-open": "카드 펼치기", "card-move": "카드 옮기기", "test-end": "테스트 끝", "test-stop": "테스트 중단" };
   var STAGE_KO = { intro: "설명", run: "수행", task: "인터뷰" };
   function ko(map, k) { return map[k] || k || ""; }
