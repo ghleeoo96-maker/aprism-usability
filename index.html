@@ -57,6 +57,7 @@
   .sv-card { margin: 0 0 12px; padding: 22px 24px; border: 1px solid var(--line); border-radius: 10px; background: var(--card); display: grid; gap: 4px; }
   .sv-card legend { float: left; width: 100%; padding: 0; margin-bottom: 14px; font-size: 16px; line-height: 1.6; }
   .sv-card legend i { font-style: normal; color: var(--red); }
+  .lk-no { display: inline-block; margin-right: 6px; color: var(--blue); font-weight: 800; font-variant-numeric: tabular-nums; }
   .sv-card label { display: flex; align-items: center; gap: 12px; padding: 8px 0; font-size: 16px; cursor: pointer; }
   .sv-card input[type=radio] { width: 20px; height: 20px; margin: 0; accent-color: var(--blue); }
   .sv-etc input[type=text] { flex: 1; border: 0; border-bottom: 1px solid var(--line); font: inherit; padding: 4px 2px; background: none; }
@@ -1636,7 +1637,7 @@
     return '<div class="lk-group" data-g="' + gi + '"><button type="button" class="lk-sum" data-lk-open="' + gi + '"></button><div class="lk-body">' + g.items.map(function (i) {
       var q = LIKERT[i], nums = "", dots = "";
       for (var v = 1; v <= 7; v++) { nums += "<span>" + v + "</span>"; dots += '<label><input type="radio" name="lk' + i + '" value="' + v + '" aria-label="' + v + '점"></label>'; }
-      return '<fieldset class="sv-card" data-q="lk' + i + '"><legend>' + q + ' <i>*</i></legend><div class="lk-scale"><span></span>' + nums + '<span></span>' +
+      return '<fieldset class="sv-card" data-q="lk' + i + '"><legend><span class="lk-no">' + (i + 1) + "/" + LIKERT.length + '</span> ' + q + ' <i>*</i></legend><div class="lk-scale"><span></span>' + nums + '<span></span>' +
         '<span class="lk-end">전혀 그렇지 않다</span>' + dots + '<span class="lk-end">매우 그렇다</span></div><p class="sv-err">필수 질문입니다.</p></fieldset>';
     }).join("") + "</div></div>";
   }).join("");
