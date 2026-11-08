@@ -247,6 +247,14 @@
   .tour-dim { position: absolute; inset: 0; background: rgba(5,8,14,.62); pointer-events: none; }
   .tour-hole { position: absolute; border-radius: 12px; outline: 3px solid #fff; outline-offset: 2px;
     transition: left .25s, top .25s, width .25s, height .25s; pointer-events: none; }
+  /* 번호 표시 — 말풍선의 번호와 화면 위 자리를 이어 준다(marks) */
+  .tour-marks { position: absolute; inset: 0; pointer-events: none; }
+  .tour-mark { position: absolute; border: 2px solid #7fb0ff; border-radius: 10px; box-shadow: 0 0 0 1px rgba(5,8,14,.55); }
+  .tour-mark i, .tour-body .mk { display: inline-grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: var(--blue); color: #fff; font-style: normal; font-size: 14px; font-weight: 800; line-height: 1; }
+  .tour-mark i { position: absolute; left: -2px; top: -2px; transform: translate(-40%, -40%); border: 2px solid #fff; }
+  .tour-body .mk { flex: none; }
+  .tour-body li.has-mk { display: flex; align-items: flex-start; gap: 8px; padding-left: 0; }
+  .tour-body li.has-mk::before { display: none; }
   .tour-pop { position: absolute; width: 400px; background: #fff; color: var(--ink); border-radius: 14px; padding: 20px 22px 18px;
     box-shadow: 0 0 0 3px var(--blue), 0 12px 40px rgba(0,0,0,.4); transition: left .25s, top .25s; }
   .tour-pop h3 { margin: 0 32px 10px 0; font-size: 20px; font-weight: 800; }
@@ -458,6 +466,7 @@
       <div class="tour-dim" id="tour-dim"></div>
       <div class="tour-hole" id="tour-hole"></div>
       <div class="tour-hole" id="tour-hole2" hidden></div>
+      <div class="tour-marks" id="tour-marks"></div>
       <div class="tour-pop" id="tour-pop" role="dialog" aria-labelledby="tour-title">
         <button type="button" class="x" id="tour-x" aria-label="튜토리얼 닫기">×</button>
         <h3 id="tour-title"></h3>
@@ -568,12 +577,16 @@
   }
   // 말풍선 본문 — 한 줄 요약 + 글머리 목록
   function T(lead, items) { return (lead ? "<p>" + lead + "</p>" : "") + "<ul>" + items.map(function (x) { return "<li>" + x + "</li>"; }).join("") + "</ul>"; }
+  // 번호가 붙은 목록 — 말풍선의 번호 ①②③ 이 화면 위 같은 번호 자리(marks)를 가리킨다
+  function TM(items) { return "<ul>" + items.map(function (x, i) { return '<li class="has-mk"><span class="mk">' + (i + 1) + "</span><span>" + x + "</span></li>"; }).join("") + "</ul>"; }
   var TOUR = [
     { sel: ".sb-tabs", title: "미션은 1개의 로봇이 맡은 업무입니다.", text: T("", ["<b>탭을 누르면</b> 그 미션의 진행 상황과 로봇 상태 확인","<b>삼각형</b>이 붙은 탭은 위험 또는 주의 알림 발생"]),
       // 삼각형이 붙은 탭을 실제로 보여 주려고 처음부터 알림이 있는 판(주의)으로 연다. soft — 같은 판을 다시 여는 것뿐이라 [이전] 으로 돌아와도 된다
       soft: true,
       act: function (d, w) { w.history.replaceState(w.history.state, "", w.location.pathname + w.location.search + "#warning"); w.dispatchEvent(new w.HashChangeEvent("hashchange")); return function () { return !!firstWarnRow(d); }; } },
-    { sel: ".right-panel", title: "하나의 미션에는 로봇이 방문하는 여러개의 측정위치로 구성되어 있습니다.", text: T("", ["<b>위쪽</b>은 로봇 상태, 지금 하는 업무와 전체 진행률","<b>아래쪽</b>은 측정 포인트 목록, 번호는 들르는 순서","<b>강조된 칸</b>은 지금 로봇이 있는 지점"]) },
+    { sel: ".right-panel", title: "1개의 미션에 로봇이 측정할 여러 개의 waypoint로 구성되어 있습니다.",
+      marks: [".right-panel .panel-card:not(.is-fill)", ".right-panel .mission-header", ".right-panel .rr-flow", ".right-panel .timeline-item.is-active"],
+      text: TM(["<b>로봇 카드</b>: 이름, 배터리, 통신 같은 로봇 상태","<b>진행 막대</b>: 지금 하는 업무와 전체 진행률","<b>waypoint(지점) 목록</b>: 로봇이 차례로 방문할 곳, 번호는 방문 순서","<b>흰색 칸</b>: 지금 로봇이 있는 waypoint"]) },
     { sel: ".map-panel", pop: [16, 200], title: "발전소의 공간 구조와 설비 위치를 보여 주는 입체 지도입니다.", text: T("", ["로봇의 현재 위치와 이동 경로","<b>숫자</b>는 로봇이 점검하는 지점 번호","<b>빨간 핀</b>은 위험, <b>노란 핀</b>은 주의 알림이 난 위치"]) },
     { sel: ".delta3", rect: [436, 80, 296, 972], title: "Delta는 로봇이 보낸 여러 알림을 모아 지금 상황을 요약하는 AI 도우미입니다.", text: T("", ["먼저 확인할 문제와 그 이유 안내","<b>누르면 대화창</b>이 열림","궁금한 내용 입력 또는 추천 질문 선택","문제의 원인, 위치, 필요한 조치 안내"]),
       act: function (d) { var t = d.querySelector(".delta3 [data-ai-toggle]"); if (t && !d.querySelector(".delta3.is-open")) { t.click(); } return function () { return !!d.querySelector(".delta3.is-open"); }; },
@@ -1189,6 +1202,19 @@
     if (r2) { r = { left: Math.min(r.left, r2.left), top: Math.min(r.top, r2.top), right: Math.max(r.right, r2.right), bottom: Math.max(r.bottom, r2.bottom) }; r.width = r.right - r.left; r.height = r.bottom - r.top; }
     $("tour-title").textContent = s.title;
     $("tour-text").innerHTML = s.text;
+    // marks — 번호 표시. 오른쪽 패널 밖으로 삐져나가는 부분(스크롤로 잘린 목록)은 패널 크기로 자른다
+    var mk = $("tour-marks"); mk.innerHTML = "";
+    if (s.marks && d) {
+      var clip = d.querySelector(s.sel), cb = clip && clip.getBoundingClientRect();
+      s.marks.forEach(function (ms, mi) {
+        var me = d.querySelector(ms), b = me && me.getBoundingClientRect(); if (!b || !b.width) { return; }
+        var l = cb ? Math.max(b.left, cb.left) : b.left, t = cb ? Math.max(b.top, cb.top) : b.top;
+        var rr = cb ? Math.min(b.right, cb.right) : b.right, bb = cb ? Math.min(b.bottom, cb.bottom) : b.bottom;
+        var o = document.createElement("div"); o.className = "tour-mark";
+        o.style.left = (l - 2) + "px"; o.style.top = (t - 2) + "px"; o.style.width = (rr - l + 4) + "px"; o.style.height = (bb - t + 4) + "px";
+        o.innerHTML = "<i>" + (mi + 1) + "</i>"; mk.appendChild(o);
+      });
+    }
     $("tour-cnt").textContent = (tourAt + 1) + "/" + TOUR.length;
     $("tour-prev").hidden = tourAt === 0 || (!!s.act && !s.soft) || (!!TOUR[tourAt - 1].act && !TOUR[tourAt - 1].soft);
     $("tour-next").textContent = tourAt === TOUR.length - 1 ? "시나리오 시작하기" : "다음";
