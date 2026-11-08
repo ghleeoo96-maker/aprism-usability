@@ -253,6 +253,11 @@
   .tour-mark i, .tour-body .mk { display: inline-grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: var(--blue); color: #fff; font-style: normal; font-size: 14px; font-weight: 800; line-height: 1; }
   .tour-mark i { position: absolute; left: -2px; top: -2px; transform: translate(-40%, -40%); border: 2px solid #fff; }
   .tour-body .mk { flex: none; }
+  .tour-cursor { position: absolute; right: 56px; top: 50%; width: 34px; height: 34px; margin-top: -6px; animation: tour-tap 1.4s ease-in-out infinite; }
+  .tour-cursor::before { content: ""; position: absolute; left: -10px; top: -10px; width: 26px; height: 26px; border-radius: 50%; border: 3px solid #7fb0ff; opacity: 0; animation: tour-ring 1.4s ease-out infinite; }
+  .tour-cursor svg { position: relative; display: block; filter: drop-shadow(0 2px 4px rgba(0,0,0,.5)); }
+  @keyframes tour-tap { 0%, 100% { transform: translate(10px, 8px); } 45% { transform: translate(0, 0); } 60% { transform: translate(0, 0) scale(.92); } }
+  @keyframes tour-ring { 0%, 45% { opacity: 0; transform: scale(.4); } 60% { opacity: 1; transform: scale(.8); } 100% { opacity: 0; transform: scale(2); } }
   .tour-body li.has-mk { display: flex; align-items: flex-start; gap: 8px; padding-left: 0; }
   .tour-body li.has-mk::before { display: none; }
   .tour-pop { position: absolute; width: 400px; background: #fff; color: var(--ink); border-radius: 14px; padding: 20px 22px 18px;
@@ -607,15 +612,19 @@
       soft: true,   // 다시 열어도 같은 모습 — [이전] 으로 돌아와도 된다
       act: function (d) { var t = d.querySelector(".delta3 [data-ai-toggle]"); if (t && !d.querySelector(".delta3.is-open")) { t.click(); } return function () { return !!d.querySelector(".delta3.is-open"); }; },
       after: function (d) { var t = d.querySelector(".delta3 [data-ai-toggle]"); if (t && d.querySelector(".delta3.is-open")) { t.click(); } } },
-    { sel: ".map-alert", title: "알림을 누르면 빠르게 조치를 취할 수 있는 창이 열립니다.", text: "<p>더 자세한 정보를 보려면 <b>[진단 상세]</b>를 누르면 됩니다.</p>",
-      act: function (d) { realClick(d, firstWarnRow(d)); return function () { var m = d.querySelector(".map-alert"); return !!m && m.getBoundingClientRect().width > 0; }; } },
+    { sel: ".map-alert", also: ".context-panel .ah-sec:not(.done-sec) .ah-list > *", split: true, title: "알림을 누르면 빠르게 조치를 취할 수 있는 창이 열립니다.",
+      // 번호 1 은 눌러 보이는 알림 한 줄(손가락 표시), 나머지는 열린 창 안의 자리
+      marks: [{ sel: ".context-panel .ah-sec:not(.done-sec) .ah-list > *", free: true, cursor: true }, { sel: [".map-alert .ma-head", ".map-alert .ma-snap"] }, { sel: ".map-alert .ma-act" }, { sel: "[data-ma-more]" }],
+      text: TM(["<b>알림 한 줄을 누르면</b> 이 창이 열림","감지된 <b>위험 내용</b>과 <b>촬영된 사진</b> 확인","<b>조치를 골라</b> 바로 요청","<b>[진단 상세]</b>는 더 자세한 정보를 볼 때 누름"]),
+      again: [800, 2000],   // 사진이 불러와지며 창 크기·자리가 바뀐다 — 안정된 뒤 번호 표시와 비춤 자리를 다시 잰다
+      act: function (d) { realClick(d, firstWarnRow(d)); return function () { var m = d.querySelector(".map-alert"), im = d.querySelector(".map-alert .ma-shot"); return !!m && m.getBoundingClientRect().width > 0 && (!im || im.complete); }; } },
     { sel: "main.sf", pop: "bottom", title: "안전진단 상세 화면에서는 로봇이 감지한 이상징후를 자세히 보고 대응 방법을 정합니다.", text: T("", ["측정 결과","현장 영상","과거 측정 기록","<b>오른쪽</b>에서 조치를 골라 요청"]),
       act: function (d, w) { var a = d.querySelector(".map-alert a[href*='safety-v6']"); w.location.replace(a ? a.href : "safety-v6.html?mission=" + encodeURIComponent(MISSION)); return "load"; } }
   ];
 
   var SCEN = [
     { no: 1, title: "로봇의 업무 파악", ask: "로봇이 어떤 업무를 하고 있는지 화면에서 확인해 주세요!", done: "확인완료", doneAfter: 10000, doneClicks: 0,
-      desc: "당신은 관제 업무를 인계받아 진행하고 있습니다.<br>현재 로봇은 A설비시설 현장에서 [M1 정기 순회 점검] 미션을 수행하고 있습니다.<br>화면을 자유롭게 살펴보고 로봇이 어떤 업무를 하고 있는지 확인해 주세요.",
+      desc: "당신은 관제 업무를 인계받아 진행하고 있습니다.<br>현재 로봇은 [M1 정기 순회 점검] 미션을 수행하고 있습니다.<br>화면을 자유롭게 살펴보고 로봇이 어떤 업무를 하고 있는지 확인해 주세요.",
       tasks: [
         { id: "1-1", qs: ["로봇이 수행 중인 미션의 이름은 무엇인가요?", "로봇은 지금 몇 번 지점에 있나요?"] },
         { id: "1-2", qs: ["임무는 현재 몇% 진행되었나요?", "로봇은 현재 무엇을 하고 있나요?", "그렇게 판단한 화면의 정보는 무엇인가요?"] }
@@ -956,9 +965,10 @@
     w.open = function (url) { log("open", { page: String(url) }); w.location.href = url; return null; };   // 새 창 대신 같은 화면에서
 
     if (/main-v6\.html$/.test(path)) {
-      // 단계는 늘 정상 판(알림 없음, Delta 정상)에서 시작 — 다른 화면에 갔다 오면 주소의 #normal 이 빠진다
+      // 시나리오는 늘 정상 판(알림 없음, Delta 정상)에서 시작 — 다른 화면에 갔다 오면 주소의 #normal 이 빠진다.
+      // 튜토리얼과 자유 탐색은 주의 판을 유지한다(해시가 없으면 관제 화면이 위험 판으로 열려, 안전진단에 갔다 오면 위험 알림이 붙어 보인다)
       if (!w.location.hash) {
-        w.history.replaceState(w.history.state, "", w.location.pathname + w.location.search + "#normal");
+        w.history.replaceState(w.history.state, "", w.location.pathname + w.location.search + ((phase === "tutorial" || phase === "explore") ? "#warning" : "#normal"));
         w.dispatchEvent(new w.HashChangeEvent("hashchange"));
       }
       if (phase === "s2" && step === "intro") { placeForS2(); }
@@ -1191,7 +1201,7 @@
     }
     else { setTimeout(done, wait || 0); }
   }
-  function paintTour() {
+  function paintTour(isAgain) {
     var s = TOUR[tourAt], d = appDoc(), el = d && d.querySelector(s.sel);
     var r = s.rect ? { left: s.rect[0], top: s.rect[1], width: s.rect[2], height: s.rect[3] } :
       el ? el.getBoundingClientRect() : { left: 760, top: 440, width: 400, height: 200 };
@@ -1200,7 +1210,9 @@
     var el2 = s.also && d && d.querySelector(s.also), r2 = el2 && el2.getBoundingClientRect();
     if (r2 && !r2.width) { r2 = null; }
     // 두 자리를 감싸는 사각형 하나로 비춘다(사용자 지시)
-    if (r2) { r = { left: Math.min(r.left, r2.left), top: Math.min(r.top, r2.top), right: Math.max(r.right, r2.right), bottom: Math.max(r.bottom, r2.bottom) }; r.width = r.right - r.left; r.height = r.bottom - r.top; r2 = null; }
+    // split — 멀리 떨어진 두 자리는 합치지 않고 각각 비춘다(알림 한 줄 + 열린 창)
+    if (r2 && !s.split) { r = { left: Math.min(r.left, r2.left), top: Math.min(r.top, r2.top), right: Math.max(r.right, r2.right), bottom: Math.max(r.bottom, r2.bottom) }; r.width = r.right - r.left; r.height = r.bottom - r.top; r2 = null; }
+    if (r2 && s.split) { r2 = { left: r2.left, top: r2.top, width: r2.width, height: r2.height }; }
     var pad = 6, pop = $("tour-pop"), path = "M0 0H1920V1080H0Z";
     [[$("tour-hole"), r], [$("tour-hole2"), r2]].forEach(function (p) {
       var h = p[0], q = p[1];
@@ -1212,20 +1224,28 @@
     });
     $("tour-dim").style.clipPath = "path(evenodd, '" + path + "')";
     // 말풍선 자리는 두 자리를 합친 범위로 잰다
-    if (r2) { r = { left: Math.min(r.left, r2.left), top: Math.min(r.top, r2.top), right: Math.max(r.right, r2.right), bottom: Math.max(r.bottom, r2.bottom) }; r.width = r.right - r.left; r.height = r.bottom - r.top; }
+    if (r2 && !s.split) { r = { left: Math.min(r.left, r2.left), top: Math.min(r.top, r2.top), right: Math.max(r.right, r2.right), bottom: Math.max(r.bottom, r2.bottom) }; r.width = r.right - r.left; r.height = r.bottom - r.top; }
     $("tour-title").textContent = s.title;
     $("tour-text").innerHTML = s.text;
-    // marks — 번호 표시. 오른쪽 패널 밖으로 삐져나가는 부분(스크롤로 잘린 목록)은 패널 크기로 자른다
+    // marks — 번호 표시. 문자열이면 그 자리, {sel:[…]} 이면 여러 자리를 감싼 범위. free 가 아니면 비추는 자리(s.sel) 밖으로 삐져나간 부분은 자른다
     var mk = $("tour-marks"); mk.innerHTML = "";
     if (s.marks && d) {
       var clip = d.querySelector(s.sel), cb = clip && clip.getBoundingClientRect();
       s.marks.forEach(function (ms, mi) {
-        var me = d.querySelector(ms), b = me && me.getBoundingClientRect(); if (!b || !b.width) { return; }
-        var l = cb ? Math.max(b.left, cb.left) : b.left, t = cb ? Math.max(b.top, cb.top) : b.top;
-        var rr = cb ? Math.min(b.right, cb.right) : b.right, bb = cb ? Math.min(b.bottom, cb.bottom) : b.bottom;
+        if (typeof ms === "string") { ms = { sel: ms }; }
+        var sels = [].concat(ms.sel), b = null;
+        sels.forEach(function (q) {
+          var me = d.querySelector(q), mb = me && me.getBoundingClientRect(); if (!mb || !mb.width) { return; }
+          b = b ? { left: Math.min(b.left, mb.left), top: Math.min(b.top, mb.top), right: Math.max(b.right, mb.right), bottom: Math.max(b.bottom, mb.bottom) } : { left: mb.left, top: mb.top, right: mb.right, bottom: mb.bottom };
+        });
+        if (!b) { return; }
+        var c2 = !ms.free && cb;
+        var l = c2 ? Math.max(b.left, cb.left) : b.left, t = c2 ? Math.max(b.top, cb.top) : b.top;
+        var rr = c2 ? Math.min(b.right, cb.right) : b.right, bb = c2 ? Math.min(b.bottom, cb.bottom) : b.bottom;
         var o = document.createElement("div"); o.className = "tour-mark";
         o.style.left = (l - 2) + "px"; o.style.top = (t - 2) + "px"; o.style.width = (rr - l + 4) + "px"; o.style.height = (bb - t + 4) + "px";
-        o.innerHTML = "<i>" + (mi + 1) + "</i>"; mk.appendChild(o);
+        o.innerHTML = "<i>" + (mi + 1) + "</i>" + (ms.cursor ? '<span class="tour-cursor"><svg viewBox="0 0 24 24" width="34" height="34" aria-hidden="true"><path d="M5 3l14 8-6.2 1.7L9.5 19z" fill="#fff" stroke="#16191f" stroke-width="1.6" stroke-linejoin="round"/></svg></span>' : "");
+        mk.appendChild(o);
       });
     }
     $("tour-cnt").textContent = (tourAt + 1) + "/" + TOUR.length;
@@ -1244,7 +1264,12 @@
     if (Array.isArray(s.pop)) { x = s.pop[0]; y = s.pop[1]; }
     pop.style.left = Math.max(16, Math.min(1500, x)) + "px";
     pop.style.top = Math.max(20, Math.min(1060 - H, y)) + "px";
-    log("tutorial-step", { label: (tourAt + 1) + " " + s.title });
+    if (!isAgain) { log("tutorial-step", { label: (tourAt + 1) + " " + s.title }); }
+    // again — 화면이 늦게 자리를 잡는 단계는 정해 둔 시간 뒤에 한 번 더 잰다
+    if (!isAgain && s.again) {
+      var at = tourAt;
+      s.again.forEach(function (ms) { setTimeout(function () { if (tourAt === at && !tourBusy && !$("tour").hidden) { paintTour(true); } }, ms); });
+    }
   }
   $("tour-next").addEventListener("click", function () {
     if (tourBusy) { return; }
