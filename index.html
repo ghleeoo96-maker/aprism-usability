@@ -594,7 +594,7 @@
   // 번호가 붙은 목록 — 말풍선의 번호 ①②③ 이 화면 위 같은 번호 자리(marks)를 가리킨다
   function TM(items) { return "<ul>" + items.map(function (x, i) { return '<li class="has-mk"><span class="mk">' + (i + 1) + "</span><span>" + x + "</span></li>"; }).join("") + "</ul>"; }
   var TOUR = [
-    { sel: ".sb-tabs", title: "미션은 1개의 로봇이 맡은 업무입니다.", text: T("", ["<b>탭을 누르면</b> 그 미션의 진행 상황과 로봇 상태 확인","<b>삼각형</b>이 붙은 탭은 위험 또는 주의 알림 발생"]),
+    { sel: ".sb-tabs", title: "미션은 1개의 로봇이 맡은 업무입니다.", text: T("", ["<b>탭을 누르면</b> 그 미션의 진행 상황과 로봇 상태 확인 가능","위험/주의 알림 발생 시 <b>삼각형</b> 아이콘 추가됨"]),
       // 삼각형이 붙은 탭을 실제로 보여 주려고 처음부터 알림이 있는 판(주의)으로 연다. soft — 같은 판을 다시 여는 것뿐이라 [이전] 으로 돌아와도 된다
       soft: true,
       act: function (d, w) {
