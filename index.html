@@ -1334,7 +1334,7 @@
         return '<li><div class="qt"><span class="n">' + (i + 1) + '</span><span>' + q + "</span></div>" +
           // 고르기 문항은 [화면에서 눌러 고르기] 와 고른 곳을 먼저, 답변 적기는 그 아래
           (isPick(t.id, i) ? '<button type="button" class="btn btn-line pick-btn is-first" data-act="pick" data-q="' + i + '">화면에서 눌러 고르기</button>' + pickChips(st, i) : "") +
-          '<textarea data-a="' + i + '" placeholder="' + (isPick(t.id, i) ? "답변 적기(화면에서 고르기만 해도 됩니다)" : "답변 적기") + '" aria-label="문항 ' + (i + 1) + ' 답변">' + esc(st.answers[i] || "") + "</textarea></li>";
+          '<textarea data-a="' + i + '" placeholder="' + (isPick(t.id, i) ? (st.picks && st.picks[i] && st.picks[i].length ? "선택한 화면에 대해 자세한 설명을 기입해 주세요" : "답변 적기(화면에서 고르기만 해도 됩니다)") : "답변 적기") + '" aria-label="문항 ' + (i + 1) + ' 답변">' + esc(st.answers[i] || "") + "</textarea></li>";
       }).join("") + "</ul>" +
       '<div class="task-foot"><span class="grow" id="iv-left"></span>' +
       '<button type="button" class="btn btn-primary" data-act="next" id="iv-next">' +
@@ -1594,7 +1594,7 @@
         var lb = k ? k + " 고르기" : "왼쪽 화면에서 고르기";
         return '<button type="button" class="btn btn-line pick-btn is-first" data-op-pick="' + i + '" data-kind="' + k + '" data-label="' + lb + '">' + lb + "</button>";
       }).join("") + '</div><div class="pick-chips" id="op-chips' + i + '"></div>' : "") +
-      '<textarea class="sv-ta" name="op' + i + '" rows="3" placeholder="' + (openOpt(i) ? "답변 적기(선택)" : "답변 적기") + (OPEN_Q[i][2] ? "(화면에서 고르기만 해도 됩니다)" : "") + '"></textarea>' +
+      '<textarea class="sv-ta" name="op' + i + '" rows="3" data-ph="' + (openOpt(i) ? "답변 적기(선택)" : "답변 적기") + (OPEN_Q[i][2] ? "(화면에서 고르기만 해도 됩니다)" : "") + '" placeholder="' + (openOpt(i) ? "답변 적기(선택)" : "답변 적기") + (OPEN_Q[i][2] ? "(화면에서 고르기만 해도 됩니다)" : "") + '"></textarea>' +
       '<p class="sv-err">필수 질문입니다.</p></fieldset>';
   }).join("");
 
@@ -1612,6 +1612,8 @@
   }
   function paintOpChips(i) {
     var el = $("op-chips" + i); if (!el) { return; }
+    var ta = document.querySelector('#openq textarea[name="op' + i + '"]');
+    if (ta) { ta.placeholder = (opPicks[i] && opPicks[i].length) ? "선택한 화면에 대해 자세한 설명을 기입해 주세요" : ta.getAttribute("data-ph"); }
     el.innerHTML = (opPicks[i] || []).map(function (p, k) {
       return '<span class="pick-chip"><b>' + (k + 1) + "</b>" + (p.kind ? "<em>" + esc(p.kind) + "</em> " : "") + esc(pickName(p)) + '<button type="button" data-op-unpick="' + i + '" data-k="' + k + '" aria-label="지우기">×</button></span>';
     }).join("");
