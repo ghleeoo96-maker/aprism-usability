@@ -1372,8 +1372,11 @@
     clearTimeout(doneTimer);
     $("rb-done").hidden = false;
     $("rb-done").classList.remove("is-new"); void $("rb-done").offsetWidth; $("rb-done").classList.add("is-new");
-    $("rb-hint").hidden = false;
-    clearTimeout(hintTimer); hintTimer = setTimeout(function () { $("rb-hint").hidden = true; }, 6000);
+    // "바로 누르지 않아도 됩니다" 안내는 시나리오 2에서 뺀다 — 성공하면 바로 [확인완료]를 누르면 된다
+    if (!curScen().goalOnly) {
+      $("rb-hint").hidden = false;
+      clearTimeout(hintTimer); hintTimer = setTimeout(function () { $("rb-hint").hidden = true; }, 6000);
+    }
     log("done-shown", { label: "수행 완료 버튼 나옴(" + why + ")" });
   }
   function paintTask() {
