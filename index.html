@@ -618,8 +618,24 @@
       marks: [{ sel: ".context-panel .ah-sec:not(.done-sec) .ah-list > *", free: true, cursor: true }, { sel: [".map-alert .ma-head", ".map-alert .ma-snap", ".map-alert .ma-act"] }, { sel: "[data-ma-more]" }],
       text: TM(["<b>알림 한 줄을 누르면</b> 이 창이 열림","감지된 <b>위험 내용</b>과 <b>촬영된 사진</b>을 확인하고, <b>조치를 골라</b> 바로 요청","<b>[진단 상세]</b>는 더 자세한 정보를 볼 때 누름"]),
       again: [800, 2000],   // 사진이 불러와지며 창 크기·자리가 바뀐다 — 안정된 뒤 번호 표시와 비춤 자리를 다시 잰다
-      act: function (d) { realClick(d, firstWarnRow(d)); return function () { var m = d.querySelector(".map-alert"), im = d.querySelector(".map-alert .ma-shot"); return !!m && m.getBoundingClientRect().width > 0 && (!im || im.complete); }; } },
+      soft: true,   // [이전] 으로 돌아올 수 있다 — 안전진단 화면에서 돌아오면 관제 화면을 다시 열고 알림을 다시 누른다
+      // 뒤로(이전) 갈 때만 알림 창을 닫는다 — 앞으로(안전진단) 갈 때는 열린 알림의 주소를 써야 한다
+      after: function (d, back) { if (!back) { return; } var c = d.querySelector(".map-alert [data-ma-close]"); if (c) { c.click(); } },
+      act: function (d, w) {
+        var ready = function (dd) { var m = dd.querySelector(".map-alert"), im = dd.querySelector(".map-alert .ma-shot"); return !!m && m.getBoundingClientRect().width > 0 && (!im || im.complete); };
+        if (/main-v6/.test(w.location.pathname)) { realClick(d, firstWarnRow(d)); return function () { return ready(d); }; }
+        // 안전진단 화면에서 돌아왔다 — 관제 화면(주의 판)을 새로 열고, 알림 한 줄이 보이면 눌러 창을 연다
+        loadApp(null, "#warning");
+        var clicked = false;
+        return function () {
+          var dd = appDoc(), ww = frame.contentWindow;
+          if (!dd || !ww || !/main-v6/.test(ww.location.pathname)) { return false; }
+          if (!clicked) { if (firstWarnRow(dd)) { clicked = true; autoClick = true; realClick(dd, firstWarnRow(dd)); autoClick = false; } return false; }
+          return ready(dd);
+        };
+      } },
     { sel: "main.sf", pop: "bottom", title: "안전진단 상세 화면에서는 로봇이 감지한 이상징후를 자세히 보고 대응 방법을 정합니다.", text: T("", ["측정 결과","현장 영상","과거 측정 기록","<b>오른쪽</b>에서 조치를 골라 요청"]),
+      soft: true,
       act: function (d, w) { var a = d.querySelector(".map-alert a[href*='safety-v6']"); w.location.replace(a ? a.href : "safety-v6.html?mission=" + encodeURIComponent(MISSION)); return "load"; } }
   ];
 
@@ -1180,7 +1196,7 @@
   function goTour(i) {
     var prev = TOUR[tourAt], d = appDoc();
     autoClick = true;
-    if (prev && prev.after && d && i !== tourAt) { try { prev.after(d); } catch (e) { } }
+    if (prev && prev.after && d && i !== tourAt) { try { prev.after(d, i < tourAt); } catch (e) { } }   // 두 번째 값 — 이전 단계로 돌아가는 중인가
     autoClick = false;
     tourAt = i;
     var s = TOUR[i];
