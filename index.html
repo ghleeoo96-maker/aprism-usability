@@ -1379,6 +1379,8 @@
     }
     log("done-shown", { label: "수행 완료 버튼 나옴(" + why + ")" });
   }
+  var savedTaskScroll = null;
+  var lastTaskKey = "";   // 마지막으로 그린 TASK — 같은 TASK 를 다시 그릴 때 스크롤을 지키려고
   function paintTask() {
     var sc = curScen();
     $("task-title").textContent = "시나리오" + sc.no + " - " + sc.title;
@@ -1389,6 +1391,7 @@
     var body = $("task-body");
     $("dim").hidden = step !== "intro";
     if (step === "intro") {
+      lastTaskKey = "";
       body.innerHTML = '<p class="desc">' + sc.desc + "</p>" +
         '<div class="task-foot"><span class="grow">설명을 읽은 뒤 시작합니다.</span>' +
         '<button type="button" class="btn btn-primary" data-act="start">시나리오 ' + sc.no + " 시작</button></div>";
@@ -1396,6 +1399,10 @@
     }
     var t = sc.tasks[taskIdx], st = rec.scenarios[sc.no].tasks[t.id];
     var last = taskIdx === sc.tasks.length - 1;
+    // 같은 TASK 를 다시 그리는 경우(3·4번 같은 문항을 누를 때) — 맨 위로 튀지 않게 스크롤 자리를 그대로 두고, 첫 답변 칸으로 포커스도 옮기지 않는다
+    var taskKey = sc.no + "/" + t.id, keepView = lastTaskKey === taskKey, keepTop = keepView ? (savedTaskScroll !== null ? savedTaskScroll : body.scrollTop) : 0;
+    savedTaskScroll = null;
+    lastTaskKey = taskKey;
     body.innerHTML = '<p class="task-no">TASK ' + t.id + " " + (t.title || "인터뷰") + "</p>" + (t.lead ? '<p class="task-lead">' + t.lead + "</p>" : "") +
       '<ul class="qa">' + t.qs.map(function (q, i) {
         var ch = choicesOf(t.id, i);
@@ -1424,6 +1431,7 @@
       (!last ? "다음 TASK" : sc.no < 3 ? "시나리오 " + (sc.no + 1) + "로" : "테스트 마치기") + "</button></div>";
     syncNext();
     clampCard();
+    if (keepView) { body.scrollTop = keepTop; return; }
     var first = body.querySelector("textarea");
     if (first) { setTimeout(function () { first.focus(); }, 50); }
   }
@@ -1526,6 +1534,7 @@
     var mx = (PICK_MAX[t.id] || {})[q] || 0, had = (st.picks[q] || []).length;
     pick.max = mx ? Math.max(0, mx - had) : 0;
     $("pick-say").textContent = mx ? "눈에 들어온 순서대로 " + mx + "곳까지 눌러 주세요." + (had ? " (이미 " + had + "곳 고름)" : "") : "판단에 쓴 정보를 화면에서 눌러 주세요. 여러 곳을 눌러도 됩니다.";
+    savedTaskScroll = $("task-body").scrollTop;   // 카드를 숨기면 스크롤이 0 으로 돌아간다 — 돌아와서 되살린다
     $("task").hidden = true;
     $("pickbar").hidden = false; $("pickmarks").innerHTML = ""; $("pick-n").textContent = "";
     $("pick-cover").hidden = false;
@@ -1687,7 +1696,7 @@
     ["필요한 조치를 찾거나 실행하면서 망설였던 순간이 있었나요? 이유는 무엇인가요?", false, true],
     ["실제 관제 업무에서 사용한다면 추가로 필요한 정보나 기능은 무엇일까요?", false, false],
     ["가장 유용했던 부분과 가장 먼저 개선해야 할 부분을 각각 말씀해 주세요.", false, ["유용했던 부분", "개선해야 할 부분"]],
-    ["자유롭게 의견을 남겨주세요.", false, false]
+    ["자유롭게 의견을 남겨주세요.", true, false]
   ];
   var OPEN = OPEN_Q.map(function (x) { return x[0]; });
   function openOpt(i) { return OPEN_Q[i][1]; }
