@@ -436,7 +436,7 @@
       '<div class="rp-noprint row" style="margin:0"><a class="btn-text rec-home" href="#">← 처음으로</a>' +
       (U.SHEET_LINK ? '<a class="btn btn-line" href="' + U.SHEET_LINK + '" target="_blank" rel="noopener" style="text-decoration:none;color:inherit">구글 시트 열기</a>' : '') +
       '<button type="button" class="btn btn-line" onclick="window.print()">인쇄, PDF</button></div></div>' +
-      '<p class="rp-meta">에이프리즘 관제 화면 v6, 미션 정기 순회 점검. 참가자 ' + R.people.length + "명. 만든 시각 " + stamp + "</p>" +
+      '<p class="rp-meta">에이프리즘 관제 화면 v6, 미션 정기 순회 점검. 참가자 ' + R.people.length + "명. 만든 시각 " + stamp + (LOADING && !isSample ? ' <b style="color:#2a78d6">구글 시트에서 다른 노트북 기록을 불러오는 중</b>' : "") + "</p>" +
       '<div class="rp-view rp-noprint" role="tablist"><button type="button" role="tab" data-view="sum" aria-selected="' + (VIEW.mode === "sum") + '">요약</button>' +
       '<button type="button" role="tab" data-view="one" aria-selected="' + (VIEW.mode === "one") + '">개별</button></div>' +
       '<div id="rp-sum"' + (VIEW.mode === "sum" ? "" : " hidden") + ">" +
@@ -685,6 +685,7 @@
   sec.addEventListener("mouseleave", function () { tip.hidden = true; });
 
   // 주소 — #report · #report-sample. 그 밖이면 처음 화면
+  var LOADING = false;   // 구글 시트에서 불러오는 동안 머리에 안내
   function route() {
     var h = location.hash.replace("#", "");
     var m = /^report(-sample)?(?:-(p\d\d))?$/.exec(h);
@@ -692,16 +693,10 @@
       var sampleOn = !!m[1];
       if (m[2]) { VIEW.mode = "one"; VIEW.p = m[2].toUpperCase(); } else { VIEW.mode = "sum"; }
       render(sampleOn); U.show("report"); window.scrollTo(0, 0);
-      if (!sampleOn && U.pull) { U.pull(function () { render(false); }); }
+      if (!sampleOn && U.pull) { LOADING = true; render(false); U.pull(function () { LOADING = false; render(false); }); }
     }
-    else if (!document.getElementById("report").hidden) { U.show("home"); }
+    else if (!document.getElementById("report").hidden && location.hash !== "#results") { U.show("home"); }
   }
   window.addEventListener("hashchange", route);
   route();
-  // 리포트가 열려 있는 동안 30초마다 구글 시트에서 다시 합친다. 새 기록이 있을 때만 다시 그린다
-  setInterval(function () {
-    if (document.hidden || document.getElementById("report").hidden || !U.pull) { return; }
-    if (!/^#report(?:-p\d\d)?$/.test(location.hash)) { return; }
-    U.pull(function (added) { if (added) { render(false); } });
-  }, 30000);
 })();

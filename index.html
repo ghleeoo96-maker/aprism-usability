@@ -835,8 +835,11 @@
     $("task").hidden = true;
     openPost();
   }
-  $("to-results").addEventListener("click", function () { show("results"); renderResults(); pullCloud(renderResults); });
-  $("back-home").addEventListener("click", function () { show("home"); renderHome(); });
+  // 기록 화면은 주소 #results — 새로고침하면 다시 열리고 구글 시트에서 바로 다시 불러온다
+  function openResults() { show("results"); renderResults(); pullCloud(renderResults); }
+  $("to-results").addEventListener("click", function () { if (location.hash === "#results") { openResults(); } else { location.hash = "results"; } });
+  $("back-home").addEventListener("click", function () { history.replaceState(null, "", location.pathname + location.search); show("home"); renderHome(); });
+  window.addEventListener("hashchange", function () { if (location.hash === "#results") { openResults(); } });
 
   function show(which) {
     ["home", "survey", "post", "results", "test", "report"].forEach(function (k) { if ($(k)) { $(k).hidden = k !== which; } });
@@ -2202,11 +2205,6 @@
       if (then) { then(added); }
     }).catch(function () { pulling = false; $("io-note").textContent = "구글 시트에 연결하지 못해 이 노트북 기록만 보입니다"; if (then) { then(0); } });
   }
-  // 기록 화면이 열려 있는 동안 30초마다 구글 시트에서 다시 합친다(다른 노트북 기록이 바로 보이게). 새 기록이 있을 때만 다시 그린다
-  setInterval(function () {
-    if (document.hidden || $("results").hidden) { return; }
-    pullCloud(function (added) { if (added) { renderResults(); } });
-  }, 30000);
   $("dl-toggle").addEventListener("click", function () {
     var open = $("dl-panel").hidden;
     $("dl-panel").hidden = !open; this.setAttribute("aria-expanded", String(open)); this.textContent = open ? "내려받기 ▴" : "내려받기 ▾";
@@ -2219,6 +2217,7 @@
   renderHome();
   paintCloud();
   Cloud.flush();
+  if (location.hash === "#results") { openResults(); }
   // 미리보기 — 주소 끝 #tour 로 열면 바로 튜토리얼부터. 기록에 남기지 않는다
   if (location.hash === "#tour") { history.replaceState(null, "", location.pathname); startTest("미리보기", null, true); }
 })();
