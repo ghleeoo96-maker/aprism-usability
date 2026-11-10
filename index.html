@@ -2181,8 +2181,10 @@
 
   // 온라인 백업 버튼 — 지금 보내기, 시트의 기록 전부 가져와 합치기, 이 브라우저에만 쓸 주소 넣기
   // 구글 시트의 기록을 이 브라우저로 합친다 — 기록 화면, 리포트를 열 때 자동(노트북 4대 기록이 한곳에 보이게). 시험 기록(TEST…)은 뺀다
+  var pulling = false;
   function pullCloud(then) {
-    if (!Cloud.url()) { if (then) { then(); } return; }
+    if (!Cloud.url() || pulling) { if (then) { then(0); } return; }
+    pulling = true;
     $("io-note").textContent = "구글 시트에서 다른 노트북 기록을 불러오는 중";
     Cloud.jsonp({ action: "list" }, 60000).then(function (got) {
       var ids = {}, added = 0;
@@ -2196,9 +2198,15 @@
       DB.attempts.sort(function (a, b) { return a.startedAt - b.startedAt; });
       save(true); paintCloud();
       $("io-note").textContent = added ? "구글 시트에서 기록 " + added + "건을 새로 합쳤습니다" : "";
-      if (then) { then(); }
-    }).catch(function () { $("io-note").textContent = "구글 시트에 연결하지 못해 이 노트북 기록만 보입니다"; if (then) { then(); } });
+      pulling = false;
+      if (then) { then(added); }
+    }).catch(function () { pulling = false; $("io-note").textContent = "구글 시트에 연결하지 못해 이 노트북 기록만 보입니다"; if (then) { then(0); } });
   }
+  // 기록 화면이 열려 있는 동안 30초마다 구글 시트에서 다시 합친다(다른 노트북 기록이 바로 보이게). 새 기록이 있을 때만 다시 그린다
+  setInterval(function () {
+    if (document.hidden || $("results").hidden) { return; }
+    pullCloud(function (added) { if (added) { renderResults(); } });
+  }, 30000);
   $("dl-toggle").addEventListener("click", function () {
     var open = $("dl-panel").hidden;
     $("dl-panel").hidden = !open; this.setAttribute("aria-expanded", String(open)); this.textContent = open ? "내려받기 ▴" : "내려받기 ▾";

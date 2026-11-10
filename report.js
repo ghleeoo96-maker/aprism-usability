@@ -241,10 +241,12 @@
         ["현장 작업자 위치", "조치 이력", "알림 소리"],
         ["Delta 요약이 유용, 지도 번호는 개선 필요", "알림 상세가 유용, 글씨 크기 개선", "한눈에 보이는 진행률이 유용"],
         ["", "전체적으로 깔끔하다", ""]];
-      var opk = (U.OPEN_PICK || []).map(function (on) {
+      var opk = (U.OPEN_PICK || []).map(function (on, qi) {
         if (!on || rnd() < 0.4) { return []; }
         var ar = pick(["최신 알림", "Delta", "설비 배치도", "미션 진행 지점 목록"]), xy = spot("s2", { area: ar });
-        return [{ area: ar, label: ar, x: xy[0], y: xy[1] }];
+        var one = { area: ar, label: ar, x: xy[0], y: xy[1] };
+        if (qi === 6) { var ar2 = pick(["최신 알림", "Delta", "설비 배치도", "미션 진행 지점 목록"]), xy2 = spot("s2", { area: ar2 }); one.kind = "유용했던 부분"; return [one, { area: ar2, label: ar2, x: xy2[0], y: xy2[1], kind: "개선해야 할 부분" }]; }
+        return [one];
       });
       a.post = { openPicks: opk, open: OPA.map(function (o) { return pick(o); }), mode: pick(["블랙 모드", "블랙 모드", "화이트 모드", "상관없다", ""]), likert: [5, 4, 4, 5, 5, 3, 5, 6, 5, 5].map(function (m) { return Math.max(1, Math.min(7, m + Math.round((rnd() + rnd() - 1) * 2))); }), start: t, answeredAt: t + 120000 };
       a.endedAt = t;
@@ -394,7 +396,8 @@
     var Q = U.OPEN || [];
     return '<div class="rp-qa">' + Q.map(function (q, i) {
       var list = R.people.map(function (a) { return [a.participant, a.post && a.post.open ? a.post.open[i] : ""]; }).filter(function (x) { return x[1] && String(x[1]).trim(); });
-      var shot = U.OPEN_PICK && U.OPEN_PICK[i] ? '<div class="pick-sum"><p class="cm-cap">화면에서 고른 곳 — 숫자는 참가자 번호</p>' + pickShot("op", R.people.map(function (a) { return { who: a.participant, list: openPicksOf(a, i) }; }), "cm-scr pick-big") + "</div>" : "";
+      var og = R.people.map(function (a) { return { who: a.participant, list: openPicksOf(a, i) }; });
+      var shot = U.OPEN_PICK && U.OPEN_PICK[i] ? '<div class="pick-sum"><p class="cm-cap">화면에서 고른 곳 — 숫자는 참가자 번호' + pickLegend(og) + "</p>" + pickShot("op", og, "cm-scr pick-big") + "</div>" : "";
       return "<details><summary><em>" + (i + 1) + "</em>" + esc(q) + ' <span style="color:#8a919e;font-weight:600">답변 ' + list.length + "</span></summary>" + shot + "<ul>" +
         list.map(function (x) { return "<li><b>" + x[0] + "</b><span>" + esc(x[1]) + "</span></li>"; }).join("") + "</ul></details>";
     }).join("") + "</div>";
@@ -510,14 +513,23 @@
   // 고른 곳 그림 — one: 한 사람(고른 순서 1, 2, 3), all: 여러 사람(점에 참가자 번호)
   function picksOf(a, id, i) { var s0 = a.scenarios[id.charAt(0)], t = s0 && s0.tasks[id]; return t && t.picks && t.picks[i] || []; }
   function openPicksOf(a, i) { return a.post && a.post.openPicks && a.post.openPicks[i] || []; }
+  var PICK_GOOD = "#2a78d6", PICK_BAD = "#e8590c";
+  // 유용/개선처럼 고르기가 둘인 문항이면 범례
+  function pickLegend(groups) {
+    var has = groups.some(function (gr) { return gr.list.some(function (p) { return p.kind; }); });
+    if (!has) { return ""; }
+    var dot = function (c) { return '<i style="display:inline-block;width:12px;height:12px;border-radius:50%;background:' + c + ';vertical-align:-1px;margin:0 6px 0 12px"></i>'; };
+    return dot(PICK_GOOD) + "유용했던 부분" + dot(PICK_BAD) + "개선해야 할 부분";
+  }
   function pickShot(bg, groups, cls) {
     var g = "";
     groups.forEach(function (gr) {
       gr.list.forEach(function (p, k) {
         if (p.x == null) { return; }
         var label = gr.who ? gr.who.slice(1) : String(k + 1);
-        var tip = esc((gr.who ? gr.who + "  " : (k + 1) + "번째  ") + (U.pickName ? U.pickName(p) : p.area || ""));
-        g += '<g data-tip="' + tip + '"><circle cx="' + p.x + '" cy="' + p.y + '" r="30" fill="#2a78d6" stroke="#fff" stroke-width="5"/>' +
+        var bad = /개선/.test(p.kind || "");
+        var tip = esc((gr.who ? gr.who + "  " : (k + 1) + "번째  ") + (p.kind ? "[" + p.kind + "] " : "") + (U.pickName ? U.pickName(p) : p.area || ""));
+        g += '<g data-tip="' + tip + '"><circle cx="' + p.x + '" cy="' + p.y + '" r="30" fill="' + (bad ? PICK_BAD : PICK_GOOD) + '" stroke="#fff" stroke-width="5"/>' +
           '<text x="' + p.x + '" y="' + (p.y + 9) + '" text-anchor="middle" font-size="26" font-weight="800" fill="#fff">' + label + "</text></g>";
       });
     });
@@ -627,7 +639,7 @@
       return "<tr><td>" + q[0] + '</td><td class="wrap">' + (q[1] + 1) + ". " + esc(q[2]) + '</td><td class="wrap">' + esc(U.answerOf(a, q[0], q[1])) + "</td></tr>";
     }).join("") + "</table>";
     var lk = (U.LIKERT || []).map(function (q, k) { var v = post.likert ? post.likert[k] : ""; return '<div class="one-lk"><span>' + esc(lkName(q)) + "</span><b>" + (v || "-") + "</b></div>"; }).join("");
-    var op = (U.OPEN || []).map(function (q, k) { var v = post.open ? post.open[k] : ""; var pk = openPicksOf(a, k); return v && String(v).trim() ? "<tr><td class=\"wrap\">" + (k + 1) + ". " + esc(q) + '</td><td class="wrap">' + esc(v) + (pk.length ? pickShot("op", [{ list: pk }]) : "") + "</td></tr>" : ""; }).join("");
+    var op = (U.OPEN || []).map(function (q, k) { var v = post.open ? post.open[k] : ""; var pk = openPicksOf(a, k); return v && String(v).trim() ? "<tr><td class=\"wrap\">" + (k + 1) + ". " + esc(q) + '</td><td class="wrap">' + esc(v) + (pk.length ? '<p class="cm-cap">' + pickLegend([{ list: pk }]) + "</p>" + pickShot("op", [{ list: pk }]) : "") + "</td></tr>" : ""; }).join("");
     box.innerHTML = nav +
       '<div class="rp-sec" style="margin-top:20px"><h2>' + a.participant + "</h2>" + head + "</div>" +
       '<div class="rp-sec"><h2>시나리오</h2><div class="rp-card" style="padding:0;overflow:auto">' + sc + "</div></div>" +
@@ -686,4 +698,10 @@
   }
   window.addEventListener("hashchange", route);
   route();
+  // 리포트가 열려 있는 동안 30초마다 구글 시트에서 다시 합친다. 새 기록이 있을 때만 다시 그린다
+  setInterval(function () {
+    if (document.hidden || document.getElementById("report").hidden || !U.pull) { return; }
+    if (!/^#report(?:-p\d\d)?$/.test(location.hash)) { return; }
+    U.pull(function (added) { if (added) { render(false); } });
+  }, 30000);
 })();
